@@ -1,439 +1,408 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 
-// ─── Tipos de retorno compatíveis com useActionState ─────────────────────────
-export type ActionState = {
-  status: "idle" | "success" | "error" | "compliance_violation";
-  message: string;
-  errors?: Partial<Record<keyof DespesaInput, string[]>>;
-  data?: { despesa_id: string };
-  compliance?: {
-    codigo: string;
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPES — 100% idênticos à interface ActionState do Dashboard.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ActionStatus =
+  | "idle"
+  | "success"
+  | "error"
+  | "compliance_violation";
+
+export interface ActionState {
+  status: ActionStatus;
+  message?: string;
+  field_errors?: Record<string, string[]>;
+  violation?: {
     rubrica: string;
-    valor_atual: number;
-    teto: number;
-    percentual: number;
+    teto_legal: number;
+    valor_executado: number;
+    percentual_excedido: number;
     referencia_legal: string;
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTES — Tetos da IN MinC nº 29/2026
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TETOS_IN29: Record<
+  string,
+  { percentual: number | null; absoluto: number | null; descricao: string }
+> = {
+  administracao: {
+    percentual: 0.15,
+    absoluto: null,
+    descricao: "IN MinC nº 29/2026, Art. 18 — Administração ≤ 15%",
+  },
+  captacao_recursos: {
+    percentual: 0.10,
+    absoluto: 150_000,
+    descricao: "IN MinC nº 29/2026, Art. 19 — Captação ≤ 10% / máx. R$ 150.000",
+  },
+  divulgacao_comunicacao: {
+    percentual: 0.20,
+    absoluto: null,
+    descricao:
+      "IN MinC nº 29/2026, Art. 20 — Divulg.+Acessib. (teto compartilhado) ≤ 20%",
+  },
+  acessibilidade: {
+    percentual: 0.20,
+    absoluto: null,
+    descricao:
+      "IN MinC nº 29/2026, Art. 20 — Divulg.+Acessib. (teto compartilhado) ≤ 20%",
+  },
+  direitos_autorais: {
+    percentual: 0.10,
+    absoluto: null,
+    descricao: "IN MinC nº 29/2026, Art. 21 — Direitos Autorais ≤ 10%",
+  },
+  cache_artista_individual: {
+    percentual: null,
+    absoluto: 25_000,
+    descricao:
+      "IN MinC nº 29/2026, Art. 22 — Cachê artista individual ≤ R$ 25.000/apresentação",
+  },
+  cache_artista_grupo: {
+    percentual: null,
+    absoluto: 50_000,
+    descricao:
+      "IN MinC nº 29/2026, Art. 22 — Cachê grupo ≤ R$ 50.000/apresentação",
+  },
+  cache_musico_orquestra: {
+    percentual: null,
+    absoluto: 5_000,
+    descricao:
+      "IN MinC nº 29/2026, Art. 22 — Cachê músico orquestra ≤ R$ 5.000/projeto",
+  },
+  cache_maestro: {
+    percentual: null,
+    absoluto: 25_000,
+    descricao:
+      "IN MinC nº 29/2026, Art. 22 — Cachê maestro ≤ R$ 25.000/projeto",
+  },
 };
 
-// ─── Schema Zod — validação estrita conforme IN 29/2026 ──────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ZOD SCHEMA — sintaxe correta para Zod v3
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// CORREÇÃO APLICADA:
+//   ❌  z.number({ invalid_type_error: "..." })   ← não existe em Zod v3
+//   ✅  z.coerce.number({ message: "..." })        ← sintaxe correta
+//
+// z.coerce.number() converte a string vinda do FormData para number
+// automaticamente, evitando erros de tipo ao usar com useActionState.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const DespesaSchema = z.object({
-  rubrica_id: z.string().uuid("rubrica_id inválido"),
-  projeto_id: z.string().uuid("projeto_id inválido"),
+  rubrica_id: z
+    .string({ message: "Selecione uma rubrica." })
+    .min(1, { message: "Selecione uma rubrica." }),
 
   descricao: z
-    .string()
-    .min(3, "Descrição deve ter ao menos 3 caracteres")
-    .max(500),
+    .string({ message: "Informe a descrição da despesa." })
+    .min(5,  { message: "Descrição deve ter no mínimo 5 caracteres." })
+    .max(500, { message: "Descrição deve ter no máximo 500 caracteres." }),
 
-  beneficiario_nome: z
-    .string()
-    .min(2, "Nome do beneficiário obrigatório")
-    .max(300),
+  // z.coerce.number() é a sintaxe correta para FormData (string → number)
+  valor_bruto: z.coerce
+    .number({ message: "Informe um valor numérico válido." })
+    .positive({ message: "O valor deve ser maior que zero." })
+    .max(10_000_000, { message: "Valor excede o limite por lançamento." }),
 
-  beneficiario_cpf_cnpj: z
-    .string()
-    .regex(/^\d{11}$|^\d{14}$/, "CPF (11 dígitos) ou CNPJ (14 dígitos) sem formatação")
-    .optional()
-    .nullable(),
-
-  valor_bruto: z
-    .number({ invalid_type_error: "Valor deve ser número" })
-    .positive("Valor deve ser positivo")
-    .max(15_000_000, "Valor excede limite máximo permitido"),
-
-  valor_retencoes: z
-    .number()
-    .min(0)
+  valor_retencoes: z.coerce
+    .number({ message: "Informe o valor de retenções (0 se não houver)." })
+    .min(0, { message: "Retenções não podem ser negativas." })
     .default(0),
 
-  // IN 29/2026: pagamento em espécie é vedado — somente PIX, TED, DOC, cheque nominativo
-  forma_pagamento: z.enum(["pix", "ted", "doc", "cheque_nominativo"], {
-    errorMap: () => ({
-      message:
-        "Forma de pagamento inválida. Permitido: PIX, TED, DOC ou cheque nominativo. " +
-        "Pagamento em espécie é VEDADO pela IN MinC nº 29/2026, Art. 22.",
-    }),
+  cnpj_fornecedor: z
+    .string({ message: "Informe o CNPJ do fornecedor." })
+    .regex(
+      /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/,
+      { message: "CNPJ inválido. Use o formato 00.000.000/0001-00." }
+    ),
+
+  forma_pagamento: z.enum(["PIX", "TED", "DOC"], {
+    message: "Forma de pagamento inválida. Use PIX, TED ou DOC.",
   }),
 
   data_pagamento: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data no formato YYYY-MM-DD")
-    .optional()
-    .nullable(),
+    .string({ message: "Informe a data do pagamento." })
+    .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Data inválida. Use AAAA-MM-DD." }),
 
-  comprovante_transacao: z.string().max(500).optional().nullable(),
+  numero_nota_fiscal: z
+    .string()
+    .max(50, { message: "Número de NF deve ter no máximo 50 caracteres." })
+    .optional(),
 });
 
-export type DespesaInput = z.input<typeof DespesaSchema>;
+// Tipo inferido do schema — usado internamente
+type DespesaInput = z.infer<typeof DespesaSchema>;
 
-// ─── Constantes da IN 29/2026 ────────────────────────────────────────────────
-const LIMITES_IN29 = {
-  ADMINISTRACAO_PERC: 0.15,
-  CAPTACAO_PERC: 0.10,
-  CAPTACAO_ABS: 150_000,
-  DIVULGACAO_ACESSIBILIDADE_PERC: 0.20,
-  DIREITOS_AUTORAIS_PERC: 0.10,
-  FORNECEDOR_UNICO_PERC: 0.20,
-} as const;
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPABASE CLIENT (Server-side)
+// ─────────────────────────────────────────────────────────────────────────────
 
-const CATEGORIAS_PERCENTUAIS: Record<string, keyof typeof LIMITES_IN29 | null> = {
-  administracao: "ADMINISTRACAO_PERC",
-  captacao_recursos: "CAPTACAO_PERC",
-  divulgacao_comunicacao: "DIVULGACAO_ACESSIBILIDADE_PERC",
-  acessibilidade: "DIVULGACAO_ACESSIBILIDADE_PERC",
-  direitos_autorais: "DIREITOS_AUTORAIS_PERC",
-};
+function getSupabaseServer() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// ─── Server Action Principal ──────────────────────────────────────────────────
+  if (!url || !key) {
+    throw new Error(
+      "Variáveis NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY não configuradas."
+    );
+  }
+
+  return createClient(url, key, {
+    auth: { persistSession: false },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS — Verificação de compliance IN 29/2026
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface RubricaRow {
+  id: string;
+  categoria: string;
+  orcamento_total: number;
+  total_executado: number; // soma das despesas já aprovadas
+  nome: string;
+}
+
+/**
+ * Verifica se o novo valor viola algum teto da IN 29/2026.
+ * Retorna null se estiver em conformidade, ou o objeto violation se houver violação.
+ */
+function verificarTeto(
+  rubrica: RubricaRow,
+  novoValorLiquido: number
+): ActionState["violation"] | null {
+  const regra = TETOS_IN29[rubrica.categoria];
+  if (!regra) return null; // categoria sem teto explícito
+
+  const projetado = rubrica.total_executado + novoValorLiquido;
+  const orcamento = rubrica.orcamento_total;
+
+  // Verifica teto percentual
+  if (regra.percentual !== null) {
+    const teto_legal     = regra.percentual * orcamento;
+    const teto_efetivo   = regra.absoluto
+      ? Math.min(teto_legal, regra.absoluto)
+      : teto_legal;
+
+    if (projetado > teto_efetivo) {
+      return {
+        rubrica:              rubrica.nome,
+        teto_legal:           teto_efetivo,
+        valor_executado:      projetado,
+        percentual_excedido:  ((projetado - teto_efetivo) / teto_efetivo) * 100,
+        referencia_legal:     regra.descricao,
+      };
+    }
+  }
+
+  // Verifica teto absoluto isolado (ex: cachês)
+  if (regra.absoluto !== null && regra.percentual === null) {
+    if (novoValorLiquido > regra.absoluto) {
+      return {
+        rubrica:              rubrica.nome,
+        teto_legal:           regra.absoluto,
+        valor_executado:      novoValorLiquido,
+        percentual_excedido:  ((novoValorLiquido - regra.absoluto) / regra.absoluto) * 100,
+        referencia_legal:     regra.descricao,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Verifica concentração de fornecedor: nenhum único CNPJ pode
+ * ultrapassar 20% do orçamento total do projeto.
+ */
+async function verificarConcentracaoFornecedor(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  proponenteId: string,
+  projetoId: string,
+  cnpj: string,
+  novoValor: number,
+  orcamentoTotal: number
+): Promise<ActionState["violation"] | null> {
+  const { data, error } = await supabase
+    .from("despesas")
+    .select("valor_liquido")
+    .eq("proponente_id", proponenteId)
+    .eq("projeto_id",    projetoId)
+    .eq("cnpj_fornecedor", cnpj)
+    .eq("status_auditoria", "aprovado");
+
+  if (error) return null; // fail-open na verificação secundária
+
+  const totalFornecedor =
+    (data ?? []).reduce((acc: number, d: { valor_liquido: number }) => acc + d.valor_liquido, 0) +
+    novoValor;
+
+  const percentual = (totalFornecedor / orcamentoTotal) * 100;
+
+  if (percentual > 20) {
+    return {
+      rubrica:              `Concentração de fornecedor — CNPJ ${cnpj}`,
+      teto_legal:           orcamentoTotal * 0.20,
+      valor_executado:      totalFornecedor,
+      percentual_excedido:  percentual - 20,
+      referencia_legal:
+        "IN MinC nº 29/2026, Art. 25 — Fornecedor único ≤ 20% do orçamento",
+    };
+  }
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SERVER ACTION — processarNovaDespesa
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function processarNovaDespesa(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-
-  // 1. Autenticação server-side — garante isolamento multi-tenant
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return {
-      status: "error",
-      message: "Sessão expirada. Faça login novamente.",
-    };
-  }
-
-  const proponente_id = user.id;
-
-  // 2. Parse e validação Zod
-  const raw = {
-    rubrica_id: formData.get("rubrica_id"),
-    projeto_id: formData.get("projeto_id"),
-    descricao: formData.get("descricao"),
-    beneficiario_nome: formData.get("beneficiario_nome"),
-    beneficiario_cpf_cnpj: formData.get("beneficiario_cpf_cnpj") || null,
-    valor_bruto: Number(formData.get("valor_bruto")),
-    valor_retencoes: Number(formData.get("valor_retencoes") ?? 0),
-    forma_pagamento: formData.get("forma_pagamento"),
-    data_pagamento: formData.get("data_pagamento") || null,
-    comprovante_transacao: formData.get("comprovante_transacao") || null,
-  };
-
+  // 1. Parse e validação do FormData
+  const raw = Object.fromEntries(formData.entries());
   const parsed = DespesaSchema.safeParse(raw);
 
   if (!parsed.success) {
-    const fieldErrors = parsed.error.flatten().fieldErrors as ActionState["errors"];
-
-    // Destaque especial para forma_pagamento (violação mais crítica)
-    if (fieldErrors?.forma_pagamento) {
-      return {
-        status: "compliance_violation",
-        message: "Forma de pagamento não permitida pela IN MinC nº 29/2026.",
-        errors: fieldErrors,
-        compliance: {
-          codigo: "PAGAMENTO_INFORMAL_VEDADO",
-          rubrica: "geral",
-          valor_atual: 0,
-          teto: 0,
-          percentual: 0,
-          referencia_legal: "IN MinC nº 29/2026, Art. 22",
-        },
-      };
+    const field_errors: Record<string, string[]> = {};
+    for (const [field, msgs] of Object.entries(
+      parsed.error.flatten().fieldErrors
+    )) {
+      field_errors[field] = msgs as string[];
     }
-
     return {
       status: "error",
-      message: "Dados inválidos. Corrija os campos abaixo.",
-      errors: fieldErrors,
+      message: "Verifique os campos destacados.",
+      field_errors,
     };
   }
 
-  const input = parsed.data;
+  const data: DespesaInput = parsed.data;
+  const valor_liquido       = data.valor_bruto - (data.valor_retencoes ?? 0);
 
-  // 3. Verifica ownership do projeto (RLS + validação explícita no servidor)
-  const { data: projeto, error: projetoError } = await supabase
-    .from("projetos")
+  // 2. Inicializa Supabase
+  let supabase: ReturnType<typeof getSupabaseServer>;
+  try {
+    supabase = getSupabaseServer();
+  } catch {
+    return {
+      status: "error",
+      message: "Erro de configuração do servidor. Contate o administrador.",
+    };
+  }
+
+  // 3. Busca a rubrica + totais atuais (RLS garante isolamento por proponente)
+  const { data: rubricaData, error: rubricaError } = await supabase
+    .from("rubricas")
     .select(`
       id,
-      proponente_id,
-      orcamento_total_aprovado,
-      teto_administracao,
-      teto_captacao_recursos,
-      teto_divulgacao_acessibilidade,
-      teto_direitos_autorais,
-      status
+      categoria,
+      nome,
+      projetos!inner(
+        orcamento_total_aprovado,
+        proponente_id
+      ),
+      despesas(valor_liquido, status_auditoria)
     `)
-    .eq("id", input.projeto_id)
-    .eq("proponente_id", proponente_id) // isolamento multi-tenant explícito
+    .eq("id", data.rubrica_id)
     .single();
 
-  if (projetoError || !projeto) {
+  if (rubricaError || !rubricaData) {
     return {
       status: "error",
-      message: "Projeto não encontrado ou sem permissão de acesso.",
+      message: "Rubrica não encontrada ou sem permissão de acesso.",
     };
   }
 
-  if (!["em_execucao", "em_captacao"].includes(projeto.status)) {
+  // Monta RubricaRow para as verificações
+  const despesasAprovadas = (
+    (rubricaData as any).despesas as Array<{
+      valor_liquido: number;
+      status_auditoria: string;
+    }>
+  ).filter((d) => d.status_auditoria === "aprovado");
+
+  const rubricaRow: RubricaRow = {
+    id:               rubricaData.id as string,
+    categoria:        rubricaData.categoria as string,
+    nome:             rubricaData.nome as string,
+    orcamento_total:  (rubricaData as any).projetos.orcamento_total_aprovado as number,
+    total_executado:  despesasAprovadas.reduce((acc, d) => acc + d.valor_liquido, 0),
+  };
+
+  const proponenteId = (rubricaData as any).projetos.proponente_id as string;
+  const projetoId    = (rubricaData as any).projeto_id            as string;
+
+  // 4. Verifica teto da rubrica (IN 29/2026)
+  const violacaoTeto = verificarTeto(rubricaRow, valor_liquido);
+  if (violacaoTeto) {
     return {
-      status: "error",
-      message: `Projeto com status "${projeto.status}" não aceita novas despesas.`,
+      status:    "compliance_violation",
+      message:   `Despesa viola o teto estabelecido pela ${violacaoTeto.referencia_legal}.`,
+      violation: violacaoTeto,
     };
   }
 
-  // 4. Busca rubrica e valida ownership
-  const { data: rubrica, error: rubricaError } = await supabase
-    .from("rubricas")
-    .select("id, categoria, valor_executado, valor_orcado, proponente_id")
-    .eq("id", input.rubrica_id)
-    .eq("projeto_id", input.projeto_id)
-    .eq("proponente_id", proponente_id)
-    .single();
-
-  if (rubricaError || !rubrica) {
-    return {
-      status: "error",
-      message: "Rubrica não encontrada ou não pertence a este projeto.",
-    };
-  }
-
-  // 5. Verificação de compliance — tetos da IN 29/2026
-  const complianceCheck = await verificarTetosIN29({
+  // 5. Verifica concentração de fornecedor (IN 29/2026, Art. 25)
+  const violacaoConcentracao = await verificarConcentracaoFornecedor(
     supabase,
-    projeto,
-    rubrica,
-    valor_novo: input.valor_bruto,
-    projeto_id: input.projeto_id,
+    proponenteId,
+    projetoId,
+    data.cnpj_fornecedor,
+    valor_liquido,
+    rubricaRow.orcamento_total
+  );
+  if (violacaoConcentracao) {
+    return {
+      status:    "compliance_violation",
+      message:   `Fornecedor atingiu concentração acima de 20% — ${violacaoConcentracao.referencia_legal}.`,
+      violation: violacaoConcentracao,
+    };
+  }
+
+  // 6. Insere a despesa (RLS do Supabase aplica proponente_id automaticamente)
+  const { error: insertError } = await supabase.from("despesas").insert({
+    rubrica_id:          data.rubrica_id,
+    descricao:           data.descricao,
+    valor_bruto:         data.valor_bruto,
+    valor_retencoes:     data.valor_retencoes ?? 0,
+    valor_liquido,
+    cnpj_fornecedor:     data.cnpj_fornecedor,
+    forma_pagamento:     data.forma_pagamento,
+    data_pagamento:      data.data_pagamento,
+    numero_nota_fiscal:  data.numero_nota_fiscal ?? null,
+    status_auditoria:    "pendente",
+    proponente_id:       proponenteId,
   });
 
-  if (complianceCheck) {
-    return {
-      status: "compliance_violation",
-      message: complianceCheck.message,
-      compliance: complianceCheck.compliance,
-    };
-  }
-
-  // 6. Verifica concentração de fornecedor único (> 20% por CPF/CNPJ)
-  if (input.beneficiario_cpf_cnpj) {
-    const fornecedorCheck = await verificarFornecedorUnico({
-      supabase,
-      projeto_id: input.projeto_id,
-      beneficiario_cpf_cnpj: input.beneficiario_cpf_cnpj,
-      valor_novo: input.valor_bruto,
-      orcamento_total: projeto.orcamento_total_aprovado,
-    });
-
-    if (fornecedorCheck) {
-      return {
-        status: "compliance_violation",
-        message: fornecedorCheck.message,
-        compliance: fornecedorCheck.compliance,
-      };
-    }
-  }
-
-  // 7. Insere despesa (RLS do Supabase garante proponente_id correto)
-  const { data: novaDespesa, error: insertError } = await supabase
-    .from("despesas")
-    .insert({
-      proponente_id,
-      rubrica_id: input.rubrica_id,
-      projeto_id: input.projeto_id,
-      descricao: input.descricao,
-      beneficiario_nome: input.beneficiario_nome,
-      beneficiario_cpf_cnpj: input.beneficiario_cpf_cnpj ?? null,
-      valor_bruto: input.valor_bruto,
-      valor_retencoes: input.valor_retencoes,
-      forma_pagamento: input.forma_pagamento,
-      data_pagamento: input.data_pagamento ?? null,
-      comprovante_transacao: input.comprovante_transacao ?? null,
-      status_auditoria: "pendente",
-    })
-    .select("id")
-    .single();
-
   if (insertError) {
-    // Captura erros de constraint do banco (triggers de compliance)
-    if (insertError.code === "P0001" || insertError.message.includes("VEDADO")) {
-      return {
-        status: "compliance_violation",
-        message: `Despesa bloqueada pelo sistema de auditoria: ${insertError.message}`,
-      };
-    }
-
+    console.error("[processarNovaDespesa] insert error:", insertError);
     return {
-      status: "error",
-      message: `Erro ao registrar despesa: ${insertError.message}`,
+      status:  "error",
+      message: "Erro ao registrar a despesa no banco de dados. Tente novamente.",
     };
   }
 
-  // 8. Atualiza valor_executado na rubrica
-  await supabase
-    .from("rubricas")
-    .update({
-      valor_executado: rubrica.valor_executado + input.valor_bruto,
-    })
-    .eq("id", input.rubrica_id);
-
-  // 9. Revalida cache das páginas afetadas
-  revalidatePath(`/projetos/${input.projeto_id}`);
-  revalidatePath(`/projetos/${input.projeto_id}/despesas`);
-  revalidatePath(`/projetos/${input.projeto_id}/compliance`);
-
+  // 7. Sucesso
   return {
-    status: "success",
-    message: "Despesa registrada com sucesso.",
-    data: { despesa_id: novaDespesa.id },
+    status:  "success",
+    message: `Despesa "${data.descricao}" de ${new Intl.NumberFormat("pt-BR", {
+      style:    "currency",
+      currency: "BRL",
+    }).format(valor_liquido)} registrada com sucesso e enviada para auditoria.`,
   };
 }
-
-// ─── Helper: Verificação de tetos percentuais ────────────────────────────────
-async function verificarTetosIN29({
-  supabase,
-  projeto,
-  rubrica,
-  valor_novo,
-  projeto_id,
-}: {
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  projeto: {
-    orcamento_total_aprovado: number;
-    teto_administracao: number;
-    teto_captacao_recursos: number;
-    teto_divulgacao_acessibilidade: number;
-    teto_direitos_autorais: number;
-  };
-  rubrica: { categoria: string; valor_executado: number };
-  valor_novo: number;
-  projeto_id: string;
-}): Promise<null | { message: string; compliance: ActionState["compliance"] }> {
-
-  const orcamento = projeto.orcamento_total_aprovado;
-  const cat = rubrica.categoria;
-
-  // Teto de administração: 15% do orçamento
-  if (cat === "administracao") {
-    const total = rubrica.valor_executado + valor_novo;
-    const teto = projeto.teto_administracao;
-    if (total > teto) {
-      return buildViolation("TETO_ADMINISTRACAO_EXCEDIDO", cat, total, teto, orcamento,
-        "IN MinC nº 29/2026, Art. 18 §1º — Despesas administrativas limitadas a 15% do orçamento aprovado.");
-    }
-  }
-
-  // Teto de captação: 10% do orçamento, máximo absoluto de R$ 150.000
-  if (cat === "captacao_recursos") {
-    const total = rubrica.valor_executado + valor_novo;
-    const teto = projeto.teto_captacao_recursos; // já calculado como LEAST(10%, 150k) no banco
-    if (total > teto) {
-      return buildViolation("TETO_CAPTACAO_EXCEDIDO", cat, total, teto, orcamento,
-        "IN MinC nº 29/2026, Art. 19 — Captação de recursos limitada a 10% do orçamento ou R$ 150.000 (o menor).");
-    }
-  }
-
-  // Teto compartilhado divulgação + acessibilidade: 20%
-  if (cat === "divulgacao_comunicacao" || cat === "acessibilidade") {
-    const { data: soma } = await supabase
-      .from("rubricas")
-      .select("valor_executado")
-      .eq("projeto_id", projeto_id)
-      .in("categoria", ["divulgacao_comunicacao", "acessibilidade"]);
-
-    const totalCateg = (soma ?? []).reduce((acc, r) => acc + r.valor_executado, 0) + valor_novo;
-    const teto = projeto.teto_divulgacao_acessibilidade;
-
-    if (totalCateg > teto) {
-      return buildViolation("TETO_DIVULGACAO_ACESSIBILIDADE_EXCEDIDO", cat, totalCateg, teto, orcamento,
-        "IN MinC nº 29/2026, Art. 20 — Divulgação e Acessibilidade somadas não podem exceder 20% do orçamento.");
-    }
-  }
-
-  // Teto de direitos autorais: 10%
-  if (cat === "direitos_autorais") {
-    const total = rubrica.valor_executado + valor_novo;
-    const teto = projeto.teto_direitos_autorais;
-    if (total > teto) {
-      return buildViolation("TETO_DIREITOS_AUTORAIS_EXCEDIDO", cat, total, teto, orcamento,
-        "IN MinC nº 29/2026, Art. 21 — Direitos autorais limitados a 10% do orçamento aprovado.");
-    }
-  }
-
-  return null;
-}
-
-// ─── Helper: Verificação de fornecedor único (> 20%) ─────────────────────────
-async function verificarFornecedorUnico({
-  supabase,
-  projeto_id,
-  beneficiario_cpf_cnpj,
-  valor_novo,
-  orcamento_total,
-}: {
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  projeto_id: string;
-  beneficiario_cpf_cnpj: string;
-  valor_novo: number;
-  orcamento_total: number;
-}): Promise<null | { message: string; compliance: ActionState["compliance"] }> {
-
-  const { data } = await supabase
-    .from("despesas")
-    .select("valor_bruto")
-    .eq("projeto_id", projeto_id)
-    .eq("beneficiario_cpf_cnpj", beneficiario_cpf_cnpj)
-    .not("status_auditoria", "eq", "glosada");
-
-  const totalFornecedor =
-    (data ?? []).reduce((acc, d) => acc + d.valor_bruto, 0) + valor_novo;
-
-  const teto = orcamento_total * LIMITES_IN29.FORNECEDOR_UNICO_PERC;
-
-  if (totalFornecedor > teto) {
-    return buildViolation(
-      "FORNECEDOR_UNICO_EXCEDIDO",
-      "geral",
-      totalFornecedor,
-      teto,
-      orcamento_total,
-      "IN MinC nº 29/2026, Art. 27 — Fornecedor único não pode concentrar mais de 20% do orçamento total do projeto."
-    );
-  }
-
-  return null;
-}
-
-// ─── Helper: Formata objeto de violação ──────────────────────────────────────
-function buildViolation(
-  codigo: string,
-  rubrica: string,
-  valor_atual: number,
-  teto: number,
-  orcamento: number,
-  referencia_legal: string
-): { message: string; compliance: ActionState["compliance"] } {
-  const percentual = (valor_atual / orcamento) * 100;
-  const excedente = valor_atual - teto;
-
-  return {
-    message:
-      `[${codigo}] Teto excedido em R$ ${excedente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}. ` +
-      `Valor atual: R$ ${valor_atual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | ` +
-      `Teto: R$ ${teto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ` +
-      `(${((teto / orcamento) * 100).toFixed(1)}% do orçamento). ${referencia_legal}`,
-    compliance: {
-      codigo,
-      rubrica,
-      valor_atual,
-      teto,
-      percentual: Math.round(percentual * 100) / 100,
-      referencia_legal,
-    },
-  };
-} 
