@@ -13,13 +13,11 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { processarNovaDespesa } from "@/app/actions/processarNovaDespesa";
-import type { ActionState } from "@/app/actions/processarNovaDespesa";
+import { processarNovaDespesa, type ActionState } from "@/app/actions/processarNovaDespesa";
 import type { DashboardData } from "@/app/actions/getDashboardData";
 
 type DashboardProps = {
   initialData: DashboardData;
-  action?: typeof processarNovaDespesa;
 };
 
 const INITIAL_STATE: ActionState = {
@@ -57,10 +55,10 @@ function AlertIcon({ nivel }: { nivel: "info" | "aviso" | "critico" | "bloqueant
   return <Clock3 className="h-4 w-4 text-slate-600" />;
 }
 
-export default function Dashboard({ initialData, action = processarNovaDespesa }: DashboardProps) {
+export default function Dashboard({ initialData }: DashboardProps) {
   const [data] = useState<DashboardData>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
+  const [state, formAction, isPending] = useActionState(processarNovaDespesa, INITIAL_STATE);
 
   const executionProgress = useMemo(() => {
     const base = data.valorCaptado > 0 ? data.valorCaptado : data.orcamentoTotalAprovado;
@@ -217,9 +215,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                           <span className="text-[11px] uppercase tracking-wide text-slate-500">{item.nivel}</span>
                         </div>
                         <p className="mt-1 text-sm text-slate-600">{item.mensagem}</p>
-                        {item.referencia_legal ? (
-                          <p className="mt-2 text-xs text-slate-500">{item.referencia_legal}</p>
-                        ) : null}
+                        {item.referencia_legal ? <p className="mt-2 text-xs text-slate-500">{item.referencia_legal}</p> : null}
                         <p className="mt-2 text-xs text-slate-500">{new Date(item.criado_em).toLocaleString("pt-BR")}</p>
                       </div>
                     </div>
