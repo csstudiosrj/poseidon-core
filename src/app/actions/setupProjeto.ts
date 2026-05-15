@@ -16,9 +16,6 @@ export type ActionState = {
   };
 };
 
-const INITIAL_STATE: ActionState = { status: "idle" };
-export default INITIAL_STATE;
-
 function parseMoney(value: FormDataEntryValue | null): number {
   if (typeof value !== "string") return NaN;
   const normalized = value.replace(/\./g, "").replace(",", ".").trim();
