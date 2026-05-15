@@ -37,8 +37,8 @@ const percent = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 1,
 });
 
-function statusClasses(status: "ok" | "warning" | "blocked") {
-  if (status === "blocked") return "border-red-200 bg-red-50 text-red-700";
+function statusClasses(status: "ok" | "warning" | "critical") {
+  if (status === "critical") return "border-red-200 bg-red-50 text-red-700";
   if (status === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
@@ -64,7 +64,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
   const summary = useMemo(() => {
     const warnings = data.rubricas.filter((item) => item.status === "warning").length;
-    const blocked = data.rubricas.filter((item) => item.status === "blocked").length;
+    const blocked = data.rubricas.filter((item) => item.status === "critical").length;
     return { warnings, blocked };
   }, [data.rubricas]);
 
@@ -148,7 +148,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-slate-900">{rubrica.descricao}</h3>
                       <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClasses(rubrica.status)}`}>
-                        {rubrica.status === "blocked" ? "Bloqueada" : rubrica.status === "warning" ? "Atenção" : "OK"}
+                        {rubrica.status === "critical" ? "Bloqueada" : rubrica.status === "warning" ? "Atenção" : "OK"}
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
@@ -164,7 +164,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
                 <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className={`h-full rounded-full ${rubrica.status === "blocked" ? "bg-red-500" : rubrica.status === "warning" ? "bg-amber-500" : "bg-emerald-500"}`}
+                    className={`h-full rounded-full ${rubrica.status === "critical" ? "bg-red-500" : rubrica.status === "warning" ? "bg-amber-500" : "bg-emerald-500"}`}
                     style={{ width: `${Math.min(rubrica.progresso, 100)}%` }}
                   />
                 </div>
@@ -236,7 +236,11 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 <h2 className="text-lg font-semibold text-slate-900">Nova Despesa</h2>
                 <p className="text-sm text-slate-500">Preencha os dados para validar compliance e bloqueios.</p>
               </div>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -245,7 +249,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
               <input type="hidden" name="projeto_id" value={data.projetoId} />
 
               <div className="space-y-2">
-                <label htmlFor="rubrica_id" className="text-sm font-medium text-slate-700">Rubrica</label>
+                <label htmlFor="rubrica_id" className="text-sm font-medium text-slate-700">
+                  Rubrica
+                </label>
                 <select
                   id="rubrica_id"
                   name="rubrica_id"
@@ -262,7 +268,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="descricao" className="text-sm font-medium text-slate-700">Descrição</label>
+                <label htmlFor="descricao" className="text-sm font-medium text-slate-700">
+                  Descrição
+                </label>
                 <input
                   id="descricao"
                   name="descricao"
@@ -274,7 +282,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="beneficiario_nome" className="text-sm font-medium text-slate-700">Beneficiário</label>
+                  <label htmlFor="beneficiario_nome" className="text-sm font-medium text-slate-700">
+                    Beneficiário
+                  </label>
                   <input
                     id="beneficiario_nome"
                     name="beneficiario_nome"
@@ -285,7 +295,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="beneficiario_cpf_cnpj" className="text-sm font-medium text-slate-700">CPF/CNPJ</label>
+                  <label htmlFor="beneficiario_cpf_cnpj" className="text-sm font-medium text-slate-700">
+                    CPF/CNPJ
+                  </label>
                   <input
                     id="beneficiario_cpf_cnpj"
                     name="beneficiario_cpf_cnpj"
@@ -298,7 +310,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="valor_bruto" className="text-sm font-medium text-slate-700">Valor bruto</label>
+                  <label htmlFor="valor_bruto" className="text-sm font-medium text-slate-700">
+                    Valor bruto
+                  </label>
                   <input
                     id="valor_bruto"
                     name="valor_bruto"
@@ -312,7 +326,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="valor_retencoes" className="text-sm font-medium text-slate-700">Retenções</label>
+                  <label htmlFor="valor_retencoes" className="text-sm font-medium text-slate-700">
+                    Retenções
+                  </label>
                   <input
                     id="valor_retencoes"
                     name="valor_retencoes"
@@ -329,7 +345,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="forma_pagamento" className="text-sm font-medium text-slate-700">Forma de pagamento</label>
+                  <label htmlFor="forma_pagamento" className="text-sm font-medium text-slate-700">
+                    Forma de pagamento
+                  </label>
                   <select
                     id="forma_pagamento"
                     name="forma_pagamento"
@@ -345,7 +363,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="data_pagamento" className="text-sm font-medium text-slate-700">Data de pagamento</label>
+                  <label htmlFor="data_pagamento" className="text-sm font-medium text-slate-700">
+                    Data de pagamento
+                  </label>
                   <input
                     id="data_pagamento"
                     name="data_pagamento"
@@ -357,7 +377,9 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="comprovante_transacao" className="text-sm font-medium text-slate-700">Comprovante / ID da transação</label>
+                <label htmlFor="comprovante_transacao" className="text-sm font-medium text-slate-700">
+                  Comprovante / ID da transação
+                </label>
                 <input
                   id="comprovante_transacao"
                   name="comprovante_transacao"
