@@ -20,9 +20,7 @@ type DashboardProps = {
   initialData: DashboardData;
 };
 
-const INITIAL_STATE: ActionState = {
-  status: "idle",
-};
+const INITIAL_STATE: ActionState = { status: "idle" };
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -35,24 +33,53 @@ const percent = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 1,
 });
 
-function statusClasses(status: "ok" | "warning" | "critical") {
-  if (status === "critical") return "border-red-200 bg-red-50 text-red-700";
-  if (status === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+function rubricaBadgeClass(status: "ok" | "warning" | "critical") {
+  if (status === "critical") return "ds-badge ds-badge-error";
+  if (status === "warning") return "ds-badge ds-badge-warn";
+  return "ds-badge ds-badge-ok";
 }
 
-function alertClasses(nivel: "info" | "aviso" | "critico" | "bloqueante") {
-  if (nivel === "bloqueante") return "border-red-300 bg-red-50";
-  if (nivel === "critico") return "border-orange-300 bg-orange-50";
-  if (nivel === "aviso") return "border-amber-300 bg-amber-50";
-  return "border-slate-200 bg-slate-50";
+function progressFillClass(status: "ok" | "warning" | "critical") {
+  if (status === "critical") return "ds-progress-fill ds-progress-fill-error";
+  if (status === "warning") return "ds-progress-fill ds-progress-fill-warn";
+  return "ds-progress-fill";
+}
+
+function alertContainerClass(nivel: "info" | "aviso" | "critico" | "bloqueante") {
+  if (nivel === "bloqueante") return "border-[rgba(255,77,106,.25)] bg-[rgba(255,77,106,.07)]";
+  if (nivel === "critico") return "border-[rgba(255,180,0,.25)] bg-[rgba(255,180,0,.08)]";
+  if (nivel === "aviso") return "border-[rgba(0,229,255,.22)] bg-[rgba(0,229,255,.05)]";
+  return "border-[var(--color-ds-border)] bg-[var(--color-ds-surface-2)]";
 }
 
 function AlertIcon({ nivel }: { nivel: "info" | "aviso" | "critico" | "bloqueante" }) {
-  if (nivel === "bloqueante") return <ShieldAlert className="h-4 w-4 text-red-600" />;
-  if (nivel === "critico") return <AlertTriangle className="h-4 w-4 text-orange-600" />;
-  if (nivel === "aviso") return <Bell className="h-4 w-4 text-amber-600" />;
-  return <Clock3 className="h-4 w-4 text-slate-600" />;
+  if (nivel === "bloqueante") return <ShieldAlert className="h-4 w-4 text-[var(--color-ds-error)]" />;
+  if (nivel === "critico") return <AlertTriangle className="h-4 w-4 text-[var(--color-ds-warning)]" />;
+  if (nivel === "aviso") return <Bell className="h-4 w-4 text-[var(--color-ds-cyan)]" />;
+  return <Clock3 className="h-4 w-4 text-[var(--color-ds-text-muted)]" />;
+}
+
+function MetricCard({
+  label,
+  value,
+  meta,
+  icon,
+}: {
+  label: string;
+  value: string;
+  meta: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="ds-card p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-[var(--color-ds-text-muted)]">{label}</span>
+        <div className="text-[var(--color-ds-text-faint)]">{icon}</div>
+      </div>
+      <p className="mt-3 text-2xl font-semibold text-[var(--color-ds-text)] ds-mono">{value}</p>
+      <p className="mt-2 text-xs text-[var(--color-ds-text-muted)]">{meta}</p>
+    </div>
+  );
 }
 
 export default function Dashboard({ initialData }: DashboardProps) {
@@ -73,72 +100,48 @@ export default function Dashboard({ initialData }: DashboardProps) {
   }, [data.rubricas]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Valor captado</span>
-            <BadgeDollarSign className="h-4 w-4 text-slate-400" />
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.valorCaptado)}</p>
-          <p className="mt-2 text-xs text-slate-500">Projeto {data.projetoId}</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Executado</span>
-            <ArrowUpRight className="h-4 w-4 text-slate-400" />
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.valorExecutado)}</p>
-          <p className="mt-2 text-xs text-slate-500">{percent.format(executionProgress)}% da base financeira</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Saldo disponível</span>
-            <Wallet className="h-4 w-4 text-slate-400" />
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.saldoConta)}</p>
-          <p className="mt-2 text-xs text-slate-500">Status do projeto: {data.status}</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Risco</span>
-            <ShieldAlert className="h-4 w-4 text-slate-400" />
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-900">{data.riscoLabel}</p>
-          <p className="mt-2 text-xs text-slate-500">{percent.format(data.riscoPercentual)}% do limite crítico</p>
-        </div>
+        <MetricCard
+          label="Valor captado"
+          value={currency.format(data.valorCaptado)}
+          meta={`Projeto ${data.projetoId}`}
+          icon={<BadgeDollarSign className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Executado"
+          value={currency.format(data.valorExecutado)}
+          meta={`${percent.format(executionProgress)}% da base financeira`}
+          icon={<ArrowUpRight className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Saldo disponível"
+          value={currency.format(data.saldoConta)}
+          meta={`Status do projeto: ${data.status}`}
+          icon={<Wallet className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Risco"
+          value={data.riscoLabel}
+          meta={`${percent.format(data.riscoPercentual)}% do limite crítico`}
+          icon={<ShieldAlert className="h-4 w-4" />}
+        />
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Teto Administração</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetoAdministracao)}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Teto Captação</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetoCaptacao)}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Teto Divulgação + Acessibilidade</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetoDivulgacao)}</p>
-        </div>
+        <MetricCard label="Teto Administração" value={currency.format(data.tetoAdministracao)} meta="15% do orçamento total" icon={<ShieldAlert className="h-4 w-4" />} />
+        <MetricCard label="Teto Captação" value={currency.format(data.tetoCaptacao)} meta="10% limitado ao teto legal" icon={<BadgeDollarSign className="h-4 w-4" />} />
+        <MetricCard label="Teto Divulgação + Acessibilidade" value={currency.format(data.tetoDivulgacao)} meta="20% compartilhado" icon={<Bell className="h-4 w-4" />} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="ds-card p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Rubricas do projeto</h2>
-              <p className="text-sm text-slate-500">Execução orçamentária e travas legais da IN 29/2026.</p>
+              <h2 className="text-lg font-semibold text-[var(--color-ds-text)]">Rubricas do projeto</h2>
+              <p className="text-sm text-[var(--color-ds-text-muted)]">Execução orçamentária e travas legais da IN 29/2026.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-            >
+            <button type="button" onClick={() => setIsModalOpen(true)} className="ds-btn-primary">
               <BadgeDollarSign className="h-4 w-4" />
               Nova Despesa
             </button>
@@ -150,41 +153,42 @@ export default function Dashboard({ initialData }: DashboardProps) {
               const saldoRubrica = Math.max(rubrica.valor_orcado - rubrica.valor_executado, 0);
 
               return (
-                <div key={rubrica.id} className="rounded-2xl border border-slate-200 p-4">
+                <div key={rubrica.id} className="rounded-2xl border border-[var(--color-ds-border)] bg-[var(--color-ds-surface)] p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-slate-900">{rubrica.descricao}</h3>
-                        <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClasses(rubrica.status)}`}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-[var(--color-ds-text)]">{rubrica.descricao}</h3>
+                        <span className={rubricaBadgeClass(rubrica.status)}>
                           {rubrica.status === "critical" ? "Bloqueada" : rubrica.status === "warning" ? "Atenção" : "OK"}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Categoria: {rubrica.categoria} · Orçado {currency.format(rubrica.valor_orcado)}
+                      <p className="mt-1 text-sm text-[var(--color-ds-text-muted)]">
+                        Categoria: {rubrica.categoria} · Orçado <span className="ds-mono">{currency.format(rubrica.valor_orcado)}</span>
                       </p>
                     </div>
 
                     <div className="text-left md:text-right">
-                      <p className="text-sm font-medium text-slate-900">Executado {currency.format(rubrica.valor_executado)}</p>
-                      <p className="text-xs text-slate-500">Saldo {currency.format(saldoRubrica)}</p>
+                      <p className="text-sm font-medium text-[var(--color-ds-text)]">
+                        Executado <span className="ds-mono">{currency.format(rubrica.valor_executado)}</span>
+                      </p>
+                      <p className="text-xs text-[var(--color-ds-text-muted)]">
+                        Saldo <span className="ds-mono">{currency.format(saldoRubrica)}</span>
+                      </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full ${rubrica.status === "critical" ? "bg-red-500" : rubrica.status === "warning" ? "bg-amber-500" : "bg-emerald-500"}`}
-                      style={{ width: `${Math.min(progresso, 100)}%` }}
-                    />
+                  <div className="mt-4 ds-progress-bar">
+                    <div className={progressFillClass(rubrica.status)} style={{ width: `${Math.min(progresso, 100)}%` }} />
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--color-ds-text-muted)]">
                     <span>{percent.format(progresso)}% da rubrica consumida</span>
                     <span>{percent.format(rubrica.percentualTeto)}% do teto legal</span>
-                    <span>Glosado {currency.format(rubrica.valor_glosado)}</span>
-                    <span>Teto legal {currency.format(rubrica.tetoLegal)}</span>
+                    <span>Glosado <span className="ds-mono">{currency.format(rubrica.valor_glosado)}</span></span>
+                    <span>Teto legal <span className="ds-mono">{currency.format(rubrica.tetoLegal)}</span></span>
                   </div>
 
-                  <p className="mt-2 text-xs text-slate-500">{rubrica.referenciaLegal}</p>
+                  <p className="mt-2 text-xs text-[var(--color-ds-text-faint)]">{rubrica.referenciaLegal}</p>
                 </div>
               );
             })}
@@ -192,31 +196,29 @@ export default function Dashboard({ initialData }: DashboardProps) {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="ds-card p-6">
             <div className="flex items-center gap-2">
-              <Clock3 className="h-4 w-4 text-slate-400" />
-              <h2 className="text-lg font-semibold text-slate-900">Alertas de compliance</h2>
+              <Clock3 className="h-4 w-4 text-[var(--color-ds-text-muted)]" />
+              <h2 className="text-lg font-semibold text-[var(--color-ds-text)]">Alertas de compliance</h2>
             </div>
             <div className="mt-5 space-y-3">
               {data.alertas.length === 0 ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                <div className="rounded-2xl border border-[var(--color-ds-border)] bg-[var(--color-ds-surface-2)] p-4 text-sm text-[var(--color-ds-text-muted)]">
                   Nenhum alerta ativo para este projeto.
                 </div>
               ) : (
                 data.alertas.map((item) => (
-                  <article key={item.id} className={`rounded-2xl border p-4 ${alertClasses(item.nivel)}`}>
+                  <article key={item.id} className={`rounded-2xl border p-4 ${alertContainerClass(item.nivel)}`}>
                     <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        <AlertIcon nivel={item.nivel} />
-                      </div>
+                      <div className="mt-0.5"><AlertIcon nivel={item.nivel} /></div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
-                          <h3 className="text-sm font-medium text-slate-900">{item.codigo}</h3>
-                          <span className="text-[11px] uppercase tracking-wide text-slate-500">{item.nivel}</span>
+                          <h3 className="text-sm font-medium text-[var(--color-ds-text)]">{item.codigo}</h3>
+                          <span className="text-[11px] uppercase tracking-wide text-[var(--color-ds-text-muted)]">{item.nivel}</span>
                         </div>
-                        <p className="mt-1 text-sm text-slate-600">{item.mensagem}</p>
-                        {item.referencia_legal ? <p className="mt-2 text-xs text-slate-500">{item.referencia_legal}</p> : null}
-                        <p className="mt-2 text-xs text-slate-500">{new Date(item.criado_em).toLocaleString("pt-BR")}</p>
+                        <p className="mt-1 text-sm text-[var(--color-ds-text-muted)]">{item.mensagem}</p>
+                        {item.referencia_legal ? <p className="mt-2 text-xs text-[var(--color-ds-text-faint)]">{item.referencia_legal}</p> : null}
+                        <p className="mt-2 text-xs text-[var(--color-ds-text-muted)]">{new Date(item.criado_em).toLocaleString("pt-BR")}</p>
                       </div>
                     </div>
                   </article>
@@ -225,12 +227,12 @@ export default function Dashboard({ initialData }: DashboardProps) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="ds-card p-6">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <h2 className="text-lg font-semibold text-slate-900">Resumo</h2>
+              <CheckCircle2 className="h-4 w-4 text-[var(--color-ds-success)]" />
+              <h2 className="text-lg font-semibold text-[var(--color-ds-text)]">Resumo</h2>
             </div>
-            <div className="mt-3 space-y-2 text-sm text-slate-600">
+            <div className="mt-3 space-y-2 text-sm text-[var(--color-ds-text-muted)]">
               <p>{summary.warnings} rubrica(s) em atenção.</p>
               <p>{summary.blocked} rubrica(s) em estado crítico.</p>
               <p>Projeto: {data.nomeP}</p>
@@ -240,18 +242,14 @@ export default function Dashboard({ initialData }: DashboardProps) {
       </section>
 
       {isModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+          <div className="ds-card ds-card-glow w-full max-w-xl p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Nova Despesa</h2>
-                <p className="text-sm text-slate-500">Preencha os dados para validar compliance e bloqueios.</p>
+                <h2 className="text-lg font-semibold text-[var(--color-ds-text)]">Nova Despesa</h2>
+                <p className="text-sm text-[var(--color-ds-text-muted)]">Preencha os dados para validar compliance e bloqueios.</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-              >
+              <button type="button" onClick={() => setIsModalOpen(false)} className="ds-btn-ghost !p-2">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -259,14 +257,9 @@ export default function Dashboard({ initialData }: DashboardProps) {
             <form action={formAction} className="mt-6 space-y-4">
               <input type="hidden" name="projeto_id" value={data.projetoId} />
 
-              <div className="space-y-2">
-                <label htmlFor="rubrica_id" className="text-sm font-medium text-slate-700">Rubrica</label>
-                <select
-                  id="rubrica_id"
-                  name="rubrica_id"
-                  defaultValue={data.rubricas[0]?.id}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                >
+              <div>
+                <label htmlFor="rubrica_id" className="ds-label">Rubrica</label>
+                <select id="rubrica_id" name="rubrica_id" defaultValue={data.rubricas[0]?.id} className="ds-input">
                   {data.rubricas.map((rubrica) => {
                     const saldoRubrica = Math.max(rubrica.valor_orcado - rubrica.valor_executado, 0);
                     return (
@@ -276,152 +269,92 @@ export default function Dashboard({ initialData }: DashboardProps) {
                     );
                   })}
                 </select>
-                {state.field_errors?.rubrica_id ? <p className="text-xs text-red-600">{state.field_errors.rubrica_id[0]}</p> : null}
+                {state.field_errors?.rubrica_id ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.rubrica_id[0]}</p> : null}
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="descricao" className="text-sm font-medium text-slate-700">Descrição</label>
-                <input
-                  id="descricao"
-                  name="descricao"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                  placeholder="Ex.: pagamento de mídia digital"
-                />
-                {state.field_errors?.descricao ? <p className="text-xs text-red-600">{state.field_errors.descricao[0]}</p> : null}
+              <div>
+                <label htmlFor="descricao" className="ds-label">Descrição</label>
+                <input id="descricao" name="descricao" className="ds-input" placeholder="Ex.: pagamento de mídia digital" />
+                {state.field_errors?.descricao ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.descricao[0]}</p> : null}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="beneficiario_nome" className="text-sm font-medium text-slate-700">Beneficiário</label>
-                  <input
-                    id="beneficiario_nome"
-                    name="beneficiario_nome"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                    placeholder="Nome do favorecido"
-                  />
-                  {state.field_errors?.beneficiario_nome ? <p className="text-xs text-red-600">{state.field_errors.beneficiario_nome[0]}</p> : null}
+                <div>
+                  <label htmlFor="beneficiario_nome" className="ds-label">Beneficiário</label>
+                  <input id="beneficiario_nome" name="beneficiario_nome" className="ds-input" placeholder="Nome do favorecido" />
+                  {state.field_errors?.beneficiario_nome ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.beneficiario_nome[0]}</p> : null}
                 </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="beneficiario_cpf_cnpj" className="text-sm font-medium text-slate-700">CPF/CNPJ</label>
-                  <input
-                    id="beneficiario_cpf_cnpj"
-                    name="beneficiario_cpf_cnpj"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                    placeholder="Documento do beneficiário"
-                  />
-                  {state.field_errors?.beneficiario_cpf_cnpj ? <p className="text-xs text-red-600">{state.field_errors.beneficiario_cpf_cnpj[0]}</p> : null}
+                <div>
+                  <label htmlFor="beneficiario_cpf_cnpj" className="ds-label">CPF/CNPJ</label>
+                  <input id="beneficiario_cpf_cnpj" name="beneficiario_cpf_cnpj" className="ds-input" placeholder="Documento do beneficiário" />
+                  {state.field_errors?.beneficiario_cpf_cnpj ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.beneficiario_cpf_cnpj[0]}</p> : null}
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="valor_bruto" className="text-sm font-medium text-slate-700">Valor bruto</label>
-                  <input
-                    id="valor_bruto"
-                    name="valor_bruto"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                    placeholder="0,00"
-                  />
-                  {state.field_errors?.valor_bruto ? <p className="text-xs text-red-600">{state.field_errors.valor_bruto[0]}</p> : null}
+                <div>
+                  <label htmlFor="valor_bruto" className="ds-label">Valor bruto</label>
+                  <input id="valor_bruto" name="valor_bruto" type="number" step="0.01" min="0.01" className="ds-input ds-mono" placeholder="0,00" />
+                  {state.field_errors?.valor_bruto ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.valor_bruto[0]}</p> : null}
                 </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="valor_retencoes" className="text-sm font-medium text-slate-700">Retenções</label>
-                  <input
-                    id="valor_retencoes"
-                    name="valor_retencoes"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    defaultValue="0"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                    placeholder="0,00"
-                  />
-                  {state.field_errors?.valor_retencoes ? <p className="text-xs text-red-600">{state.field_errors.valor_retencoes[0]}</p> : null}
+                <div>
+                  <label htmlFor="valor_retencoes" className="ds-label">Retenções</label>
+                  <input id="valor_retencoes" name="valor_retencoes" type="number" step="0.01" min="0" defaultValue="0" className="ds-input ds-mono" placeholder="0,00" />
+                  {state.field_errors?.valor_retencoes ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.valor_retencoes[0]}</p> : null}
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="forma_pagamento" className="text-sm font-medium text-slate-700">Forma de pagamento</label>
-                  <select
-                    id="forma_pagamento"
-                    name="forma_pagamento"
-                    defaultValue="pix"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                  >
+                <div>
+                  <label htmlFor="forma_pagamento" className="ds-label">Forma de pagamento</label>
+                  <select id="forma_pagamento" name="forma_pagamento" defaultValue="pix" className="ds-input">
                     <option value="pix">PIX</option>
                     <option value="ted">TED</option>
                     <option value="doc">DOC</option>
                     <option value="cheque_nominativo">Cheque nominativo</option>
                   </select>
-                  {state.field_errors?.forma_pagamento ? <p className="text-xs text-red-600">{state.field_errors.forma_pagamento[0]}</p> : null}
+                  {state.field_errors?.forma_pagamento ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.forma_pagamento[0]}</p> : null}
                 </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="data_pagamento" className="text-sm font-medium text-slate-700">Data de pagamento</label>
-                  <input
-                    id="data_pagamento"
-                    name="data_pagamento"
-                    type="date"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                  />
-                  {state.field_errors?.data_pagamento ? <p className="text-xs text-red-600">{state.field_errors.data_pagamento[0]}</p> : null}
+                <div>
+                  <label htmlFor="data_pagamento" className="ds-label">Data de pagamento</label>
+                  <input id="data_pagamento" name="data_pagamento" type="date" className="ds-input ds-mono" />
+                  {state.field_errors?.data_pagamento ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.data_pagamento[0]}</p> : null}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="comprovante_transacao" className="text-sm font-medium text-slate-700">Comprovante / ID da transação</label>
-                <input
-                  id="comprovante_transacao"
-                  name="comprovante_transacao"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-                  placeholder="Hash PIX, TED ou identificador interno"
-                />
-                {state.field_errors?.comprovante_transacao ? <p className="text-xs text-red-600">{state.field_errors.comprovante_transacao[0]}</p> : null}
+              <div>
+                <label htmlFor="comprovante_transacao" className="ds-label">Comprovante / ID da transação</label>
+                <input id="comprovante_transacao" name="comprovante_transacao" className="ds-input ds-mono" placeholder="Hash PIX, TED ou identificador interno" />
+                {state.field_errors?.comprovante_transacao ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.field_errors.comprovante_transacao[0]}</p> : null}
               </div>
 
               {state.status === "error" && state.message ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-xl border border-[rgba(255,77,106,.3)] bg-[rgba(255,77,106,.07)] px-3 py-2 text-sm text-[var(--color-ds-error)]">
                   {state.message}
                 </div>
               ) : null}
 
               {state.status === "success" && state.message ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                <div className="rounded-xl border border-[rgba(0,214,143,.3)] bg-[rgba(0,214,143,.07)] px-3 py-2 text-sm text-[var(--color-ds-success)]">
                   {state.message}
                 </div>
               ) : null}
 
               {state.status === "compliance_violation" && state.violation ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                <div className="rounded-xl border border-[rgba(255,180,0,.3)] bg-[rgba(255,180,0,.07)] px-3 py-3 text-sm text-[var(--color-ds-warning)]">
                   <p className="font-medium">Bloqueio preventivo de compliance</p>
                   <p className="mt-1">Rubrica: {state.violation.rubrica}</p>
                   <p>Categoria: {state.violation.categoria}</p>
                   <p>Valor tentado: {currency.format(state.violation.valor_tentado)}</p>
                   <p>Executado atual: {currency.format(state.violation.valor_executado_atual)}</p>
                   <p>Teto legal: {currency.format(state.violation.teto_legal)}</p>
-                  <p className="mt-1 text-xs">{state.violation.referencia_legal}</p>
+                  <p className="mt-1 text-xs text-[var(--color-ds-text-muted)]">{state.violation.referencia_legal}</p>
                 </div>
               ) : null}
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} className="ds-btn-ghost">Cancelar</button>
+                <button type="submit" disabled={isPending} className="ds-btn-primary">
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeDollarSign className="h-4 w-4" />}
                   Registrar despesa
                 </button>

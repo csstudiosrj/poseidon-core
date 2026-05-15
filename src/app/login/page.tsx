@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "../../lib/supabase/client";
 import { Loader2, Eye, EyeOff, Waves } from "lucide-react";
 
 export default function LoginPage() {
@@ -18,69 +18,51 @@ export default function LoginPage() {
     setError(null);
     setIsPending(true);
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+      if (authError) {
+        setError("E-mail ou senha incorretos. Verifique seus dados.");
+        setIsPending(false);
+        return;
+      }
 
-    setIsPending(false);
-
-    if (authError) {
-      setError("E-mail ou senha incorretos. Verifique seus dados.");
+      router.push("/setup");
+      router.refresh();
+    } catch {
+      setError("Não foi possível iniciar a autenticação. Verifique a configuração do Supabase client.");
+      setIsPending(false);
       return;
     }
 
-    router.push("/setup");
-    router.refresh();
+    setIsPending(false);
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
+    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        {/* Logo / brand */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-2xl"
-            style={{
-              background: "linear-gradient(135deg, #0a1930, #0e2040)",
-              border: "1px solid rgba(0, 229, 255, 0.3)",
-              boxShadow: "0 0 18px rgba(0, 229, 255, 0.18)",
-            }}
-          >
-            <Waves className="h-6 w-6" style={{ color: "var(--color-ds-cyan)" }} />
+          <div className="ds-card ds-card-glow flex h-12 w-12 items-center justify-center rounded-2xl">
+            <Waves className="h-6 w-6 text-[var(--color-ds-cyan)]" />
           </div>
           <div className="text-center">
-            <h1
-              className="text-2xl font-bold tracking-tight"
-              style={{ color: "var(--color-ds-text)" }}
-            >
-              Poseidon
-            </h1>
-            <p
-              className="mt-1 text-sm"
-              style={{ color: "var(--color-ds-text-muted)" }}
-            >
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ds-text)]">Poseidon</h1>
+            <p className="mt-1 text-sm text-[var(--color-ds-text-muted)]">
               Gestão cultural com compliance IN 29/2026
             </p>
           </div>
         </div>
 
-        {/* Card de login */}
         <div className="ds-card p-6">
-          <h2
-            className="mb-5 text-base font-semibold"
-            style={{ color: "var(--color-ds-text)" }}
-          >
-            Entrar na plataforma
-          </h2>
+          <h2 className="mb-5 text-base font-semibold text-[var(--color-ds-text)]">Entrar na plataforma</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <label htmlFor="email" className="ds-label">
-                E-mail
-              </label>
+              <label htmlFor="email" className="ds-label">E-mail</label>
               <input
                 id="email"
                 type="email"
@@ -95,9 +77,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="ds-label">
-                Senha
-              </label>
+              <label htmlFor="password" className="ds-label">Senha</label>
               <div className="relative">
                 <input
                   id="password"
@@ -114,58 +94,27 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{
-                    color: "var(--color-ds-text-muted)",
-                    transition: "color var(--ease-interactive)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ds-text-muted)] hover:text-[var(--color-ds-text)]"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
             {error ? (
-              <div
-                className="rounded-xl border px-3 py-2 text-sm"
-                style={{
-                  color: "var(--color-ds-error)",
-                  borderColor: "rgba(255, 77, 106, 0.3)",
-                  background: "rgba(255, 77, 106, 0.07)",
-                }}
-              >
+              <div className="rounded-xl border px-3 py-2 text-sm text-[var(--color-ds-error)]" style={{ borderColor: "rgba(255,77,106,.3)", background: "rgba(255,77,106,.07)" }}>
                 {error}
               </div>
             ) : null}
 
-            <button
-              type="submit"
-              disabled={isPending || !email || !password}
-              className="ds-btn-primary w-full"
-              style={{ marginTop: "0.25rem" }}
-            >
-              {isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : null}
+            <button type="submit" disabled={isPending || !email || !password} className="ds-btn-primary w-full">
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {isPending ? "Entrando…" : "Entrar"}
             </button>
           </form>
         </div>
 
-        <p
-          className="mt-6 text-center text-xs"
-          style={{ color: "var(--color-ds-text-faint)" }}
-        >
-          Poseidon · Compliance cultural 2026
-        </p>
+        <p className="mt-6 text-center text-xs text-[var(--color-ds-text-faint)]">Poseidon · Compliance cultural 2026</p>
       </div>
     </main>
   );
