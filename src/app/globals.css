@@ -1,26 +1,306 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   POSEIDON — DEEP SEA DESIGN SYSTEM
+   Tailwind v4: variáveis CSS em @theme para integração nativa
+   ============================================================ */
+
+@theme {
+  /* Superfícies */
+  --color-ds-bg:          #020b18;
+  --color-ds-surface:     #050f1f;
+  --color-ds-surface-2:   #071426;
+  --color-ds-card:        #0a1930;
+  --color-ds-card-hover:  #0e2040;
+  --color-ds-border:      #0e2d4a;
+
+  /* Ciano neon — acento principal */
+  --color-ds-cyan:        #00e5ff;
+  --color-ds-cyan-dim:    #00b3cc;
+  --color-ds-cyan-glow:   rgba(0, 229, 255, 0.18);
+  --color-ds-cyan-glow-sm: rgba(0, 229, 255, 0.10);
+
+  /* Texto */
+  --color-ds-text:        #e4f0f8;
+  --color-ds-text-muted:  #6b94b3;
+  --color-ds-text-faint:  #2e4f68;
+
+  /* Feedback */
+  --color-ds-success:     #00d68f;
+  --color-ds-warning:     #ffb400;
+  --color-ds-error:       #ff4d6a;
+
+  /* Tipografia */
+  --font-sans:   "Inter", "Inter Fallback", sans-serif;
+  --font-mono:   "JetBrains Mono", "Fira Mono", monospace;
+
+  /* Raios */
+  --radius-sm:   0.375rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.25rem;
+
+  /* Transição padrão */
+  --ease-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ============================================================
+   BASE
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  background-color: var(--color-ds-bg);
+  color: var(--color-ds-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+p, li, figcaption {
+  text-wrap: pretty;
+  max-width: 72ch;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ds-cyan);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: rgba(0, 229, 255, 0.2);
+  color: var(--color-ds-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   COMPONENTES REUTILIZÁVEIS
+   ============================================================ */
+
+/* Card com glow de borda */
+.ds-card {
+  background-color: var(--color-ds-card);
+  border: 1px solid var(--color-ds-border);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.04),
+    0 4px 16px rgba(2, 11, 24, 0.6);
+  transition:
+    border-color var(--ease-interactive),
+    box-shadow var(--ease-interactive);
+}
+
+.ds-card:hover,
+.ds-card-glow {
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.1),
+    0 0 18px var(--color-ds-cyan-glow),
+    0 4px 16px rgba(2, 11, 24, 0.8);
+}
+
+/* Input com glow no foco */
+.ds-input {
+  width: 100%;
+  background-color: var(--color-ds-surface-2);
+  border: 1px solid var(--color-ds-border);
+  border-radius: var(--radius-lg);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--color-ds-text);
+  outline: none;
+  transition:
+    border-color var(--ease-interactive),
+    box-shadow var(--ease-interactive);
+}
+
+.ds-input::placeholder {
+  color: var(--color-ds-text-faint);
+}
+
+.ds-input:focus {
+  border-color: var(--color-ds-cyan-dim);
+  box-shadow: 0 0 0 3px var(--color-ds-cyan-glow-sm);
+}
+
+/* Botão primário ciano */
+.ds-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background-color: var(--color-ds-cyan);
+  color: var(--color-ds-bg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color var(--ease-interactive),
+    box-shadow var(--ease-interactive);
+}
+
+.ds-btn-primary:hover {
+  background-color: var(--color-ds-cyan-dim);
+  box-shadow: 0 0 14px var(--color-ds-cyan-glow);
+}
+
+.ds-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Botão ghost */
+.ds-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: var(--color-ds-text-muted);
+  font-size: 0.875rem;
+  border: 1px solid var(--color-ds-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition:
+    color var(--ease-interactive),
+    border-color var(--ease-interactive),
+    background-color var(--ease-interactive);
+}
+
+.ds-btn-ghost:hover {
+  color: var(--color-ds-text);
+  border-color: rgba(0, 229, 255, 0.3);
+  background-color: rgba(0, 229, 255, 0.05);
+}
+
+/* Label */
+.ds-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-ds-text-muted);
+  margin-bottom: 0.375rem;
+}
+
+/* Badge de status */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid;
+}
+
+.ds-badge-ok     { color: var(--color-ds-success);  border-color: rgba(0, 214, 143, 0.3);  background: rgba(0, 214, 143, 0.07); }
+.ds-badge-warn   { color: var(--color-ds-warning);  border-color: rgba(255, 180, 0, 0.3);  background: rgba(255, 180, 0, 0.07); }
+.ds-badge-error  { color: var(--color-ds-error);    border-color: rgba(255, 77, 106, 0.3); background: rgba(255, 77, 106, 0.07); }
+
+/* Barra de progresso */
+.ds-progress-bar {
+  width: 100%;
+  height: 0.375rem;
+  background-color: var(--color-ds-surface-2);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.ds-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--color-ds-cyan-dim), var(--color-ds-cyan));
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ds-progress-fill-warn {
+  background: linear-gradient(90deg, #e69500, var(--color-ds-warning));
+}
+
+.ds-progress-fill-error {
+  background: linear-gradient(90deg, #cc2b46, var(--color-ds-error));
+}
+
+/* Divider */
+.ds-divider {
+  border: none;
+  border-top: 1px solid var(--color-ds-border);
+}
+
+/* Utilitário de dado mono */
+.ds-mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
