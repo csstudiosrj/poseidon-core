@@ -4,8 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 
-function makeSupabase() {
-  const cookieStore = cookies();
+export type AuthResult = { error: string } | null;
+
+async function makeSupabase() {
+  const cookieStore = await cookies();
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -16,9 +19,9 @@ function makeSupabase() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
           } catch {
           }
         },
@@ -27,23 +30,34 @@ function makeSupabase() {
   );
 }
 
-export type AuthResult = { error: string } | null;
-
-export async function login(_prev: AuthResult, formData: FormData): Promise<AuthResult> {
+export async function login(
+  _prev: AuthResult,
+  formData: FormData
+): Promise<AuthResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) return { error: "Preencha e-mail e senha." };
+  if (!email || !password) {
+    return { error: "Preencha e-mail e senha." };
+  }
 
-  const supabase = makeSupabase();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const supabase = await makeSupabase();
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-  if (error) return { error: "E-mail ou senha incorretos." };
+  if (error) {
+    return { error: "E-mail ou senha incorretos." };
+  }
 
   redirect("/setup");
 }
 
-export async function signup(_prev: AuthResult, formData: FormData): Promise<AuthResult> {
+export async function signup(
+  _prev: AuthResult,
+  formData: FormData
+): Promise<AuthResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const nome_completo = String(formData.get("nome_completo") ?? "").trim();
@@ -53,18 +67,25 @@ export async function signup(_prev: AuthResult, formData: FormData): Promise<Aut
     return { error: "Preencha todos os campos." };
   }
 
-  const supabase = makeSupabase();
+  const supabase = await makeSupabase();
 
   const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { nome_completo } },
+    options: {
+      data: { nome_completo },
+    },
   });
 
-  if (signUpError) return { error: signUpError.message };
+  if (signUpError) {
+    return { error: signUpError.message };
+  }
 
   const userId = data.user?.id;
-  if (!userId) return { error: "Não foi possível obter o ID do usuário." };
+
+  if (!userId) {
+    return { error: "Não foi possível obter o ID do usuário." };
+  }
 
   const { error: insertError } = await supabase.from("proponentes").insert({
     id: userId,
@@ -74,7 +95,9 @@ export async function signup(_prev: AuthResult, formData: FormData): Promise<Aut
     email,
   });
 
-  if (insertError) return { error: insertError.message };
+  if (insertError) {
+    return { error: insertError.message };
+  }
 
   redirect("/setup");
 }
