@@ -25,28 +25,74 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
     <form action={formAction} className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label htmlFor="nome" className="ds-label">Nome do projeto</label>
+          <label htmlFor="nome_projeto" className="ds-label">
+            Nome do projeto
+          </label>
           <input
-            id="nome"
-            name="nome"
+            id="nome_projeto"
+            name="nome_projeto"
             placeholder="Ex.: Circuito Atlântico de Arte Viva"
             className="ds-input"
           />
-          {state.fieldErrors?.nome?.[0] ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.fieldErrors.nome[0]}</p> : null}
+          {state.fieldErrors?.nome_projeto?.[0] ? (
+            <p className="mt-2 text-xs text-[var(--color-ds-error)]">
+              {state.fieldErrors.nome_projeto[0]}
+            </p>
+          ) : null}
         </div>
 
         <div className="md:col-span-2">
-          <label htmlFor="orcamento_total" className="ds-label">Orçamento total aprovado</label>
+          <label htmlFor="orcamento_total_aprovado" className="ds-label">
+            Orçamento total aprovado
+          </label>
           <input
-            id="orcamento_total"
-            name="orcamento_total"
+            id="orcamento_total_aprovado"
+            name="orcamento_total_aprovado"
             type="number"
             min="0"
             step="0.01"
             placeholder="0,00"
             className="ds-input ds-mono"
           />
-          {state.fieldErrors?.orcamento_total?.[0] ? <p className="mt-2 text-xs text-[var(--color-ds-error)]">{state.fieldErrors.orcamento_total[0]}</p> : null}
+          {state.fieldErrors?.orcamento_total_aprovado?.[0] ? (
+            <p className="mt-2 text-xs text-[var(--color-ds-error)]">
+              {state.fieldErrors.orcamento_total_aprovado[0]}
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <label htmlFor="segmento_cultural" className="ds-label">
+            Segmento cultural
+          </label>
+          <input
+            id="segmento_cultural"
+            name="segmento_cultural"
+            placeholder="Ex.: Artes integradas"
+            className="ds-input"
+          />
+          {state.fieldErrors?.segmento_cultural?.[0] ? (
+            <p className="mt-2 text-xs text-[var(--color-ds-error)]">
+              {state.fieldErrors.segmento_cultural[0]}
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <label htmlFor="mecanismo" className="ds-label">
+            Mecanismo
+          </label>
+          <input
+            id="mecanismo"
+            name="mecanismo"
+            placeholder="Ex.: FIA / Fomento direto"
+            className="ds-input"
+          />
+          {state.fieldErrors?.mecanismo?.[0] ? (
+            <p className="mt-2 text-xs text-[var(--color-ds-error)]">
+              {state.fieldErrors.mecanismo[0]}
+            </p>
+          ) : null}
         </div>
       </div>
 
