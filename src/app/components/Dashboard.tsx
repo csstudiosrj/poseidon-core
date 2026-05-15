@@ -63,10 +63,10 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
   const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
 
   const executionProgress = useMemo(() => {
-    const base = data.valorCaptado > 0 ? data.valorCaptado : data.valorExecutado + data.saldo;
+    const base = data.valorCaptado > 0 ? data.valorCaptado : data.orcamentoTotalAprovado;
     if (!base || base <= 0) return 0;
     return (data.valorExecutado / base) * 100;
-  }, [data.valorCaptado, data.valorExecutado, data.saldo]);
+  }, [data.valorCaptado, data.valorExecutado, data.orcamentoTotalAprovado]);
 
   const summary = useMemo(() => {
     const warnings = data.rubricas.filter((item) => item.status === "warning").length;
@@ -92,7 +92,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
             <ArrowUpRight className="h-4 w-4 text-slate-400" />
           </div>
           <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.valorExecutado)}</p>
-          <p className="mt-2 text-xs text-slate-500">{percent.format(executionProgress)}% do orçamento</p>
+          <p className="mt-2 text-xs text-slate-500">{percent.format(executionProgress)}% da base financeira</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -100,32 +100,32 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
             <span className="text-sm text-slate-500">Saldo disponível</span>
             <Wallet className="h-4 w-4 text-slate-400" />
           </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.saldo)}</p>
+          <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.saldoConta)}</p>
           <p className="mt-2 text-xs text-slate-500">Status do projeto: {data.status}</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Compliance</span>
+            <span className="text-sm text-slate-500">Risco</span>
             <ShieldAlert className="h-4 w-4 text-slate-400" />
           </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-900">{summary.warnings} alerta(s)</p>
-          <p className="mt-2 text-xs text-slate-500">{summary.blocked} rubrica(s) bloqueadas</p>
+          <p className="mt-3 text-2xl font-semibold text-slate-900">{data.riscoLabel}</p>
+          <p className="mt-2 text-xs text-slate-500">{percent.format(data.riscoPercentual)}% do limite crítico</p>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Teto Administração</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetos.administracao)}</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetoAdministracao)}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Teto Captação</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetos.captacao)}</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetoCaptacao)}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Teto Divulgação + Acessibilidade</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetos.divulgacaoAcessibilidade)}</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{currency.format(data.tetoDivulgacao)}</p>
         </div>
       </section>
 
@@ -134,7 +134,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Rubricas do projeto</h2>
-              <p className="text-sm text-slate-500">Dados reais sincronizados com o schema do Supabase.</p>
+              <p className="text-sm text-slate-500">Execução orçamentária e travas legais da IN 29/2026.</p>
             </div>
             <button
               type="button"
@@ -147,42 +147,49 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
           </div>
 
           <div className="mt-6 space-y-4">
-            {data.rubricas.map((rubrica) => (
-              <div key={rubrica.id} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-slate-900">{rubrica.descricao}</h3>
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClasses(rubrica.status)}`}>
-                        {rubrica.status === "critical" ? "Bloqueada" : rubrica.status === "warning" ? "Atenção" : "OK"}
-                      </span>
+            {data.rubricas.map((rubrica) => {
+              const progresso = rubrica.valor_orcado > 0 ? (rubrica.valor_executado / rubrica.valor_orcado) * 100 : 0;
+              const saldoRubrica = Math.max(rubrica.valor_orcado - rubrica.valor_executado, 0);
+
+              return (
+                <div key={rubrica.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-slate-900">{rubrica.descricao}</h3>
+                        <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClasses(rubrica.status)}`}>
+                          {rubrica.status === "critical" ? "Bloqueada" : rubrica.status === "warning" ? "Atenção" : "OK"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Categoria: {rubrica.categoria} · Orçado {currency.format(rubrica.valor_orcado)}
+                      </p>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Categoria: {rubrica.categoria} · Orçado {currency.format(rubrica.valorOrcado)}
-                    </p>
+
+                    <div className="text-left md:text-right">
+                      <p className="text-sm font-medium text-slate-900">Executado {currency.format(rubrica.valor_executado)}</p>
+                      <p className="text-xs text-slate-500">Saldo {currency.format(saldoRubrica)}</p>
+                    </div>
                   </div>
 
-                  <div className="text-left md:text-right">
-                    <p className="text-sm font-medium text-slate-900">Executado {currency.format(rubrica.valorExecutado)}</p>
-                    <p className="text-xs text-slate-500">Glosado {currency.format(rubrica.valorGlosado)}</p>
+                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${rubrica.status === "critical" ? "bg-red-500" : rubrica.status === "warning" ? "bg-amber-500" : "bg-emerald-500"}`}
+                      style={{ width: `${Math.min(progresso, 100)}%` }}
+                    />
                   </div>
-                </div>
 
-                <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={`h-full rounded-full ${rubrica.status === "critical" ? "bg-red-500" : rubrica.status === "warning" ? "bg-amber-500" : "bg-emerald-500"}`}
-                    style={{ width: `${Math.min(rubrica.progresso, 100)}%` }}
-                  />
-                </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <span>{percent.format(progresso)}% da rubrica consumida</span>
+                    <span>{percent.format(rubrica.percentualTeto)}% do teto legal</span>
+                    <span>Glosado {currency.format(rubrica.valor_glosado)}</span>
+                    <span>Teto legal {currency.format(rubrica.tetoLegal)}</span>
+                  </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                  <span>{percent.format(rubrica.progresso)}% da rubrica consumida</span>
-                  {rubrica.tetoPercentual !== null ? <span>Teto {percent.format(rubrica.tetoPercentual)}%</span> : null}
-                  {rubrica.tetoAbsoluto !== null ? <span>Teto abs. {currency.format(rubrica.tetoAbsoluto)}</span> : null}
-                  {rubrica.impedimentoDetectado ? <span className="text-red-600">{rubrica.impedimentoDetectado}</span> : null}
+                  <p className="mt-2 text-xs text-slate-500">{rubrica.referenciaLegal}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -210,10 +217,10 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                           <span className="text-[11px] uppercase tracking-wide text-slate-500">{item.nivel}</span>
                         </div>
                         <p className="mt-1 text-sm text-slate-600">{item.mensagem}</p>
-                        {item.referenciaLegal ? (
-                          <p className="mt-2 text-xs text-slate-500">{item.referenciaLegal}</p>
+                        {item.referencia_legal ? (
+                          <p className="mt-2 text-xs text-slate-500">{item.referencia_legal}</p>
                         ) : null}
-                        <p className="mt-2 text-xs text-slate-500">{new Date(item.criadoEm).toLocaleString("pt-BR")}</p>
+                        <p className="mt-2 text-xs text-slate-500">{new Date(item.criado_em).toLocaleString("pt-BR")}</p>
                       </div>
                     </div>
                   </article>
@@ -225,11 +232,13 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <h2 className="text-lg font-semibold text-slate-900">Pronto para teste</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Resumo</h2>
             </div>
-            <p className="mt-3 text-sm text-slate-600">
-              Use o modal para registrar uma nova despesa e testar os bloqueios da IN 29/2026 com o schema real do banco.
-            </p>
+            <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <p>{summary.warnings} rubrica(s) em atenção.</p>
+              <p>{summary.blocked} rubrica(s) em estado crítico.</p>
+              <p>Projeto: {data.nomeP}</p>
+            </div>
           </div>
         </div>
       </section>
@@ -255,28 +264,27 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
               <input type="hidden" name="projeto_id" value={data.projetoId} />
 
               <div className="space-y-2">
-                <label htmlFor="rubrica_id" className="text-sm font-medium text-slate-700">
-                  Rubrica
-                </label>
+                <label htmlFor="rubrica_id" className="text-sm font-medium text-slate-700">Rubrica</label>
                 <select
                   id="rubrica_id"
                   name="rubrica_id"
                   defaultValue={data.rubricas[0]?.id}
                   className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
                 >
-                  {data.rubricas.map((rubrica) => (
-                    <option key={rubrica.id} value={rubrica.id}>
-                      {rubrica.descricao} · saldo {currency.format(Math.max(rubrica.valorOrcado - rubrica.valorExecutado, 0))}
-                    </option>
-                  ))}
+                  {data.rubricas.map((rubrica) => {
+                    const saldoRubrica = Math.max(rubrica.valor_orcado - rubrica.valor_executado, 0);
+                    return (
+                      <option key={rubrica.id} value={rubrica.id}>
+                        {rubrica.descricao} · saldo {currency.format(saldoRubrica)}
+                      </option>
+                    );
+                  })}
                 </select>
                 {state.field_errors?.rubrica_id ? <p className="text-xs text-red-600">{state.field_errors.rubrica_id[0]}</p> : null}
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="descricao" className="text-sm font-medium text-slate-700">
-                  Descrição
-                </label>
+                <label htmlFor="descricao" className="text-sm font-medium text-slate-700">Descrição</label>
                 <input
                   id="descricao"
                   name="descricao"
@@ -288,9 +296,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="beneficiario_nome" className="text-sm font-medium text-slate-700">
-                    Beneficiário
-                  </label>
+                  <label htmlFor="beneficiario_nome" className="text-sm font-medium text-slate-700">Beneficiário</label>
                   <input
                     id="beneficiario_nome"
                     name="beneficiario_nome"
@@ -301,9 +307,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="beneficiario_cpf_cnpj" className="text-sm font-medium text-slate-700">
-                    CPF/CNPJ
-                  </label>
+                  <label htmlFor="beneficiario_cpf_cnpj" className="text-sm font-medium text-slate-700">CPF/CNPJ</label>
                   <input
                     id="beneficiario_cpf_cnpj"
                     name="beneficiario_cpf_cnpj"
@@ -316,9 +320,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="valor_bruto" className="text-sm font-medium text-slate-700">
-                    Valor bruto
-                  </label>
+                  <label htmlFor="valor_bruto" className="text-sm font-medium text-slate-700">Valor bruto</label>
                   <input
                     id="valor_bruto"
                     name="valor_bruto"
@@ -332,9 +334,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="valor_retencoes" className="text-sm font-medium text-slate-700">
-                    Retenções
-                  </label>
+                  <label htmlFor="valor_retencoes" className="text-sm font-medium text-slate-700">Retenções</label>
                   <input
                     id="valor_retencoes"
                     name="valor_retencoes"
@@ -351,9 +351,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="forma_pagamento" className="text-sm font-medium text-slate-700">
-                    Forma de pagamento
-                  </label>
+                  <label htmlFor="forma_pagamento" className="text-sm font-medium text-slate-700">Forma de pagamento</label>
                   <select
                     id="forma_pagamento"
                     name="forma_pagamento"
@@ -369,9 +367,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="data_pagamento" className="text-sm font-medium text-slate-700">
-                    Data de pagamento
-                  </label>
+                  <label htmlFor="data_pagamento" className="text-sm font-medium text-slate-700">Data de pagamento</label>
                   <input
                     id="data_pagamento"
                     name="data_pagamento"
@@ -383,9 +379,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="comprovante_transacao" className="text-sm font-medium text-slate-700">
-                  Comprovante / ID da transação
-                </label>
+                <label htmlFor="comprovante_transacao" className="text-sm font-medium text-slate-700">Comprovante / ID da transação</label>
                 <input
                   id="comprovante_transacao"
                   name="comprovante_transacao"
