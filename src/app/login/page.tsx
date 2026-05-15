@@ -25,9 +25,7 @@ export default function LoginPage() {
             <Waves className="h-6 w-6 text-[var(--color-ds-cyan)]" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ds-text)]">
-              Poseidon
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ds-text)]">Poseidon</h1>
             <p className="mt-1 text-sm text-[var(--color-ds-text-muted)]">
               Gestão cultural com compliance IN 29/2026
             </p>
@@ -36,67 +34,37 @@ export default function LoginPage() {
 
         <div className="ds-card p-6">
           <h2 className="mb-5 text-base font-semibold text-[var(--color-ds-text)]">
-            {isLogin ? "Entrar na plataforma" : "Criar conta"}
+            {isLogin ? "Entrar" : "Criar Conta"}
           </h2>
 
           <form action={formAction} className="space-y-4" noValidate>
-            {!isLogin && (
+            {!isLogin ? (
               <>
                 <div>
-                  <label htmlFor="nome_completo" className="ds-label">
-                    Nome completo
-                  </label>
-                  <input
-                    id="nome_completo"
-                    name="nome_completo"
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Seu nome completo"
-                    className="ds-input"
-                  />
+                  <label htmlFor="nome_completo" className="ds-label">Nome completo</label>
+                  <input id="nome_completo" name="nome_completo" type="text" autoComplete="name" className="ds-input" />
                 </div>
 
                 <div>
-                  <label htmlFor="cpf" className="ds-label">
-                    CPF
-                  </label>
-                  <input
-                    id="cpf"
-                    name="cpf"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="000.000.000-00"
-                    className="ds-input ds-mono"
-                  />
+                  <label htmlFor="cpf" className="ds-label">CPF</label>
+                  <input id="cpf" name="cpf" type="text" inputMode="numeric" className="ds-input ds-mono" />
                 </div>
               </>
-            )}
+            ) : null}
 
             <div>
-              <label htmlFor="email" className="ds-label">
-                E-mail
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="seu@email.com"
-                className="ds-input"
-              />
+              <label htmlFor="email" className="ds-label">E-mail</label>
+              <input id="email" name="email" type="email" autoComplete="email" className="ds-input" />
             </div>
 
             <div>
-              <label htmlFor="password" className="ds-label">
-                Senha
-              </label>
+              <label htmlFor="password" className="ds-label">Senha</label>
               <div className="relative">
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete={isLogin ? "current-password" : "new-password"}
-                  placeholder="••••••••"
                   className="ds-input pr-11"
                 />
                 <button
@@ -105,11 +73,7 @@ export default function LoginPage() {
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ds-text-muted)] transition hover:text-[var(--color-ds-text)]"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -121,14 +85,8 @@ export default function LoginPage() {
             ) : null}
 
             <button type="submit" disabled={isPending} className="ds-btn-primary w-full">
-              {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isPending
-                ? isLogin
-                  ? "Entrando…"
-                  : "Criando conta…"
-                : isLogin
-                  ? "Entrar"
-                  : "Criar conta"}
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isPending ? (isLogin ? "Entrando..." : "Criando conta...") : isLogin ? "Entrar" : "Criar conta"}
             </button>
           </form>
 
@@ -138,16 +96,10 @@ export default function LoginPage() {
               onClick={() => setIsLogin((v) => !v)}
               className="text-sm text-[var(--color-ds-text-muted)] transition hover:text-[var(--color-ds-text)]"
             >
-              {isLogin
-                ? "Não tem conta? Crie uma"
-                : "Já tem conta? Entre"}
+              {isLogin ? "Não tem conta? Crie uma" : "Já tem conta? Entre"}
             </button>
           </div>
         </div>
-
-        <p className="mt-6 text-center text-xs text-[var(--color-ds-text-faint)]">
-          Poseidon · Compliance cultural 2026
-        </p>
       </div>
     </main>
   );

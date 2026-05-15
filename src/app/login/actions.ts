@@ -20,7 +20,6 @@ function makeSupabase() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // ignorado em Server Components read-only
           }
         },
       },
@@ -50,8 +49,9 @@ export async function signup(_prev: AuthResult, formData: FormData): Promise<Aut
   const nome_completo = String(formData.get("nome_completo") ?? "").trim();
   const cpf = String(formData.get("cpf") ?? "").trim();
 
-  if (!email || !password || !nome_completo || !cpf)
+  if (!email || !password || !nome_completo || !cpf) {
     return { error: "Preencha todos os campos." };
+  }
 
   const supabase = makeSupabase();
 
