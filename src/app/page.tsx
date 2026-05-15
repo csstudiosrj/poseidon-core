@@ -1,14 +1,13 @@
 import Dashboard from "@/components/Dashboard";
 import { processarNovaDespesa } from "@/app/actions/processarNovaDespesa";
+import { getDashboardData } from "@/app/actions/getDashboardData";
 
-/**
- * Página Principal do Poseidon
- * Renderiza o Dashboard e injeta a Server Action de processamento
- */
-export default function Page() {
+export default async function HomePage() {
+  const initialData = await getDashboardData("poseidon-test-001");
+
   return (
-    <main className="min-h-screen bg-[#020b18]">
-      <Dashboard action={processarNovaDespesa} />
+    <main className="min-h-screen bg-slate-100">
+      <Dashboard initialData={initialData} action={processarNovaDespesa} />
     </main>
   );
 }
