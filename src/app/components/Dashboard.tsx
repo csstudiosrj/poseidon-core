@@ -62,6 +62,12 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
 
+  const executionProgress = useMemo(() => {
+    const base = data.valorCaptado > 0 ? data.valorCaptado : data.valorExecutado + data.saldo;
+    if (!base || base <= 0) return 0;
+    return (data.valorExecutado / base) * 100;
+  }, [data.valorCaptado, data.valorExecutado, data.saldo]);
+
   const summary = useMemo(() => {
     const warnings = data.rubricas.filter((item) => item.status === "warning").length;
     const blocked = data.rubricas.filter((item) => item.status === "critical").length;
@@ -86,7 +92,7 @@ export default function Dashboard({ initialData, action = processarNovaDespesa }
             <ArrowUpRight className="h-4 w-4 text-slate-400" />
           </div>
           <p className="mt-3 text-2xl font-semibold text-slate-900">{currency.format(data.valorExecutado)}</p>
-          <p className="mt-2 text-xs text-slate-500">{percent.format(data.progresso)}% do orçamento</p>
+          <p className="mt-2 text-xs text-slate-500">{percent.format(executionProgress)}% do orçamento</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
