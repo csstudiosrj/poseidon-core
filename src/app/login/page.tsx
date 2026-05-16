@@ -9,6 +9,7 @@ import {
   FileText,
   Lock,
   Mail,
+  Phone,
   ShieldCheck,
   User2,
 } from "lucide-react";
@@ -25,10 +26,48 @@ async function signupAction(_prev: FormState, formData: FormData): Promise<FormS
   return signup(formData) as Promise<FormState>;
 }
 
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function maskCpf(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+function maskCnpj(value: string) {
+  const digits = onlyDigits(value).slice(0, 14);
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
+function maskPhone(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  if (digits.length <= 10) {
+    return digits
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  }
+
+  return digits
+    .replace(/^(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2");
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [accountType, setAccountType] = useState<AccountType>("PF");
   const [showPassword, setShowPassword] = useState(false);
+
+  const [documentValue, setDocumentValue] = useState("");
+  const [phoneValue, setPhoneValue] = useState("");
 
   const [loginState, loginDispatch, isLoginPending] = useActionState(loginAction, null);
   const [signupState, signupDispatch, isSignupPending] = useActionState(signupAction, null);
@@ -43,114 +82,127 @@ export default function LoginPage() {
           primaryDoc: "CPF",
           primaryPlaceholder: "Seu nome completo",
           docPlaceholder: "000.000.000-00",
-          summaryTitle: "Resumo de portfólio",
-          summaryPlaceholder:
-            "Descreva sua trajetória, áreas de atuação, projetos realizados e experiência cultural.",
+          legalHint: "Cadastro individual para proponentes pessoa física.",
         }
       : {
           primaryName: "Razão social",
           primaryDoc: "CNPJ",
           primaryPlaceholder: "Nome jurídico da organização",
           docPlaceholder: "00.000.000/0000-00",
-          summaryTitle: "Resumo de portfólio institucional",
-          summaryPlaceholder:
-            "Descreva o histórico da organização, principais projetos, atuação cultural e capacidade de execução.",
+          legalHint: "Cadastro institucional para produtoras, coletivos e empresas culturais.",
         };
   }, [accountType]);
 
+  function handleDocumentChange(value: string) {
+    const cleaned = onlyDigits(value);
+    setDocumentValue(accountType === "PF" ? maskCpf(cleaned) : maskCnpj(cleaned));
+  }
+
+  function handlePhoneChange(value: string) {
+    setPhoneValue(maskPhone(value));
+  }
+
   return (
-    <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid w-full max-w-6xl gap-6 xl:grid-cols-[1.05fr_560px]">
-          <section className="hidden xl:flex xl:flex-col xl:justify-between rounded-3xl border border-white/10 bg-[var(--color-surface)]/80 p-8 shadow-[var(--shadow-card)] backdrop-blur-sm">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-3 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs uppercase tracking-[0.22em] text-cyan-300">
-                <ShieldCheck className="h-4 w-4" />
-                Console Poseidon
-              </div>
+    <main className="auth-shell">
+      <div className="auth-noise" />
+      <div className="auth-container">
+        <div className="auth-grid">
+          <section className="auth-hero ds-card">
+            <div className="auth-badge">
+              <ShieldCheck className="h-4 w-4" />
+              Poseidon
+            </div>
 
-              <div className="space-y-4">
-                <h1 className="max-w-xl text-4xl font-semibold tracking-[-0.04em] text-white">
-                  Gestão cultural com cara de console operacional.
-                </h1>
-                <p className="max-w-xl text-sm leading-7 text-slate-300">
-                  Controle captação, compliance de rubricas, concentração por fornecedor
-                  e risco de glosa em um ambiente técnico, direto e feito para operação real.
-                </p>
-              </div>
+            <div className="auth-hero-copy">
+              <h1 className="auth-hero-title">
+                O sistema que trata projeto cultural com a seriedade que ele merece.
+              </h1>
+              <p className="auth-hero-text">
+                Criação, gestão e prestação de contas no mesmo ambiente. Sem gambiarra,
+                sem planilha solta e sem perder prazo. O Poseidon nasceu para ser o jeito
+                mais forte, completo e confiável de operar projetos culturais no Brasil.
+              </p>
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <InfoCard
-                  icon={<FileText className="h-4 w-4" />}
-                  label="Compliance ativo"
-                  value="IN 29/2026"
-                  description="Estrutura preparada para auditoria, execução e rastreabilidade."
-                />
-                <InfoCard
-                  icon={<Building2 className="h-4 w-4" />}
-                  label="Perfis suportados"
-                  value="PF + PJ"
-                  description="Cadastro com identificação inicial do proponente no primeiro acesso."
-                />
-              </div>
+            <div className="auth-hero-grid">
+              <InfoCard
+                icon={<FileText className="h-4 w-4" />}
+                label="Compliance ativo"
+                value="IN 29/2026"
+                description="Estrutura pronta para execução, auditoria e rastreabilidade."
+              />
+              <InfoCard
+                icon={<Building2 className="h-4 w-4" />}
+                label="Perfis suportados"
+                value="PF + PJ"
+                description="Cadastro inicial já alinhado com o perfil real do proponente."
+              />
             </div>
           </section>
 
-          <section className="ds-card overflow-hidden">
-            <div className="border-b border-white/10 px-5 py-5 sm:px-8">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-300">
-                    <span className="h-2 w-2 rounded-full bg-cyan-400" />
-                    Acesso seguro
-                  </div>
-
-                  <h2 className="text-2xl font-semibold tracking-[-0.03em] text-white">
-                    {mode === "login" ? "Entrar no Poseidon" : "Criar conta"}
-                  </h2>
-
-                  <p className="text-sm leading-6 text-slate-400">
-                    {mode === "login"
-                      ? "Use suas credenciais para acessar o console."
-                      : "Cadastre seu perfil inicial e entre no fluxo operacional."}
-                  </p>
+          <section className="auth-panel ds-card">
+            <div className="auth-panel-header">
+              <div>
+                <div className="auth-pill">
+                  <span className="auth-pill-dot" />
+                  acesso seguro
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-cyan-400/30 hover:text-white"
-                >
-                  {mode === "login" ? "Criar conta" : "Já tenho acesso"}
-                </button>
+                <h2 className="auth-panel-title">
+                  {mode === "login" ? "Entrar" : "Criar conta"}
+                </h2>
+
+                <p className="auth-panel-text">
+                  {mode === "login"
+                    ? "Acesse sua operação e continue de onde parou."
+                    : "Cadastre seu perfil inicial e entre no Poseidon do jeito certo, já no primeiro acesso."}
+                </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
+                className="auth-switch"
+              >
+                {mode === "login" ? "Criar conta" : "Já tenho acesso"}
+              </button>
             </div>
 
-            <div className="px-5 py-5 sm:px-8 sm:py-8">
+            <div className="auth-panel-body">
               {mode === "signup" ? (
                 <form action={signupDispatch} className="space-y-6" noValidate>
                   <input type="hidden" name="tipo" value={accountType} />
+                  <input type="hidden" name="cpf_cnpj" value={onlyDigits(documentValue)} />
+                  <input type="hidden" name="telefone" value={onlyDigits(phoneValue)} />
 
                   <div className="space-y-3">
                     <label className="ds-label">Tipo de proponente</label>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="auth-tabs">
                       <TypeTab
                         active={accountType === "PF"}
                         title="Pessoa Física"
                         subtitle="CPF e atuação individual"
-                        onClick={() => setAccountType("PF")}
+                        onClick={() => {
+                          setAccountType("PF");
+                          setDocumentValue("");
+                        }}
                       />
                       <TypeTab
                         active={accountType === "PJ"}
                         title="Pessoa Jurídica"
                         subtitle="CNPJ e perfil institucional"
-                        onClick={() => setAccountType("PJ")}
+                        onClick={() => {
+                          setAccountType("PJ");
+                          setDocumentValue("");
+                        }}
                       />
                     </div>
+
+                    <p className="auth-help">{labels.legalHint}</p>
                   </div>
 
-                  <div className="grid gap-4">
+                  <div className="auth-fields">
                     <Field
                       label={labels.primaryName}
                       name="nome_razao_social"
@@ -159,13 +211,16 @@ export default function LoginPage() {
                       disabled={isPending}
                     />
 
-                    <Field
+                    <MaskedField
                       label={labels.primaryDoc}
-                      name="cpf_cnpj"
+                      displayName={`${accountType.toLowerCase()}_display`}
+                      value={documentValue}
+                      onChange={handleDocumentChange}
                       placeholder={labels.docPlaceholder}
                       icon={<FileText className="h-4 w-4" />}
-                      mono
                       disabled={isPending}
+                      mono
+                      inputMode="numeric"
                     />
 
                     <Field
@@ -178,6 +233,17 @@ export default function LoginPage() {
                       disabled={isPending}
                     />
 
+                    <MaskedField
+                      label="Telefone"
+                      displayName="telefone_display"
+                      value={phoneValue}
+                      onChange={handlePhoneChange}
+                      placeholder="(21) 99999-9999"
+                      icon={<Phone className="h-4 w-4" />}
+                      disabled={isPending}
+                      inputMode="numeric"
+                    />
+
                     <PasswordField
                       label="Senha"
                       name="password"
@@ -186,25 +252,11 @@ export default function LoginPage() {
                       onToggle={() => setShowPassword((value) => !value)}
                       disabled={isPending}
                     />
-
-                    <div className="space-y-2">
-                      <label className="ds-label">{labels.summaryTitle}</label>
-                      <textarea
-                        name="portfolio_resumo"
-                        rows={5}
-                        placeholder={labels.summaryPlaceholder}
-                        className="ds-input min-h-[132px]"
-                        disabled={isPending}
-                      />
-                      <p className="text-xs text-slate-500">
-                        Esse resumo ajuda a montar o perfil inicial do proponente.
-                      </p>
-                    </div>
                   </div>
 
-                  {error && <p className="text-sm text-red-400">{error}</p>}
+                  {error && <p className="auth-error">{error}</p>}
 
-                  <button type="submit" disabled={isPending} className="ds-btn-primary h-12 w-full">
+                  <button type="submit" disabled={isPending} className="ds-btn-primary auth-submit">
                     {isPending ? "Criando conta..." : "Criar conta"}
                     {!isPending && <ArrowRight className="h-4 w-4" />}
                   </button>
@@ -230,16 +282,16 @@ export default function LoginPage() {
                     disabled={isPending}
                   />
 
-                  <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
-                    <span>Autenticação segura do console.</span>
-                    <button type="button" className="font-medium text-cyan-300 transition hover:text-cyan-200">
+                  <div className="auth-row">
+                    <span className="auth-help">Acesso seguro ao Poseidon.</span>
+                    <button type="button" className="auth-link">
                       Esqueci minha senha
                     </button>
                   </div>
 
-                  {error && <p className="text-sm text-red-400">{error}</p>}
+                  {error && <p className="auth-error">{error}</p>}
 
-                  <button type="submit" disabled={isPending} className="ds-btn-primary h-12 w-full">
+                  <button type="submit" disabled={isPending} className="ds-btn-primary auth-submit">
                     {isPending ? "Entrando..." : "Entrar"}
                     {!isPending && <ArrowRight className="h-4 w-4" />}
                   </button>
@@ -266,13 +318,44 @@ function Field({
   return (
     <div className="space-y-2">
       <label className="ds-label">{label}</label>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
-          {icon}
-        </div>
+      <div className="auth-input-wrap">
+        <div className="auth-input-icon">{icon}</div>
         <input
           {...props}
-          className={`ds-input h-12 pl-11 ${mono ? "ds-mono tracking-[0.04em]" : ""}`}
+          className={`ds-input auth-input ${mono ? "ds-mono tracking-[0.04em]" : ""}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MaskedField({
+  label,
+  icon,
+  value,
+  onChange,
+  mono = false,
+  displayName,
+  ...props
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "name"> & {
+  label: string;
+  icon: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  mono?: boolean;
+  displayName: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="ds-label">{label}</label>
+      <div className="auth-input-wrap">
+        <div className="auth-input-icon">{icon}</div>
+        <input
+          {...props}
+          name={displayName}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`ds-input auth-input ${mono ? "ds-mono tracking-[0.04em]" : ""}`}
         />
       </div>
     </div>
@@ -297,8 +380,8 @@ function PasswordField({
   return (
     <div className="space-y-2">
       <label className="ds-label">{label}</label>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+      <div className="auth-input-wrap">
+        <div className="auth-input-icon">
           <Lock className="h-4 w-4" />
         </div>
 
@@ -307,7 +390,7 @@ function PasswordField({
           name={name}
           placeholder={placeholder}
           disabled={disabled}
-          className="ds-input h-12 pl-11 pr-12"
+          className="ds-input auth-input auth-input-password"
         />
 
         <button
@@ -315,7 +398,7 @@ function PasswordField({
           onClick={onToggle}
           aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
           disabled={disabled}
-          className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 transition hover:text-cyan-300"
+          className="auth-input-action"
         >
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
@@ -339,12 +422,7 @@ function TypeTab({
     <button
       type="button"
       onClick={onClick}
-      className={[
-        "rounded-2xl border px-4 py-4 text-left transition",
-        active
-          ? "border-cyan-400/40 bg-cyan-400/10 text-white"
-          : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.05]",
-      ].join(" ")}
+      className={`auth-tab ${active ? "auth-tab-active" : ""}`}
     >
       <div className="text-sm font-medium">{title}</div>
       <div className="mt-1 text-xs leading-5 text-slate-400">{subtitle}</div>
@@ -364,13 +442,13 @@ function InfoCard({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="mb-3 flex items-center justify-between text-slate-400">
-        <span className="text-[11px] uppercase tracking-[0.22em]">{label}</span>
+    <div className="auth-mini-card">
+      <div className="auth-mini-card-top">
+        <span className="auth-mini-card-label">{label}</span>
         {icon}
       </div>
-      <div className="text-lg font-semibold tracking-[-0.03em] text-white">{value}</div>
-      <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+      <div className="auth-mini-card-value">{value}</div>
+      <p className="auth-mini-card-description">{description}</p>
     </div>
   );
 }
