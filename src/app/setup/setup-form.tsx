@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight, FolderPlus, Loader2, Info } from "lucide-react";
+import { AlertTriangle, ArrowRight, FolderPlus, Loader2 } from "lucide-react";
 import type { ActionState } from "@/app/actions/setupProjeto";
 
 const initialState: ActionState = { status: "idle" };
@@ -11,21 +11,59 @@ type SetupProjetoFormProps = {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
 };
 
+/* ── Opções dos selects ─────────────────────────────────────────── */
+
 const MECANISMOS = [
-  { value: "", label: "Selecione o mecanismo..." },
   { value: "incentivo_fiscal", label: "Lei Rouanet — Mecenato (Incentivo Fiscal)" },
-  { value: "fundo",           label: "Lei Rouanet — FNC (Fundo Nacional)" },
-  { value: "pnab",            label: "Política Nacional Aldir Blanc (PNAB)" },
+  { value: "fundo",            label: "Lei Rouanet — FNC (Fundo Nacional da Cultura)" },
+  { value: "pnab",             label: "Política Nacional Aldir Blanc (PNAB)" },
 ] as const;
+
+const SEGMENTOS = [
+  { value: "artes_cenicas",     label: "Artes Cênicas (Teatro, Dança, Circo, Ópera)" },
+  { value: "musica",            label: "Música" },
+  { value: "artes_visuais",     label: "Artes Visuais" },
+  { value: "audiovisual",       label: "Cinema e Audiovisual" },
+  { value: "fotografia",        label: "Fotografia" },
+  { value: "artesanato",        label: "Artesanato" },
+  { value: "design_moda",       label: "Design e Moda" },
+  { value: "literatura",        label: "Literatura, Humanidades e Informação" },
+  { value: "patrimonio",        label: "Patrimônio Cultural e Museologia" },
+  { value: "artes_integradas",  label: "Artes Integradas" },
+] as const;
+
+/* ── Formatação de moeda ────────────────────────────────────────── */
+
+/** Converte string de dígitos ("150000") em valor BRL exibível ("150.000,00") */
+function digitsToDisplay(digits: string): string {
+  if (!digits) return "";
+  const num = parseInt(digits, 10) / 100;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Valor numérico bruto para cálculo e hidden input */
+function digitsToNumber(digits: string): number {
+  if (!digits) return 0;
+  return parseInt(digits, 10) / 100;
+}
 
 function formatBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/* ── Componente principal ───────────────────────────────────────── */
+
 export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
-  const router  = useRouter();
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(action, initialState);
-  const [orcamento, setOrcamento] = useState<number>(0);
+
+  // Máscara de orçamento
+  const [rawDigits, setRawDigits]       = useState("");
+  const [displayValue, setDisplayValue] = useState("");
+
+  // Controle dos selects (para cor do placeholder)
+  const [mecanismo, setMecanismo]   = useState("");
+  const [segmento,  setSegmento]    = useState("");
 
   useEffect(() => {
     if (state.status === "success" && state.redirectTo) {
@@ -33,149 +71,154 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
     }
   }, [router, state.redirectTo, state.status]);
 
-  const adm       = orcamento * 0.15;
-  const captacao  = Math.min(orcamento * 0.10, 150_000);
-  const divulgacao = orcamento * 0.20;
-  const showPreview = orcamento > 0;
+  /* Máscara: aceita só dígitos, formata em tempo real */
+  function handleOrcamentoInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const digits = e.target.value.replace(/\D/g, "").replace(/^0+/, "") || "";
+    setRawDigits(digits);
+    setDisplayValue(digitsToDisplay(digits));
+  }
+
+  const orcamentoNum = digitsToNumber(rawDigits);
+  const adm          = orcamentoNum * 0.15;
+  const captacao     = Math.min(orcamentoNum * 0.10, 150_000);
+  const divulgacao   = orcamentoNum * 0.20;
+  const showPreview  = orcamentoNum > 0;
+
+  /* Cor do select: muted se nada selecionado, normal caso contrário */
+  const selectColor = (val: string) =>
+    val === "" ? "var(--color-ds-text-muted)" : "var(--color-ds-text)";
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form action={formAction} className="space-y-10">
 
-      {/* ── Bloco 1: Identificação ─────────────────────────────────── */}
-      <fieldset className="space-y-6">
-        <legend className="ds-label mb-2 text-xs tracking-widest uppercase opacity-60">
-          Identificação
-        </legend>
+      {/* ── Seção 1: Identificação ──────────────────────────────── */}
+      <section className="space-y-6">
+        <SectionTitle>Identificação</SectionTitle>
 
         {/* Nome do projeto */}
-        <div>
-          <label htmlFor="nome_projeto" className="ds-label">
-            Nome do projeto
-          </label>
+        <Field
+          id="nome_projeto"
+          label="Nome do projeto"
+          error={state.fieldErrors?.nome_projeto?.[0]}
+        >
           <input
             id="nome_projeto"
             name="nome_projeto"
             placeholder="Ex.: Circuito Atlântico de Arte Viva"
-            className="ds-input mt-1"
+            className="ds-input"
             autoComplete="off"
           />
-          {state.fieldErrors?.nome_projeto?.[0] && (
-            <p className="mt-2 text-xs text-[var(--color-ds-error)]">
-              {state.fieldErrors.nome_projeto[0]}
-            </p>
-          )}
-        </div>
+        </Field>
 
         {/* Grid 2 colunas: Segmento + Mecanismo */}
         <div className="grid gap-6 md:grid-cols-2">
 
-          {/* Segmento cultural */}
-          <div>
-            <label htmlFor="segmento_cultural" className="ds-label">
-              Segmento cultural
-            </label>
-            <input
+          {/* Segmento cultural — dropdown */}
+          <Field
+            id="segmento_cultural"
+            label="Segmento cultural"
+            error={state.fieldErrors?.segmento_cultural?.[0]}
+          >
+            <select
               id="segmento_cultural"
               name="segmento_cultural"
-              placeholder="Teatro, Música, Circo, Artes Visuais…"
-              className="ds-input mt-1"
-              autoComplete="off"
-            />
-            {state.fieldErrors?.segmento_cultural?.[0] && (
-              <p className="mt-2 text-xs text-[var(--color-ds-error)]">
-                {state.fieldErrors.segmento_cultural[0]}
-              </p>
-            )}
-          </div>
-
-          {/* Mecanismo — dropdown */}
-          <div>
-            <label htmlFor="mecanismo" className="ds-label">
-              Mecanismo de fomento
-            </label>
-            <select
-              id="mecanismo"
-              name="mecanismo"
-              defaultValue=""
-              className="ds-input mt-1"
+              className="ds-input"
+              value={segmento}
+              style={{ color: selectColor(segmento) }}
+              onChange={(e) => setSegmento(e.target.value)}
             >
-              {MECANISMOS.map(({ value, label }) => (
-                <option key={value} value={value} disabled={value === ""}>
+              <option value="" disabled style={{ color: "var(--color-ds-text-muted)" }}>
+                Selecione o segmento…
+              </option>
+              {SEGMENTOS.map(({ value, label }) => (
+                <option key={value} value={value} style={{ color: "var(--color-ds-text)" }}>
                   {label}
                 </option>
               ))}
             </select>
-            {state.fieldErrors?.mecanismo?.[0] && (
-              <p className="mt-2 text-xs text-[var(--color-ds-error)]">
-                {state.fieldErrors.mecanismo[0]}
-              </p>
-            )}
-          </div>
+          </Field>
+
+          {/* Mecanismo — dropdown */}
+          <Field
+            id="mecanismo"
+            label="Mecanismo de fomento"
+            error={state.fieldErrors?.mecanismo?.[0]}
+          >
+            <select
+              id="mecanismo"
+              name="mecanismo"
+              className="ds-input"
+              value={mecanismo}
+              style={{ color: selectColor(mecanismo) }}
+              onChange={(e) => setMecanismo(e.target.value)}
+            >
+              <option value="" disabled style={{ color: "var(--color-ds-text-muted)" }}>
+                Selecione o mecanismo…
+              </option>
+              {MECANISMOS.map(({ value, label }) => (
+                <option key={value} value={value} style={{ color: "var(--color-ds-text)" }}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
-      </fieldset>
+      </section>
 
-      {/* ── Bloco 2: Orçamento + Preview ──────────────────────────── */}
-      <fieldset className="space-y-4">
-        <legend className="ds-label mb-2 text-xs tracking-widest uppercase opacity-60">
-          Orçamento
-        </legend>
+      {/* ── Seção 2: Orçamento ─────────────────────────────────── */}
+      <section className="space-y-6">
+        <SectionTitle>Orçamento</SectionTitle>
 
-        <div>
-          <label htmlFor="orcamento_total_aprovado" className="ds-label">
-            Orçamento total aprovado
-          </label>
-          <input
-            id="orcamento_total_aprovado"
-            name="orcamento_total_aprovado"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0,00"
-            className="ds-input ds-mono mt-1"
-            onChange={(e) => setOrcamento(parseFloat(e.target.value) || 0)}
-          />
-          {state.fieldErrors?.orcamento_total_aprovado?.[0] && (
-            <p className="mt-2 text-xs text-[var(--color-ds-error)]">
-              {state.fieldErrors.orcamento_total_aprovado[0]}
-            </p>
-          )}
-        </div>
-
-        {/* Preview de rubricas automáticas */}
-        <div
-          className={`ds-card overflow-hidden transition-all duration-300 ${
-            showPreview ? "max-h-80 opacity-100" : "max-h-0 opacity-0 !p-0 !border-0"
-          }`}
-          aria-live="polite"
+        {/* Campo de orçamento com máscara */}
+        <Field
+          id="orcamento_total"
+          label="Valor total do projeto"
+          error={state.fieldErrors?.orcamento_total_aprovado?.[0]}
         >
-          <div className="mb-3 flex items-center gap-2">
-            <Info className="h-3.5 w-3.5 text-[var(--color-ds-cyan)]" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ds-cyan)]">
-              Rubricas geradas automaticamente (IN MinC 29/2026)
+          {/* Hidden input com o valor numérico bruto para o server action */}
+          <input
+            type="hidden"
+            name="orcamento_total_aprovado"
+            value={orcamentoNum}
+          />
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center font-mono text-sm text-[var(--color-ds-text-muted)]">
+              R$
             </span>
+            <input
+              id="orcamento_total"
+              type="text"
+              inputMode="numeric"
+              placeholder="0,00"
+              value={displayValue}
+              onChange={handleOrcamentoInput}
+              className="ds-input ds-mono pl-10"
+              autoComplete="off"
+            />
           </div>
+        </Field>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <RubricaItem
-              label="Administração"
-              percentual="15%"
-              valor={adm}
-            />
-            <RubricaItem
-              label="Captação"
-              percentual="10% · teto R$ 150 mil"
-              valor={captacao}
-            />
-            <RubricaItem
-              label="Divulgação / Acessibilidade"
-              percentual="20%"
-              valor={divulgacao}
-            />
+        {/* Preview de rubricas — aparece só ao digitar */}
+        <div
+          aria-live="polite"
+          className={`overflow-hidden transition-all duration-300 ${
+            showPreview ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="rounded-2xl border border-[var(--color-ds-border)] bg-[var(--color-ds-surface-2)] p-5">
+            <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-[var(--color-ds-cyan)]">
+              Rubricas geradas automaticamente · IN MinC 29/2026
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <RubricaCard label="Administração"             percent="15%"                  valor={adm} />
+              <RubricaCard label="Captação"                  percent="10% · teto R$ 150 mil" valor={captacao} />
+              <RubricaCard label="Divulgação/Acessibilidade" percent="20%"                  valor={divulgacao} />
+            </div>
           </div>
         </div>
-      </fieldset>
+      </section>
 
-      {/* ── Feedback de estado ────────────────────────────────────── */}
+      {/* ── Feedback de estado ──────────────────────────────────── */}
       {state.message && (
         <div
           role="alert"
@@ -190,8 +233,8 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
         </div>
       )}
 
-      {/* ── Ação ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-end pt-2">
+      {/* ── Ação ────────────────────────────────────────────────── */}
+      <div className="flex justify-end pt-2">
         <button type="submit" disabled={isPending} className="ds-btn-primary">
           {isPending
             ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -204,19 +247,52 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
   );
 }
 
-/* ─── Sub-componente: cartão de rubrica ─────────────────────────── */
-type RubricaItemProps = {
+/* ── Sub-componentes ────────────────────────────────────────────── */
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-ds-text-muted)]">
+        {children}
+      </p>
+      <div className="h-px flex-1 bg-[var(--color-ds-border)]" />
+    </div>
+  );
+}
+
+type FieldProps = {
+  id: string;
   label: string;
-  percentual: string;
+  error?: string;
+  children: React.ReactNode;
+};
+
+function Field({ id, label, error, children }: FieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="ds-label">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p className="text-xs text-[var(--color-ds-error)]">{error}</p>
+      )}
+    </div>
+  );
+}
+
+type RubricaCardProps = {
+  label: string;
+  percent: string;
   valor: number;
 };
 
-function RubricaItem({ label, percentual, valor }: RubricaItemProps) {
+function RubricaCard({ label, percent, valor }: RubricaCardProps) {
   return (
-    <div className="rounded-xl border border-[var(--color-ds-border)] bg-[var(--color-ds-surface-2)] px-4 py-3">
+    <div className="rounded-xl border border-[var(--color-ds-border)] bg-[var(--color-ds-surface)] px-4 py-3">
       <p className="text-xs font-semibold text-[var(--color-ds-cyan)]">{label}</p>
-      <p className="mt-0.5 text-[10px] text-[var(--color-ds-text-muted)]">{percentual}</p>
-      <p className="ds-mono mt-2 text-base font-bold text-[var(--color-ds-text)]">
+      <p className="mt-0.5 font-mono text-[10px] text-[var(--color-ds-text-muted)]">{percent}</p>
+      <p className="ds-mono mt-2 text-lg font-bold text-[var(--color-ds-text)]">
         {formatBRL(valor)}
       </p>
     </div>
