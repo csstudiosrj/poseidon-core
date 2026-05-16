@@ -1,38 +1,49 @@
-'use client'
+"use client";
 
-import { useActionState, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import { login, signup } from './actions'
+import { useActionState, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { login, signup } from "./actions";
 
-type FormState = { error: string } | null
+type FormState = { error: string } | null;
 
-async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  return login(formData) as Promise<FormState>
+async function loginAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  return login(formData) as Promise<FormState>;
 }
 
-async function signupAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  return signup(formData) as Promise<FormState>
+async function signupAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  return signup(formData) as Promise<FormState>;
 }
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true)
+  const [isLogin, setIsLogin] = useState(true);
+  const [loginState, loginDispatch, isLoginPending] = useActionState(
+    loginAction,
+    null
+  );
+  const [signupState, signupDispatch, isSignupPending] = useActionState(
+    signupAction,
+    null
+  );
 
-  const [loginState, loginDispatch, isLoginPending] = useActionState(loginAction, null)
-  const [signupState, signupDispatch, isSignupPending] = useActionState(signupAction, null)
+  const isPending = isLoginPending || isSignupPending;
+  const error = isLogin ? loginState?.error : signupState?.error;
 
-  const isPending = isLoginPending || isSignupPending
-  const error = isLogin ? loginState?.error : signupState?.error
-
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-[var(--color-bg)]">
+    <main className="min-h-screen flex items-center justify-center bg-[#020b18] px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         {/* Logotipo */}
         <div className="text-center space-y-1">
           <h1 className="text-4xl font-extrabold tracking-tight text-white">
-            Pose<span className="text-cyan-400">idon</span>
+            Pose<span className="text-[#22d3ee]">idon</span>
           </h1>
           <p className="text-sm text-slate-400">
             Auditoria Cultural · Lei Rouanet · IN 29/2026
@@ -40,21 +51,21 @@ export default function LoginPage() {
         </div>
 
         {/* Card principal */}
-        <div className="rounded-2xl border border-cyan-400/10 bg-[#081121]/90 p-6 shadow-2xl space-y-5">
+        <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.4)] space-y-5">
           <div>
-            <h2 className="text-xl font-bold text-white">
-              {isLogin ? 'Entrar na plataforma' : 'Criar conta'}
+            <h2 className="text-xl font-semibold text-white">
+              {isLogin ? "Entrar na plataforma" : "Criar conta"}
             </h2>
             <p className="text-xs text-slate-400 mt-1">
               {isLogin
-                ? 'Acesse seu painel de auditorias.'
-                : 'Preencha os dados para se cadastrar como proponente.'}
+                ? "Acesse seu painel de auditorias."
+                : "Preencha os dados para se cadastrar como proponente."}
             </p>
           </div>
 
           <hr className="border-white/10" />
 
-          {/* Formulário de LOGIN */}
+          {/* Login Form */}
           {isLogin && (
             <form action={loginDispatch} className="space-y-4" noValidate>
               <Field
@@ -70,7 +81,7 @@ export default function LoginPage() {
                 <Field
                   id="password"
                   label="Senha"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Mínimo 8 caracteres"
                   disabled={isPending}
@@ -79,10 +90,14 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white"
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
 
@@ -91,14 +106,14 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                className="h-11 w-full rounded-xl bg-[#22d3ee] text-sm font-medium text-[#020b18] transition hover:bg-[#06b6d4] disabled:opacity-50 inline-flex items-center justify-center"
               >
-                {isPending ? 'Autenticando...' : 'Entrar'}
+                {isPending ? "Autenticando..." : "Entrar"}
               </button>
             </form>
           )}
 
-          {/* Formulário de CADASTRO */}
+          {/* Signup Form */}
           {!isLogin && (
             <form action={signupDispatch} className="space-y-4" noValidate>
               <Field
@@ -133,7 +148,7 @@ export default function LoginPage() {
                 <Field
                   id="password"
                   label="Senha"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Mínimo 8 caracteres"
                   disabled={isPending}
@@ -142,17 +157,21 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white"
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               <div className="relative">
                 <Field
                   id="confirm_password"
                   label="Confirmar Senha"
-                  type={showConfirm ? 'text' : 'password'}
+                  type={showConfirm ? "text" : "password"}
                   name="confirm_password"
                   placeholder="Repita a senha"
                   disabled={isPending}
@@ -161,10 +180,14 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white"
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
                   tabIndex={-1}
                 >
-                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirm ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
 
@@ -173,24 +196,24 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                className="h-11 w-full rounded-xl bg-[#22d3ee] text-sm font-medium text-[#020b18] transition hover:bg-[#06b6d4] disabled:opacity-50 inline-flex items-center justify-center"
               >
-                {isPending ? 'Criando conta...' : 'Criar Conta'}
+                {isPending ? "Criando conta..." : "Criar Conta"}
               </button>
             </form>
           )}
 
-          {/* Alternador de modo */}
+          {/* Alternador */}
           <div className="text-center pt-1">
             <button
               type="button"
               onClick={() => setIsLogin((v) => !v)}
               disabled={isPending}
-              className="text-sm text-slate-400 hover:text-cyan-400 transition"
+              className="text-sm text-slate-400 hover:text-[#22d3ee] transition"
             >
               {isLogin
-                ? 'Não tem conta? Criar conta gratuita'
-                : 'Já tem conta? Entrar'}
+                ? "Não tem conta? Criar conta gratuita"
+                : "Já tem conta? Entrar"}
             </button>
           </div>
         </div>
@@ -201,26 +224,29 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
-  )
+  );
 }
 
-/* Campo reutilizável */
+/* ── Campo reutilizável ─────────────────────────────── */
 interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  id: string
-  label: string
+  id: string;
+  label: string;
 }
 
 function Field({ id, label, ...inputProps }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+      <label
+        htmlFor={id}
+        className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500"
+      >
         {label}
       </label>
       <input
         id={id}
-        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
+        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-[#22d3ee]/40 outline-none transition"
         {...inputProps}
       />
     </div>
-  )
+  );
 }
