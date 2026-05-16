@@ -27,7 +27,7 @@ export default function SetupPage() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <span className="text-[var(--color-ds-text-muted)] animate-pulse">
-          Carregando…
+          Carregando...
         </span>
       </main>
     );
@@ -36,7 +36,8 @@ export default function SetupPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-2xl space-y-6">
-        {/* Cabeçalho */}
+
+        {/* Cabecalho */}
         <div className="text-center space-y-2">
           <span className="ds-badge">IN 29/2026</span>
           <h1 className="text-3xl font-extrabold text-[var(--color-ds-text)] mt-3">
@@ -44,12 +45,13 @@ export default function SetupPage() {
             <span className="text-[var(--color-ds-cyan)]">Poseidon</span>
           </h1>
           <p className="text-[var(--color-ds-text-muted)] text-sm">
-            Configure seu perfil para começar as auditorias culturais.
+            Configure seu perfil para comecar as auditorias culturais.
           </p>
         </div>
 
         {/* Card de perfil */}
         <div className="ds-card-glow space-y-6">
+
           <div>
             <p className="ds-label">E-mail autenticado</p>
             <p className="text-[var(--color-ds-text)] font-medium">
@@ -59,7 +61,7 @@ export default function SetupPage() {
 
           <hr className="ds-divider" />
 
-          {/* Seleção de tipo de proponente */}
+          {/* Selecao de tipo de proponente */}
           <div>
             <p className="ds-label mb-3">Tipo de Proponente</p>
             <div className="grid grid-cols-3 gap-3">
@@ -71,9 +73,9 @@ export default function SetupPage() {
 
           <hr className="ds-divider" />
 
-          {/* Próximos passos */}
+          {/* Proximos passos */}
           <div className="space-y-3">
-            <p className="ds-label">Próximos Passos</p>
+            <p className="ds-label">Proximos Passos</p>
             <StepItem
               number={1}
               title="Completar Perfil"
@@ -98,26 +100,24 @@ export default function SetupPage() {
               startTransition(() => router.push("/dashboard"))
             }
           >
-            {isPending ? "Acessando…" : "Ir para o Dashboard →"}
+            {isPending ? "Acessando..." : "Ir para o Dashboard"}
           </button>
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-[var(--color-ds-text-muted)]">
-          Poseidon · Auditoria Cultural · Lei Rouanet
+          Poseidon &middot; Auditoria Cultural &middot; Lei Rouanet
         </p>
       </div>
     </main>
   );
 }
 
-/* ---- Sub-componentes ---- */
-
 function TipoCard({ tipo }: { tipo: "PF" | "MEI" | "PJ" }) {
   const labels: Record<string, string> = {
-    PF: "Pessoa Física",
+    PF: "Pessoa Fisica",
     MEI: "MEI",
-    PJ: "Pessoa Jurídica",
+    PJ: "Pessoa Juridica",
   };
 
   return (
