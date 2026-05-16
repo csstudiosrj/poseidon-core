@@ -288,15 +288,15 @@ body {
 }
 
 .login-hero-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--color-text);
 }
 
 .login-hero-sub {
-  font-size: 13px;
-  line-height: 1.5;
-  color: rgba(226, 232, 240, 0.78);
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(226, 232, 240, 0.84);
   margin-bottom: 18px;
 }
 
