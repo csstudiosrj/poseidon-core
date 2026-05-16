@@ -1,8 +1,8 @@
-/* globals.css */
+/* src/app/globals.css */
 
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Reset básico */
 *, *::before, *::after {
@@ -23,7 +23,6 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
 }
 
-/* Scrollbar (igual dashboard) */
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -35,42 +34,34 @@ body {
   border-radius: 99px;
 }
 
-/* Design tokens em CSS custom properties */
-
 :root {
-  /* Base */
-  --color-bg: #020b18;           /* sea.950 */
-  --color-surface: #081c35;      /* card */
-  --color-surface-soft: #040f20; /* header/áreas secundárias */
-  --color-surface-alt: #061528;  /* inputs / campos */
+  --color-bg: #020b18;
+  --color-surface: #081c35;
+  --color-surface-soft: #040f20;
+  --color-surface-alt: #061528;
   --color-border-subtle: rgba(148, 163, 184, 0.18);
 
   --color-text: #e2e8f0;
   --color-text-soft: #cbd5f5;
   --color-muted: rgba(148, 163, 184, 0.6);
 
-  /* Acentos do dashboard */
-  --color-accent: #22d3ee;       /* cyan.400 */
-  --color-accent-strong: #06b6d4;/* cyan.500 */
-  --color-accent-deep: #0891b2;  /* cyan.600 */
+  --color-accent: #22d3ee;
+  --color-accent-strong: #06b6d4;
+  --color-accent-deep: #0891b2;
 
-  --color-success: #22c55e;      /* risk.low */
-  --color-warning: #f59e0b;      /* risk.mid */
-  --color-danger: #ef4444;       /* risk.high */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
 
-  /* Tipografia */
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* Raio e sombras (igual .card do HTML) */
   --radius-card: 12px;
   --shadow-card: 0 0 0 1px rgba(34, 211, 238, 0.05), 0 4px 24px rgba(0, 0, 0, 0.4);
   --shadow-card-strong: 0 0 0 1px rgba(34, 211, 238, 0.15),
     0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(34, 211, 238, 0.06);
 }
-
-/* Utilitários de fonte */
 
 .font-sans {
   font-family: var(--font-sans);
@@ -84,9 +75,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Componentes base – cards, badges, inputs, botões */
+/* Cards */
 
-/* Card genérico, mesmo visual do dashboard */
 .ds-card {
   background: var(--color-surface);
   border-radius: var(--radius-card);
@@ -94,12 +84,10 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-/* Variante com glow (tipo risco de glosa) */
 .ds-card-glow {
   box-shadow: var(--shadow-card-strong);
 }
 
-/* Card mais “chapado” para login (menos intensidade se quiser) */
 .ds-card-soft {
   background: var(--color-surface);
   border-radius: var(--radius-card);
@@ -107,7 +95,7 @@ body {
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
 }
 
-/* Badge genérica + estados OK/warn/danger do dashboard */
+/* Badge */
 
 .ds-badge {
   display: inline-flex;
@@ -139,7 +127,7 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
-/* Inputs – focados em login/cadastro, mas combinando com a tabela/fields */
+/* Inputs */
 
 .ds-field {
   display: flex;
@@ -156,7 +144,7 @@ body {
   width: 100%;
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.5);
-  background: rgba(2, 11, 24, 0.8); /* mistura do bg com surface-soft */
+  background: rgba(2, 11, 24, 0.8);
   padding: 9px 11px;
   font-size: 14px;
   color: var(--color-text);
@@ -175,16 +163,6 @@ body {
   border-color: rgba(34, 211, 238, 0.6);
   box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.5), 0 0 0 6px rgba(34, 211, 238, 0.14);
   background: rgba(6, 21, 40, 0.9);
-}
-
-/* Texto de ajuda / erro */
-.ds-help {
-  font-size: 11px;
-  color: rgba(148, 163, 184, 0.9);
-}
-
-.ds-help-error {
-  color: #f87171;
 }
 
 /* Botões */
@@ -219,96 +197,12 @@ body {
   box-shadow: 0 16px 50px rgba(8, 145, 178, 0.55);
 }
 
-.ds-btn-ghost {
-  background: transparent;
-  color: rgba(148, 163, 184, 0.9);
-  border-color: rgba(148, 163, 184, 0.3);
-}
-
-.ds-btn-ghost:hover {
-  border-color: rgba(148, 163, 184, 0.6);
-  background: rgba(15, 23, 42, 0.7);
-}
-
-/* Pequeno texto para “trocar modo” */
 .ds-link-muted {
   font-size: 12px;
   color: rgba(148, 163, 184, 0.9);
 }
 
-.ds-link-muted button {
-  color: #22d3ee;
-}
-
-/* Container centralizado (login) */
-
-.app-shell {
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  background: radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 55%),
-    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.9), #020b18);
-}
-
-.app-shell-inner {
-  width: 100%;
-  max-width: 960px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 32px;
-}
-
-@media (max-width: 768px) {
-  .app-shell-inner {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-  }
-}
-
-/* Lado “branding” do login */
-
-.login-hero {
-  padding: 24px 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(34, 211, 238, 0.1);
-  background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 55%),
-    rgba(8, 28, 53, 0.96);
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.7);
-}
-
-.login-hero-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.login-hero-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.login-hero-sub {
-  font-size: 13px;
-  line-height: 1.5;
-  color: rgba(226, 232, 240, 0.78);
-  margin-bottom: 18px;
-}
-
-/* Spacer responsivo só pra mobile */
-@media (max-width: 768px) {
-  .app-shell {
-    padding: 16px 14px;
-  }
-  .login-hero {
-    padding: 18px 14px;
-  }
-}
-
-/* Checkbox simples em linha com texto */
+/* Checkbox */
 
 .ds-checkbox-row {
   display: flex;
@@ -346,7 +240,67 @@ body {
   transform: rotate(45deg);
 }
 
-/* Erros globais de formulário */
+/* Shell de login */
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 55%),
+    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.9), #020b18);
+}
+
+.app-shell-inner {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 32px;
+}
+
+@media (max-width: 768px) {
+  .app-shell-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Hero login */
+
+.login-hero {
+  padding: 24px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(34, 211, 238, 0.1);
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 55%),
+    rgba(8, 28, 53, 0.96);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.7);
+}
+
+.login-hero-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.login-hero-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.login-hero-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.78);
+  margin-bottom: 18px;
+}
+
+/* Erro form */
 
 .form-error {
   margin-top: 6px;
