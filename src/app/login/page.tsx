@@ -1,3 +1,4 @@
+// src/app/login/page.tsx
 "use client";
 
 import { useActionState, useState } from "react";
@@ -6,30 +7,18 @@ import { login, signup } from "./actions";
 
 type FormState = { error: string } | null;
 
-async function loginAction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
+async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
   return login(formData) as Promise<FormState>;
 }
 
-async function signupAction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
+async function signupAction(_prev: FormState, formData: FormData): Promise<FormState> {
   return signup(formData) as Promise<FormState>;
 }
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [loginState, loginDispatch, isLoginPending] = useActionState(
-    loginAction,
-    null
-  );
-  const [signupState, signupDispatch, isSignupPending] = useActionState(
-    signupAction,
-    null
-  );
+  const [loginState, loginDispatch, isLoginPending] = useActionState(loginAction, null);
+  const [signupState, signupDispatch, isSignupPending] = useActionState(signupAction, null);
 
   const isPending = isLoginPending || isSignupPending;
   const error = isLogin ? loginState?.error : signupState?.error;
@@ -38,12 +27,12 @@ export default function LoginPage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#020b18] px-4 py-12">
+    <main className="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         {/* Logotipo */}
         <div className="text-center space-y-1">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white">
-            Pose<span className="text-[#22d3ee]">idon</span>
+          <h1 className="text-4xl font-bold tracking-tight text-white font-['Syne']">
+            Pose<span className="text-cyan-400">idon</span>
           </h1>
           <p className="text-sm text-slate-400">
             Auditoria Cultural · Lei Rouanet · IN 29/2026
@@ -51,9 +40,9 @@ export default function LoginPage() {
         </div>
 
         {/* Card principal */}
-        <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.4)] space-y-5">
+        <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)] space-y-5">
           <div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-white font-['Syne']">
               {isLogin ? "Entrar na plataforma" : "Criar conta"}
             </h2>
             <p className="text-xs text-slate-400 mt-1">
@@ -65,7 +54,7 @@ export default function LoginPage() {
 
           <hr className="border-white/10" />
 
-          {/* Login Form */}
+          {/* Formulário de LOGIN */}
           {isLogin && (
             <form action={loginDispatch} className="space-y-4" noValidate>
               <Field
@@ -93,11 +82,7 @@ export default function LoginPage() {
                   className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
                   tabIndex={-1}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
 
@@ -106,14 +91,14 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="h-11 w-full rounded-xl bg-[#22d3ee] text-sm font-medium text-[#020b18] transition hover:bg-[#06b6d4] disabled:opacity-50 inline-flex items-center justify-center"
+                className="h-11 w-full rounded-xl bg-cyan-400 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 inline-flex items-center justify-center"
               >
                 {isPending ? "Autenticando..." : "Entrar"}
               </button>
             </form>
           )}
 
-          {/* Signup Form */}
+          {/* Formulário de CADASTRO */}
           {!isLogin && (
             <form action={signupDispatch} className="space-y-4" noValidate>
               <Field
@@ -160,11 +145,7 @@ export default function LoginPage() {
                   className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
                   tabIndex={-1}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               <div className="relative">
@@ -183,11 +164,7 @@ export default function LoginPage() {
                   className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
                   tabIndex={-1}
                 >
-                  {showConfirm ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
 
@@ -196,24 +173,22 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="h-11 w-full rounded-xl bg-[#22d3ee] text-sm font-medium text-[#020b18] transition hover:bg-[#06b6d4] disabled:opacity-50 inline-flex items-center justify-center"
+                className="h-11 w-full rounded-xl bg-cyan-400 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 inline-flex items-center justify-center"
               >
                 {isPending ? "Criando conta..." : "Criar Conta"}
               </button>
             </form>
           )}
 
-          {/* Alternador */}
+          {/* Alternador de modo */}
           <div className="text-center pt-1">
             <button
               type="button"
               onClick={() => setIsLogin((v) => !v)}
               disabled={isPending}
-              className="text-sm text-slate-400 hover:text-[#22d3ee] transition"
+              className="text-sm text-slate-400 hover:text-cyan-400 transition"
             >
-              {isLogin
-                ? "Não tem conta? Criar conta gratuita"
-                : "Já tem conta? Entrar"}
+              {isLogin ? "Não tem conta? Criar conta gratuita" : "Já tem conta? Entrar"}
             </button>
           </div>
         </div>
@@ -244,7 +219,7 @@ function Field({ id, label, ...inputProps }: FieldProps) {
       </label>
       <input
         id={id}
-        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-[#22d3ee]/40 outline-none transition"
+        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none transition"
         {...inputProps}
       />
     </div>

@@ -16,6 +16,13 @@ import {
 import { processarNovaDespesa, type ActionState } from "@/app/actions/processarNovaDespesa";
 import type { DashboardData } from "@/app/actions/getDashboardData";
 
+/* ================================================================
+   FONTES NECESSÁRIAS (configurar no layout.tsx / tailwind.config)
+   - Syne (títulos)
+   - Inter (interface)
+   - JetBrains Mono (números)
+   ================================================================ */
+
 type DashboardProps = {
   initialData: DashboardData;
 };
@@ -33,13 +40,13 @@ const percent = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 1,
 });
 
-/* ── Helpers ──────────────────────────────────────────────────── */
+/* ── Helpers de estilo ───────────────────────────────────────── */
 function rubricaBadge(status: "ok" | "warning" | "critical") {
   if (status === "critical")
-    return "inline-flex items-center rounded-full bg-red-500/12 px-2.5 py-0.5 text-xs font-medium text-red-300 border border-red-400/20";
+    return "inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400 border border-red-400/20";
   if (status === "warning")
-    return "inline-flex items-center rounded-full bg-amber-500/12 px-2.5 py-0.5 text-xs font-medium text-amber-300 border border-amber-400/20";
-  return "inline-flex items-center rounded-full bg-emerald-500/12 px-2.5 py-0.5 text-xs font-medium text-emerald-300 border border-emerald-400/20";
+    return "inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-400/20";
+  return "inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-400/20";
 }
 
 function progressFill(status: "ok" | "warning" | "critical") {
@@ -49,11 +56,11 @@ function progressFill(status: "ok" | "warning" | "critical") {
 }
 
 function AlertIcon({ nivel }: { nivel: "info" | "aviso" | "critico" | "bloqueante" }) {
-  const classes = "h-4 w-4";
+  const classes = "h-4 w-4 shrink-0";
   if (nivel === "bloqueante") return <ShieldAlert className={`${classes} text-red-400`} />;
   if (nivel === "critico") return <AlertTriangle className={`${classes} text-amber-400`} />;
   if (nivel === "aviso") return <Bell className={`${classes} text-cyan-400`} />;
-  return <Clock3 className={`${classes} text-slate-400`} />;
+  return <Clock3 className={`${classes} text-slate-500`} />;
 }
 
 function alertBorder(nivel: "info" | "aviso" | "critico" | "bloqueante") {
@@ -63,7 +70,7 @@ function alertBorder(nivel: "info" | "aviso" | "critico" | "bloqueante") {
   return "border-white/10 bg-white/[0.02]";
 }
 
-/* ── Componentes internos ─────────────────────────────────────── */
+/* ── KPI Card padrão ─────────────────────────────────────────── */
 function MetricCard({
   label,
   value,
@@ -76,9 +83,9 @@ function MetricCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#081121]/90 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
+    <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-5 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-400">{label}</span>
+        <span className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{label}</span>
         <span className="text-slate-500">{icon}</span>
       </div>
       <p className="mt-3 text-2xl font-semibold tabular-nums text-white">{value}</p>
@@ -87,7 +94,36 @@ function MetricCard({
   );
 }
 
-/* ── Componente principal ─────────────────────────────────────── */
+/* ── Gauge de risco (termômetro) ─────────────────────────────── */
+function RiskGauge({ percentual }: { percentual: number }) {
+  const color =
+    percentual >= 85 ? "bg-red-500" : percentual >= 60 ? "bg-amber-400" : "bg-emerald-500";
+  const label = percentual >= 85 ? "Crítico" : percentual >= 60 ? "Moderado" : "Normal";
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-5 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Risco de Glosa</span>
+        <ShieldAlert className="h-4 w-4 text-slate-500" />
+      </div>
+      <div className="mt-4 flex items-end gap-4">
+        <span className="text-3xl font-semibold tabular-nums text-white">{percentual}%</span>
+        <span className={`text-sm font-medium ${percentual >= 85 ? "text-red-400" : percentual >= 60 ? "text-amber-400" : "text-emerald-400"}`}>
+          {label}
+        </span>
+      </div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${Math.min(percentual, 100)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-slate-500">Pressão orçamentária atual</p>
+    </div>
+  );
+}
+
+/* ── Dashboard ───────────────────────────────────────────────── */
 export default function Dashboard({ initialData }: DashboardProps) {
   const [data] = useState<DashboardData>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -107,88 +143,68 @@ export default function Dashboard({ initialData }: DashboardProps) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">
-          Dashboard de Rubricas
-        </h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Execução orçamentária, tetos legais e alertas de compliance.
-        </p>
+      {/* ── Topbar compacta ──────────────────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-white font-['Syne']">
+            Dashboard de Rubricas
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Execução orçamentária · tetos legais · alertas de compliance
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Pills de contexto */}
+          <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-3 py-1 text-[11px] font-medium text-cyan-400 border border-cyan-400/20">
+            {data.status}
+          </span>
+          <span className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-slate-400 border border-white/10">
+            IN 29/2026
+          </span>
+        </div>
       </div>
 
-      {/* KPIs */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* ── KPIs (3 cards) ───────────────────────────────────── */}
+      <section className="grid gap-4 md:grid-cols-3">
         <MetricCard
-          label="Valor captado"
+          label="Total Captado"
           value={currency.format(data.valorCaptado)}
           meta={`Projeto ${data.projetoId}`}
           icon={<BadgeDollarSign className="h-4 w-4" />}
         />
         <MetricCard
-          label="Executado"
-          value={currency.format(data.valorExecutado)}
-          meta={`${percent.format(executionProgress)}% da base financeira`}
-          icon={<ArrowUpRight className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Saldo disponível"
+          label="Saldo em Conta"
           value={currency.format(data.saldoConta)}
-          meta={`Status do projeto: ${data.status}`}
+          meta={`${percent.format(executionProgress)}% executado`}
           icon={<Wallet className="h-4 w-4" />}
         />
-        <MetricCard
-          label="Risco"
-          value={data.riscoLabel}
-          meta={`${percent.format(data.riscoPercentual)}% do limite crítico`}
-          icon={<ShieldAlert className="h-4 w-4" />}
-        />
+        <RiskGauge percentual={data.riscoPercentual} />
       </section>
 
-      {/* Tetos legais */}
-      <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard
-          label="Teto Administração"
-          value={currency.format(data.tetoAdministracao)}
-          meta="15% do orçamento total"
-          icon={<ShieldAlert className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Teto Captação"
-          value={currency.format(data.tetoCaptacao)}
-          meta="10% limitado ao teto legal"
-          icon={<BadgeDollarSign className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Teto Divulgação + Acessibilidade"
-          value={currency.format(data.tetoDivulgacao)}
-          meta="20% compartilhado"
-          icon={<Bell className="h-4 w-4" />}
-        />
-      </section>
-
-      {/* Conteúdo principal */}
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        {/* Coluna esquerda: rubricas */}
-        <div className="rounded-2xl border border-white/10 bg-[#081121]/90 p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
-          <div className="flex items-center justify-between gap-3">
+      {/* ── Conteúdo principal (duas colunas) ────────────────── */}
+      <section className="grid gap-6 xl:grid-cols-[1.35fr_360px]">
+        {/* Coluna esquerda: Rubricas */}
+        <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
+          <div className="flex items-center justify-between gap-3 mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-white">Rubricas do projeto</h2>
+              <h2 className="text-lg font-semibold text-white font-['Syne']">
+                Rubricas do projeto
+              </h2>
               <p className="text-sm text-slate-400">
-                Execução orçamentária e travas legais da IN 29/2026.
+                Execução orçamentária e travas da IN 29/2026
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300"
             >
               <BadgeDollarSign className="h-4 w-4" />
               Nova Despesa
             </button>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="space-y-4">
             {data.rubricas.map((rubrica) => {
               const progresso =
                 rubrica.valor_orcado > 0
@@ -201,6 +217,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                   key={rubrica.id}
                   className="rounded-2xl border border-white/10 bg-white/[0.02] p-4"
                 >
+                  {/* Linha superior: nome, badge, valores */}
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -224,26 +241,31 @@ export default function Dashboard({ initialData }: DashboardProps) {
                     <div className="text-left md:text-right">
                       <p className="text-sm font-medium text-white">
                         Executado{" "}
-                        <span className="tabular-nums">{currency.format(rubrica.valor_executado)}</span>
+                        <span className="tabular-nums">
+                          {currency.format(rubrica.valor_executado)}
+                        </span>
                       </p>
                       <p className="text-xs text-slate-400">
                         Saldo{" "}
-                        <span className="tabular-nums text-white">{currency.format(saldoRubrica)}</span>
+                        <span className="tabular-nums text-white">
+                          {currency.format(saldoRubrica)}
+                        </span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Barra de progresso */}
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
+                  {/* Barra de progresso fina */}
+                  <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-800">
                     <div
                       className={progressFill(rubrica.status)}
                       style={{ width: `${Math.min(progresso, 100)}%` }}
                     />
                   </div>
 
+                  {/* Metadados em linha */}
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                    <span>{percent.format(progresso)}% da rubrica consumida</span>
-                    <span>{percent.format(rubrica.percentualTeto)}% do teto legal</span>
+                    <span>{percent.format(progresso)}% consumido</span>
+                    <span>{percent.format(rubrica.percentualTeto)}% do teto</span>
                     <span>
                       Glosado{" "}
                       <span className="tabular-nums text-white">
@@ -258,6 +280,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                     </span>
                   </div>
 
+                  {/* Referência legal */}
                   <p className="mt-2 text-xs text-slate-500">{rubrica.referenciaLegal}</p>
                 </div>
               );
@@ -265,18 +288,18 @@ export default function Dashboard({ initialData }: DashboardProps) {
           </div>
         </div>
 
-        {/* Coluna direita: sidebar de auditoria + resumo */}
+        {/* Coluna direita: Sidebar */}
         <div className="space-y-6">
-          {/* Auditoria */}
-          <div className="rounded-2xl border border-white/10 bg-[#081121]/90 p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
-            <div className="flex items-center gap-2">
+          {/* Feed de auditoria */}
+          <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
+            <div className="flex items-center gap-2 mb-5">
               <Clock3 className="h-4 w-4 text-slate-400" />
-              <h2 className="text-lg font-semibold text-white">Alertas de compliance</h2>
+              <h2 className="text-lg font-semibold text-white font-['Syne']">Auditoria</h2>
             </div>
-            <div className="mt-5 max-h-[560px] space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-[480px] overflow-y-auto space-y-3 pr-1">
               {data.alertas.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-400">
-                  Nenhum alerta ativo para este projeto.
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-400">
+                  Nenhum evento registrado.
                 </div>
               ) : (
                 data.alertas.map((item) => (
@@ -291,7 +314,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <h3 className="text-sm font-medium text-white">{item.codigo}</h3>
-                          <span className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
                             {item.nivel}
                           </span>
                         </div>
@@ -310,31 +333,30 @@ export default function Dashboard({ initialData }: DashboardProps) {
             </div>
           </div>
 
-          {/* Resumo */}
-          <div className="rounded-2xl border border-white/10 bg-[#081121]/90 p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
-            <div className="flex items-center gap-2">
+          {/* Resumo executivo */}
+          <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
+            <div className="flex items-center gap-2 mb-3">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-white">Resumo</h2>
+              <h2 className="text-lg font-semibold text-white font-['Syne']">Resumo</h2>
             </div>
-            <div className="mt-3 space-y-2 text-sm text-slate-400">
-              <p>{summary.warnings} rubrica(s) em atenção.</p>
-              <p>{summary.blocked} rubrica(s) em estado crítico.</p>
+            <div className="space-y-2 text-sm text-slate-400">
+              <p>{summary.warnings} rubrica(s) em atenção</p>
+              <p>{summary.blocked} rubrica(s) bloqueadas</p>
               <p>Projeto: {data.nomeP}</p>
+              <p className="text-xs text-slate-500">Mecanismo: {data.mecanismo}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Modal de nova despesa */}
+      {/* ── Modal de Nova Despesa ─────────────────────────────── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-2xl border border-cyan-400/10 bg-[#081121] p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Nova Despesa</h2>
-                <p className="text-sm text-slate-400">
-                  Preencha os dados para validar compliance e bloqueios.
-                </p>
+                <h2 className="text-lg font-semibold text-white font-['Syne']">Nova Despesa</h2>
+                <p className="text-sm text-slate-400">Preencha os dados para validação de compliance.</p>
               </div>
               <button
                 type="button"
@@ -349,7 +371,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
               <input type="hidden" name="projeto_id" value={data.projetoId} />
 
               <div>
-                <label htmlFor="rubrica_id" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                <label htmlFor="rubrica_id" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                   Rubrica
                 </label>
                 <select
@@ -373,13 +395,13 @@ export default function Dashboard({ initialData }: DashboardProps) {
               </div>
 
               <div>
-                <label htmlFor="descricao" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                <label htmlFor="descricao" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                   Descrição
                 </label>
                 <input
                   id="descricao"
                   name="descricao"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                   placeholder="Ex.: pagamento de mídia digital"
                 />
                 {state.field_errors?.descricao && (
@@ -389,13 +411,13 @@ export default function Dashboard({ initialData }: DashboardProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="beneficiario_nome" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <label htmlFor="beneficiario_nome" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                     Beneficiário
                   </label>
                   <input
                     id="beneficiario_nome"
                     name="beneficiario_nome"
-                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                     placeholder="Nome do favorecido"
                   />
                   {state.field_errors?.beneficiario_nome && (
@@ -403,13 +425,13 @@ export default function Dashboard({ initialData }: DashboardProps) {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="beneficiario_cpf_cnpj" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <label htmlFor="beneficiario_cpf_cnpj" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                     CPF/CNPJ
                   </label>
                   <input
                     id="beneficiario_cpf_cnpj"
                     name="beneficiario_cpf_cnpj"
-                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                     placeholder="Documento do beneficiário"
                   />
                   {state.field_errors?.beneficiario_cpf_cnpj && (
@@ -420,7 +442,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="valor_bruto" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <label htmlFor="valor_bruto" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                     Valor bruto
                   </label>
                   <input
@@ -429,7 +451,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                     type="number"
                     step="0.01"
                     min="0.01"
-                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                     placeholder="0,00"
                   />
                   {state.field_errors?.valor_bruto && (
@@ -437,7 +459,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="valor_retencoes" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <label htmlFor="valor_retencoes" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                     Retenções
                   </label>
                   <input
@@ -447,7 +469,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                     step="0.01"
                     min="0"
                     defaultValue="0"
-                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                     placeholder="0,00"
                   />
                   {state.field_errors?.valor_retencoes && (
@@ -458,7 +480,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="forma_pagamento" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <label htmlFor="forma_pagamento" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                     Forma de pagamento
                   </label>
                   <select
@@ -477,7 +499,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="data_pagamento" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <label htmlFor="data_pagamento" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                     Data de pagamento
                   </label>
                   <input
@@ -493,13 +515,13 @@ export default function Dashboard({ initialData }: DashboardProps) {
               </div>
 
               <div>
-                <label htmlFor="comprovante_transacao" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                <label htmlFor="comprovante_transacao" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
                   Comprovante / ID da transação
                 </label>
                 <input
                   id="comprovante_transacao"
                   name="comprovante_transacao"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                   placeholder="Hash PIX, TED ou identificador interno"
                 />
                 {state.field_errors?.comprovante_transacao && (
@@ -507,7 +529,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
                 )}
               </div>
 
-              {/* Feedback */}
+              {/* Feedback de estado */}
               {state.status === "error" && state.message && (
                 <div className="rounded-xl border border-red-400/20 bg-red-500/5 px-3 py-2 text-sm text-red-400">
                   {state.message}
@@ -534,14 +556,14 @@ export default function Dashboard({ initialData }: DashboardProps) {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 text-sm font-medium text-slate-200 transition hover:bg-white/[0.05]"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 text-sm font-medium text-slate-300 transition hover:bg-white/[0.05]"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
                 >
                   {isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
