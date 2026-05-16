@@ -10,7 +10,7 @@ interface ProcessarDespesaInput {
   valor_bruto: number
   cpf_cnpj_fornecedor: string
   descricao: string
-  data_pagamento: string // formato ISO ou date
+  data_pagamento: string
 }
 
 interface ProcessarDespesaOutput {
@@ -27,7 +27,9 @@ export async function processarNovaDespesa({
   descricao,
   data_pagamento,
 }: ProcessarDespesaInput): Promise<ProcessarDespesaOutput> {
-  const cookieStore = cookies()
+  // ✅ Agora aguardamos a Promise
+  const cookieStore = await cookies()
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -37,17 +39,18 @@ export async function processarNovaDespesa({
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options })
+          // Type assertion para ignorar a limitação de tipo Readonly
+          (cookieStore as any).set({ name, value, ...options })
         },
         remove(name: string, options: any) {
-          cookieStore.set({ name, value: '', ...options })
+          (cookieStore as any).set({ name, value: '', ...options })
         },
       },
     },
   )
 
   try {
-    // 1. Buscar a rubrica e validar saldo
+    // 1. Buscar rubrica e validar saldo
     const { data: rubrica, error: rubricaError } = await supabase
       .from('rubricas')
       .select('id, valor_orcado, valor_executado')
@@ -55,17 +58,14 @@ export async function processarNovaDespesa({
       .single()
 
     if (rubricaError || !rubrica) {
-      return {
-        success: false,
-        message: 'Rubrica não encontrada.',
-      }
+      return { success: false, message: 'Rubrica não encontrada.' }
     }
 
     const executadoAtual = rubrica.valor_executado ?? 0
     const estouraOrcamento = valor_bruto + executadoAtual > rubrica.valor_orcado
     const statusAuditoria = estouraOrcamento ? 'glosada' : 'aprovada'
 
-    // 2. Buscar proponente_id do projeto (necessário para a despesa)
+    // 2. Buscar proponente do projeto
     const { data: projeto, error: projetoError } = await supabase
       .from('projetos')
       .select('proponente_id')
@@ -73,13 +73,10 @@ export async function processarNovaDespesa({
       .single()
 
     if (projetoError || !projeto) {
-      return {
-        success: false,
-        message: 'Projeto não encontrado.',
-      }
+      return { success: false, message: 'Projeto não encontrado.' }
     }
 
-    // 3. Inserir a despesa
+    // 3. Inserir despesa
     const { data: despesaInserida, error: insertError } = await supabase
       .from('despesas')
       .insert({
@@ -96,33 +93,27 @@ export async function processarNovaDespesa({
       .single()
 
     if (insertError || !despesaInserida) {
-      return {
-        success: false,
-        message: 'Falha ao registrar a despesa.',
-      }
+      return { success: false, message: 'Falha ao registrar a despesa.' }
     }
 
     const despesaId = despesaInserida.id
 
-    // 4. Atualizar o valor executado da rubrica
+    // 4. Atualizar valor executado da rubrica
     const { error: updateError } = await supabase
       .from('rubricas')
-      .update({
-        valor_executado: executadoAtual + valor_bruto,
-      })
+      .update({ valor_executado: executadoAtual + valor_bruto })
       .eq('id', rubrica_id)
 
     if (updateError) {
-      // Rollback lógico: remove a despesa recém‑inserida
+      // Rollback lógico
       await supabase.from('despesas').delete().eq('id', despesaId)
-
       return {
         success: false,
         message: 'Falha ao atualizar o saldo da rubrica. Operação revertida.',
       }
     }
 
-    // 5. Gerar alerta de compliance se a despesa foi glosada
+    // 5. Alerta de compliance se glosada
     if (statusAuditoria === 'glosada') {
       const { error: alertaError } = await supabase
         .from('compliance_alertas')
@@ -133,7 +124,6 @@ export async function processarNovaDespesa({
           mensagem: `Despesa glosada por insuficiência de saldo orçamentário (R$ ${valor_bruto} excede o disponível). Base legal: IN 29/2026.`,
         })
 
-      // Alerta é secundário – logamos o erro mas não revertemos
       if (alertaError) {
         console.error('Erro ao gerar alerta de compliance:', alertaError)
       }
