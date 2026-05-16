@@ -36,7 +36,7 @@ export default function LoginPage() {
             <div>
               <div className="login-hero-title">Poseidon</div>
               <div
-                className="text-[11px] uppercase tracking-[0.14em]"
+                className="text-[12px] uppercase tracking-[0.14em]"
                 style={{ color: "rgba(148,163,184,0.9)" }}
               >
                 Controle e auditoria cultural
@@ -61,17 +61,21 @@ export default function LoginPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 10,
-              fontSize: 11,
+              gap: 12,
+              fontSize: 12,
               color: "rgba(148,163,184,0.9)",
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span className="num-tabular">R$ 4.200.000</span>
+              <span className="num-tabular" style={{ fontSize: 13 }}>
+                R$ 4.200.000
+              </span>
               <span style={{ opacity: 0.8 }}>em orçamento simulado</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span className="num-tabular">IA + regras MinC</span>
+              <span className="num-tabular" style={{ fontSize: 13 }}>
+                IA + regras MinC
+              </span>
               <span style={{ opacity: 0.8 }}>pra não afundar em glosa</span>
             </div>
           </div>
@@ -87,6 +91,7 @@ export default function LoginPage() {
 function LoginForm() {
   const [mode, setMode] = React.useState<"login" | "signup">("login");
   const [error, setError] = React.useState<string | null>(null);
+  const [doc, setDoc] = React.useState("");
 
   const isLogin = mode === "login";
 
@@ -182,6 +187,35 @@ function LoginForm() {
                 name="doc"
                 className="ds-input num-tabular"
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                value={doc}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
+                  let formatted = digits;
+
+                  if (digits.length <= 11) {
+                    formatted = digits
+                      .replace(/^(\d{3})(\d)/, "$1.$2")
+                      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+                      .replace(
+                        /^(\d{3})\.(\d{3})\.(\d{3})(\d)/,
+                        "$1.$2.$3-$4"
+                      );
+                  } else {
+                    formatted = digits
+                      .replace(/^(\d{2})(\d)/, "$1.$2")
+                      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+                      .replace(
+                        /^(\d{2})\.(\d{3})\.(\d{3})(\d)/,
+                        "$1.$2.$3/$4"
+                      )
+                      .replace(
+                        /^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/,
+                        "$1.$2.$3/$4-$5"
+                      );
+                  }
+
+                  setDoc(formatted);
+                }}
               />
             </div>
           </>
