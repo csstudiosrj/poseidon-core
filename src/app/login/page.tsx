@@ -1,227 +1,96 @@
-// src/app/login/page.tsx
-"use client";
+'use client';
 
-import { useActionState, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { login, signup } from "./actions";
-
-type FormState = { error: string } | null;
-
-async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  return login(formData) as Promise<FormState>;
-}
-
-async function signupAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  return signup(formData) as Promise<FormState>;
-}
+import { useState } from 'react';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [loginState, loginDispatch, isLoginPending] = useActionState(loginAction, null);
-  const [signupState, signupDispatch, isSignupPending] = useActionState(signupAction, null);
-
-  const isPending = isLoginPending || isSignupPending;
-  const error = isLogin ? loginState?.error : signupState?.error;
-
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logotipo */}
-        <div className="text-center space-y-1">
-          <h1 className="text-4xl font-bold tracking-tight text-white font-['Syne']">
-            Pose<span className="text-cyan-400">idon</span>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      {/* Grid de fundo sutil */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] opacity-10 pointer-events-none" />
+
+      <div className="w-full max-w-[420px] bg-slate-900/80 backdrop-blur-sm border border-white/5 rounded-2xl shadow-2xl p-8">
+        {/* Título */}
+        <div className="mb-8 text-center">
+          <h1 className="font-['Syne'] text-2xl font-semibold tracking-tight text-white">
+            POSEIDON
           </h1>
-          <p className="text-sm text-slate-400">
-            Auditoria Cultural · Lei Rouanet · IN 29/2026
+          <p className="text-xs font-['Inter'] uppercase tracking-widest text-slate-400 mt-1">
+            Console de Compliance
           </p>
         </div>
 
-        {/* Card principal */}
-        <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)] space-y-5">
+        <form className="space-y-5">
+          {/* Email / Usuário */}
           <div>
-            <h2 className="text-xl font-semibold text-white font-['Syne']">
-              {isLogin ? "Entrar na plataforma" : "Criar conta"}
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              {isLogin
-                ? "Acesse seu painel de auditorias."
-                : "Preencha os dados para se cadastrar como proponente."}
-            </p>
+            <label className="block text-xs font-['Inter'] uppercase tracking-wider text-slate-400 mb-1.5">
+              Usuário ou E-mail
+            </label>
+            <input
+              type="text"
+              placeholder="seu@email.com"
+              className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-['Inter'] text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/30 transition-colors"
+            />
           </div>
 
-          <hr className="border-white/10" />
-
-          {/* Formulário de LOGIN */}
-          {isLogin && (
-            <form action={loginDispatch} className="space-y-4" noValidate>
-              <Field
-                id="email"
-                label="E-mail"
-                type="email"
-                name="email"
-                placeholder="seu@email.com"
-                disabled={isPending}
-                autoComplete="email"
+          {/* Senha */}
+          <div>
+            <label className="block text-xs font-['Inter'] uppercase tracking-wider text-slate-400 mb-1.5">
+              Senha
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2.5 pr-10 text-sm font-['Inter'] text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/30 transition-colors"
               />
-              <div className="relative">
-                <Field
-                  id="password"
-                  label="Senha"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Mínimo 8 caracteres"
-                  disabled={isPending}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-
-              {error && <p className="text-xs text-red-400">{error}</p>}
-
               <button
-                type="submit"
-                disabled={isPending}
-                className="h-11 w-full rounded-xl bg-cyan-400 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 inline-flex items-center justify-center"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
-                {isPending ? "Autenticando..." : "Entrar"}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </form>
-          )}
+            </div>
+          </div>
 
-          {/* Formulário de CADASTRO */}
-          {!isLogin && (
-            <form action={signupDispatch} className="space-y-4" noValidate>
-              <Field
-                id="nome_completo"
-                label="Nome Completo"
-                type="text"
-                name="nome_completo"
-                placeholder="Maria da Silva"
-                disabled={isPending}
-                autoComplete="name"
-              />
-              <Field
-                id="cpf"
-                label="CPF"
-                type="text"
-                name="cpf"
-                placeholder="000.000.000-00"
-                disabled={isPending}
-                autoComplete="off"
-                maxLength={14}
-              />
-              <Field
-                id="email"
-                label="E-mail"
-                type="email"
-                name="email"
-                placeholder="seu@email.com"
-                disabled={isPending}
-                autoComplete="email"
-              />
-              <div className="relative">
-                <Field
-                  id="password"
-                  label="Senha"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Mínimo 8 caracteres"
-                  disabled={isPending}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              <div className="relative">
-                <Field
-                  id="confirm_password"
-                  label="Confirmar Senha"
-                  type={showConfirm ? "text" : "password"}
-                  name="confirm_password"
-                  placeholder="Repita a senha"
-                  disabled={isPending}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white transition"
-                  tabIndex={-1}
-                >
-                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-
-              {error && <p className="text-xs text-red-400">{error}</p>}
-
-              <button
-                type="submit"
-                disabled={isPending}
-                className="h-11 w-full rounded-xl bg-cyan-400 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 inline-flex items-center justify-center"
-              >
-                {isPending ? "Criando conta..." : "Criar Conta"}
-              </button>
-            </form>
-          )}
-
-          {/* Alternador de modo */}
-          <div className="text-center pt-1">
-            <button
-              type="button"
-              onClick={() => setIsLogin((v) => !v)}
-              disabled={isPending}
-              className="text-sm text-slate-400 hover:text-cyan-400 transition"
+          {/* Link Esqueci senha */}
+          <div className="flex justify-end">
+            <Link
+              href="#"
+              className="text-xs font-['Inter'] text-slate-400 hover:text-slate-300 transition-colors"
             >
-              {isLogin ? "Não tem conta? Criar conta gratuita" : "Já tem conta? Entrar"}
-            </button>
+              Esqueci minha senha
+            </Link>
           </div>
-        </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-500">
-          &copy; {new Date().getFullYear()} Poseidon · Todos os direitos reservados
-        </p>
+          {/* Botão entrar */}
+          <button
+            type="submit"
+            className="w-full bg-cyan-400/90 hover:bg-cyan-400 text-slate-900 font-['Inter'] font-medium rounded-xl py-2.5 px-4 transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            Entrar
+            <ArrowRight size={16} />
+          </button>
+
+          {/* Link criar conta */}
+          <div className="text-center pt-2">
+            <span className="text-xs font-['Inter'] text-slate-500">
+              Não tem uma conta?{' '}
+            </span>
+            <Link
+              href="/register"
+              className="text-xs font-['Inter'] text-cyan-400/80 hover:text-cyan-400 transition-colors"
+            >
+              Criar nova conta
+            </Link>
+          </div>
+        </form>
       </div>
-    </main>
-  );
-}
-
-/* ── Campo reutilizável ─────────────────────────────── */
-interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  id: string;
-  label: string;
-}
-
-function Field({ id, label, ...inputProps }: FieldProps) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500"
-      >
-        {label}
-      </label>
-      <input
-        id={id}
-        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none transition"
-        {...inputProps}
-      />
     </div>
   );
 }
