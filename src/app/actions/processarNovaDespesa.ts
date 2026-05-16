@@ -4,32 +4,51 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-interface ProcessarDespesaInput {
-  projeto_id: string
-  rubrica_id: string
-  valor_bruto: number
-  cpf_cnpj_fornecedor: string
-  descricao: string
-  data_pagamento: string
-}
-
-interface ProcessarDespesaOutput {
+// Tipo de retorno compatível com useActionState
+export type ActionState = {
   success: boolean
   message: string
+  errors?: Record<string, string[]>
   alerta?: string
 }
 
-export async function processarNovaDespesa({
-  projeto_id,
-  rubrica_id,
-  valor_bruto,
-  cpf_cnpj_fornecedor,
-  descricao,
-  data_pagamento,
-}: ProcessarDespesaInput): Promise<ProcessarDespesaOutput> {
-  // ✅ Agora aguardamos a Promise
-  const cookieStore = await cookies()
+// Assinatura exigida pelo useActionState: (prevState, formData) => Promise<ActionState>
+export async function processarNovaDespesa(
+  prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  // Extração e sanitização dos campos
+  const projeto_id = formData.get('projeto_id')?.toString() ?? ''
+  const rubrica_id = formData.get('rubrica_id')?.toString() ?? ''
+  const valor_bruto_str = formData.get('valor_bruto')?.toString() ?? ''
+  const cpf_cnpj_fornecedor = (formData.get('cpf_cnpj_fornecedor')?.toString() ?? '')
+    .replace(/[\.\-\/]/g, '')   // remove pontos, traços e barras
+  const descricao = formData.get('descricao')?.toString() ?? ''
+  const data_pagamento = formData.get('data_pagamento')?.toString() ?? ''
 
+  const valor_bruto = Number(valor_bruto_str)
+
+  // Validação básica
+  const errors: Record<string, string[]> = {}
+
+  if (!projeto_id) errors.projeto_id = ['Projeto é obrigatório.']
+  if (!rubrica_id) errors.rubrica_id = ['Rubrica é obrigatória.']
+  if (!valor_bruto_str || isNaN(valor_bruto) || valor_bruto <= 0)
+    errors.valor_bruto = ['Valor bruto deve ser um número positivo.']
+  if (!cpf_cnpj_fornecedor) errors.cpf_cnpj_fornecedor = ['CPF/CNPJ do fornecedor é obrigatório.']
+  if (!descricao) errors.descricao = ['Descrição é obrigatória.']
+  if (!data_pagamento) errors.data_pagamento = ['Data de pagamento é obrigatória.']
+
+  if (Object.keys(errors).length > 0) {
+    return {
+      success: false,
+      message: 'Dados inválidos.',
+      errors,
+    }
+  }
+
+  // Inicialização do Supabase (Server Side)
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -39,7 +58,6 @@ export async function processarNovaDespesa({
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          // Type assertion para ignorar a limitação de tipo Readonly
           (cookieStore as any).set({ name, value, ...options })
         },
         remove(name: string, options: any) {
@@ -58,7 +76,11 @@ export async function processarNovaDespesa({
       .single()
 
     if (rubricaError || !rubrica) {
-      return { success: false, message: 'Rubrica não encontrada.' }
+      return {
+        success: false,
+        message: 'Rubrica não encontrada.',
+        errors: { rubrica_id: ['Rubrica inválida ou inexistente.'] },
+      }
     }
 
     const executadoAtual = rubrica.valor_executado ?? 0
@@ -73,7 +95,11 @@ export async function processarNovaDespesa({
       .single()
 
     if (projetoError || !projeto) {
-      return { success: false, message: 'Projeto não encontrado.' }
+      return {
+        success: false,
+        message: 'Projeto não encontrado.',
+        errors: { projeto_id: ['Projeto inválido ou inexistente.'] },
+      }
     }
 
     // 3. Inserir despesa
@@ -93,7 +119,10 @@ export async function processarNovaDespesa({
       .single()
 
     if (insertError || !despesaInserida) {
-      return { success: false, message: 'Falha ao registrar a despesa.' }
+      return {
+        success: false,
+        message: 'Falha ao registrar a despesa.',
+      }
     }
 
     const despesaId = despesaInserida.id
@@ -105,8 +134,9 @@ export async function processarNovaDespesa({
       .eq('id', rubrica_id)
 
     if (updateError) {
-      // Rollback lógico
+      // Rollback lógico: remove a despesa
       await supabase.from('despesas').delete().eq('id', despesaId)
+
       return {
         success: false,
         message: 'Falha ao atualizar o saldo da rubrica. Operação revertida.',
@@ -126,6 +156,7 @@ export async function processarNovaDespesa({
 
       if (alertaError) {
         console.error('Erro ao gerar alerta de compliance:', alertaError)
+        // Não revertemos; o alerta é informativo
       }
 
       return {
