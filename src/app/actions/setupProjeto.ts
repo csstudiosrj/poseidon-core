@@ -4,20 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 
 /* ============================================================
    Tipo exportado — consumido pelo setup-form.tsx
+   Objeto unico com campos opcionais evita o problema de
+   narrowing de union na dependency array do useEffect.
    ============================================================ */
-export type ActionState =
-  | { status: "idle" }
-  | {
-      status: "error";
-      message: string;
-      fieldErrors?: {
-        nome_projeto?:              string[];
-        orcamento_total_aprovado?:  string[];
-        segmento_cultural?:         string[];
-        mecanismo?:                 string[];
-      };
-    }
-  | { status: "success"; message: string; redirectTo: string };
+export type ActionState = {
+  status:      "idle" | "success" | "error";
+  message?:    string;
+  redirectTo?: string;
+  fieldErrors?: {
+    nome_projeto?:             string[];
+    orcamento_total_aprovado?: string[];
+    segmento_cultural?:        string[];
+    mecanismo?:                string[];
+  };
+};
 
 /* ============================================================
    Constantes IN 29/2026
@@ -67,13 +67,13 @@ export async function setupProjeto(
   }
 
   /* 2. Extrai campos */
-  const nome_projeto     = String(formData.get("nome_projeto")             ?? "").trim();
-  const orcamento_str    = String(formData.get("orcamento_total_aprovado") ?? "").replace(",", ".");
-  const segmento_cultural = String(formData.get("segmento_cultural")       ?? "").trim();
-  const mecanismo        = String(formData.get("mecanismo")                ?? "").trim();
+  const nome_projeto      = String(formData.get("nome_projeto")             ?? "").trim();
+  const orcamento_str     = String(formData.get("orcamento_total_aprovado") ?? "").replace(",", ".");
+  const segmento_cultural = String(formData.get("segmento_cultural")        ?? "").trim();
+  const mecanismo         = String(formData.get("mecanismo")                ?? "").trim();
 
   /* 3. Validacao por campo */
-  const fieldErrors: NonNullable<Extract<ActionState, { status: "error" }>["fieldErrors"]> = {};
+  const fieldErrors: ActionState["fieldErrors"] = {};
 
   if (!nome_projeto) {
     fieldErrors.nome_projeto = ["O nome do projeto e obrigatorio."];
@@ -140,7 +140,7 @@ export async function setupProjeto(
     };
   }
 
-  /* 6. Retorna sucesso — o setup-form.tsx faz o redirect via useEffect */
+  /* 6. Sucesso — setup-form.tsx faz o redirect via useEffect */
   return {
     status:     "success",
     message:    "Projeto criado com sucesso!",
