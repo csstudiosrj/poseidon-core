@@ -1,151 +1,121 @@
 @import "tailwindcss";
 
 @theme {
-  /* Poseidon — Deep Sea Design System */
-
-  /* Core colors */
   --color-bg: #020b18;
   --color-surface: #081121;
   --color-surface-2: #0b1730;
   --color-surface-3: #0f1d3a;
 
-  /* Borders */
   --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-border-strong: rgba(0, 229, 255, 0.22);
+  --color-border-strong: rgba(0, 229, 255, 0.24);
 
-  /* Text */
   --color-text-primary: rgba(255, 255, 255, 0.96);
   --color-text-secondary: rgba(226, 232, 240, 0.74);
   --color-text-faint: rgba(148, 163, 184, 0.62);
 
-  /* Accent */
   --color-accent: #00e5ff;
   --color-accent-strong: #00cfe6;
   --color-accent-soft: rgba(0, 229, 255, 0.14);
 
-  /* Semantic */
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
 
-  /* Typography */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Radius */
-  --radius-card: 1rem;
-  --radius-input: 1rem;
-
-  /* Shadows */
   --shadow-card: 0 24px 80px rgba(0, 0, 0, 0.42);
   --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.24);
 }
 
-/* Base reset */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  color-scheme: dark;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  min-height: 100vh;
-  margin: 0;
-  background-color: var(--color-bg);
-  color: var(--color-text-primary);
-  font-family: var(--font-sans);
-}
-
-/* Optional text defaults */
-::selection {
-  background: rgba(0, 229, 255, 0.22);
-  color: white;
-}
-
-input,
-textarea,
-button,
-select {
-  font: inherit;
-}
-
-textarea {
-  resize: vertical;
-}
-
-/* Utility classes */
-@utility ds-card {
-  @apply rounded-2xl border shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-sm;
-  background-color: var(--color-surface);
-  border-color: var(--color-border-subtle);
-}
-
-@utility ds-input {
-  @apply w-full rounded-2xl border px-4 py-3 text-sm outline-none transition;
-  background-color: var(--color-surface-2);
-  border-color: var(--color-border-subtle);
-  color: var(--color-text-primary);
-  box-shadow: 0 0 0 0 rgba(0, 229, 255, 0);
-}
-
-@utility ds-input-focus {
-  border-color: var(--color-border-strong);
-  box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.22),
-    0 0 0 4px rgba(0, 229, 255, 0.1);
-}
-
-@utility ds-btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition;
-  background-color: var(--color-accent);
-  color: #03131b;
-  box-shadow: 0 10px 30px rgba(0, 229, 255, 0.14);
-}
-
-@utility ds-btn-primary-hover {
-  background-color: var(--color-accent-strong);
-  box-shadow: 0 14px 36px rgba(0, 229, 255, 0.18);
-}
-
-@utility ds-label {
-  @apply text-[11px] uppercase tracking-[0.22em];
-  color: rgb(148 163 184);
-}
-
-/* Practical element states using the utilities */
 @layer base {
-  input.ds-input::placeholder,
-  textarea.ds-input::placeholder {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply min-h-screen;
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+  }
+
+  input,
+  textarea,
+  button,
+  select {
+    font: inherit;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  ::selection {
+    background: rgba(0, 229, 255, 0.22);
+    color: white;
+  }
+}
+
+@layer components {
+  .ds-card {
+    @apply rounded-2xl border backdrop-blur-sm;
+    background-color: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    box-shadow: var(--shadow-card);
+  }
+
+  .ds-input {
+    @apply w-full rounded-2xl border px-4 py-3 text-sm outline-none transition;
+    background-color: var(--color-surface-2);
+    border-color: var(--color-border-subtle);
+    color: var(--color-text-primary);
+  }
+
+  .ds-input::placeholder {
     color: var(--color-text-faint);
   }
 
-  input.ds-input:focus,
-  textarea.ds-input:focus,
-  select.ds-input:focus {
+  .ds-input:focus {
     border-color: var(--color-border-strong);
     box-shadow:
-      0 0 0 1px rgba(0, 229, 255, 0.22),
+      0 0 0 1px rgba(0, 229, 255, 0.24),
       0 0 0 4px rgba(0, 229, 255, 0.1);
   }
 
-  button.ds-btn-primary:hover {
+  .ds-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition;
+    background-color: var(--color-accent);
+    color: #03131b;
+    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.14);
+  }
+
+  .ds-btn-primary:hover {
     background-color: var(--color-accent-strong);
     box-shadow: 0 14px 36px rgba(0, 229, 255, 0.18);
   }
 
-  button.ds-btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .ds-btn-primary:disabled {
+    @apply cursor-not-allowed opacity-60;
     box-shadow: none;
   }
 
-  .font-mono,
+  .ds-label {
+    @apply text-[11px] uppercase tracking-[0.22em];
+    color: rgb(148 163 184);
+  }
+}
+
+@layer utilities {
   .ds-mono {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
