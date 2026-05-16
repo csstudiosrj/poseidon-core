@@ -1,4 +1,5 @@
-// src/app/login/page.tsx
+"use client";
+
 import React from "react";
 import "../globals.css";
 
@@ -51,9 +52,9 @@ export default function LoginPage() {
           </span>
 
           <p className="login-hero-sub">
-            Organize captação, execução e prestação de contas em um só
-            sistema, sem se perder em planilhas e e-mails espalhados pela
-            maré de burocracia.
+            Organize captação, execução e prestação de contas em um só sistema,
+            sem se perder em planilhas e e-mails espalhados pela maré de
+            burocracia.
           </p>
 
           <div
@@ -215,10 +216,7 @@ function LoginForm() {
           </div>
         )}
 
-        <div
-          className="ds-checkbox-row"
-          style={{ marginTop: 4 }}
-        >
+        <div className="ds-checkbox-row" style={{ marginTop: 4 }}>
           {isLogin ? (
             <>
               <input
