@@ -1,449 +1,355 @@
-@import "tailwindcss";
+/* globals.css */
 
-@theme {
-  --color-bg: #020b18;
-  --color-surface: #081121;
-  --color-surface-2: #0b1730;
-  --color-surface-3: #0f1d3a;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-border-strong: rgba(0, 229, 255, 0.24);
-
-  --color-text-primary: rgba(255, 255, 255, 0.96);
-  --color-text-secondary: rgba(226, 232, 240, 0.74);
-  --color-text-faint: rgba(148, 163, 184, 0.62);
-
-  --color-accent: #00e5ff;
-  --color-accent-strong: #00cfe6;
-  --color-accent-soft: rgba(0, 229, 255, 0.14);
-
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-
-  --shadow-card: 0 24px 80px rgba(0, 0, 0, 0.42);
-  --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.24);
+/* Reset básico */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
-  html {
-    color-scheme: dark;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  body {
-    min-height: 100vh;
-    margin: 0;
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
-    font-family: var(--font-sans);
-  }
-
-  input,
-  textarea,
-  button,
-  select {
-    font: inherit;
-  }
-
-  textarea {
-    resize: vertical;
-  }
-
-  ::selection {
-    background: rgba(0, 229, 255, 0.22);
-    color: white;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-@utility ds-card {
-  @apply rounded-2xl border backdrop-blur-sm;
-  background-color: var(--color-surface);
-  border-color: var(--color-border-subtle);
-  box-shadow: var(--shadow-card);
+body {
+  min-height: 100dvh;
+  background: #020b18; /* sea.950 */
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
 }
 
-@utility ds-input {
-  @apply w-full rounded-2xl border px-4 py-3 text-sm outline-none transition;
-  background-color: var(--color-surface-2);
-  border-color: var(--color-border-subtle);
-  color: var(--color-text-primary);
+/* Scrollbar (igual dashboard) */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.2);
+  border-radius: 99px;
 }
 
-.ds-input::placeholder {
-  color: var(--color-text-faint);
+/* Design tokens em CSS custom properties */
+
+:root {
+  /* Base */
+  --color-bg: #020b18;           /* sea.950 */
+  --color-surface: #081c35;      /* card */
+  --color-surface-soft: #040f20; /* header/áreas secundárias */
+  --color-surface-alt: #061528;  /* inputs / campos */
+  --color-border-subtle: rgba(148, 163, 184, 0.18);
+
+  --color-text: #e2e8f0;
+  --color-text-soft: #cbd5f5;
+  --color-muted: rgba(148, 163, 184, 0.6);
+
+  /* Acentos do dashboard */
+  --color-accent: #22d3ee;       /* cyan.400 */
+  --color-accent-strong: #06b6d4;/* cyan.500 */
+  --color-accent-deep: #0891b2;  /* cyan.600 */
+
+  --color-success: #22c55e;      /* risk.low */
+  --color-warning: #f59e0b;      /* risk.mid */
+  --color-danger: #ef4444;       /* risk.high */
+
+  /* Tipografia */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Raio e sombras (igual .card do HTML) */
+  --radius-card: 12px;
+  --shadow-card: 0 0 0 1px rgba(34, 211, 238, 0.05), 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card-strong: 0 0 0 1px rgba(34, 211, 238, 0.15),
+    0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(34, 211, 238, 0.06);
 }
 
-.ds-input:focus {
-  border-color: var(--color-border-strong);
-  box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.24),
-    0 0 0 4px rgba(0, 229, 255, 0.1);
+/* Utilitários de fonte */
+
+.font-sans {
+  font-family: var(--font-sans);
 }
 
-@utility ds-btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition;
-  background-color: var(--color-accent);
-  color: #03131b;
-  box-shadow: 0 10px 30px rgba(0, 229, 255, 0.14);
-}
-
-.ds-btn-primary:hover {
-  background-color: var(--color-accent-strong);
-  box-shadow: 0 14px 36px rgba(0, 229, 255, 0.18);
-}
-
-.ds-btn-primary:disabled {
-  @apply cursor-not-allowed opacity-60;
-  box-shadow: none;
-}
-
-@utility ds-label {
-  @apply text-[11px] uppercase tracking-[0.22em];
-  color: rgb(148 163 184);
-}
-
-@utility ds-mono {
+.font-mono {
   font-family: var(--font-mono);
+}
+
+.num-tabular {
   font-variant-numeric: tabular-nums;
 }
 
-.auth-shell {
-  position: relative;
-  min-height: 100vh;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(0, 229, 255, 0.08), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(0, 229, 255, 0.05), transparent 24%),
-    var(--color-bg);
+/* Componentes base – cards, badges, inputs, botões */
+
+/* Card genérico, mesmo visual do dashboard */
+.ds-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(34, 211, 238, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
-.auth-noise {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.02));
-  pointer-events: none;
+/* Variante com glow (tipo risco de glosa) */
+.ds-card-glow {
+  box-shadow: var(--shadow-card-strong);
 }
 
-.auth-container {
-  position: relative;
-  margin: 0 auto;
-  display: flex;
-  min-height: 100vh;
-  width: 100%;
-  max-width: 1280px;
+/* Card mais “chapado” para login (menos intensidade se quiser) */
+.ds-card-soft {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Badge genérica + estados OK/warn/danger do dashboard */
+
+.ds-badge {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.auth-grid {
-  display: grid;
+.ds-badge-ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.ds-badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.ds-badge-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* Inputs – focados em login/cadastro, mas combinando com a tabela/fields */
+
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ds-label {
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.ds-input {
   width: 100%;
-  max-width: 1120px;
-  gap: 1.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(2, 11, 24, 0.8); /* mistura do bg com surface-soft */
+  padding: 9px 11px;
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
-.auth-hero,
-.auth-panel {
-  position: relative;
-  overflow: hidden;
-  padding: 2rem;
+.ds-input::placeholder {
+  color: rgba(148, 163, 184, 0.7);
 }
 
-.auth-badge {
+.ds-input:focus {
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.5), 0 0 0 6px rgba(34, 211, 238, 0.14);
+  background: rgba(6, 21, 40, 0.9);
+}
+
+/* Texto de ajuda / erro */
+.ds-help {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.ds-help-error {
+  color: #f87171;
+}
+
+/* Botões */
+
+.ds-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.1);
-  padding: 0.625rem 1rem;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: rgb(103 232 249);
-}
-
-.auth-hero-copy {
-  margin-top: 2rem;
-  display: grid;
-  gap: 1rem;
-}
-
-.auth-hero-title {
-  max-width: 36rem;
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: white;
-}
-
-.auth-hero-text {
-  max-width: 40rem;
-  font-size: 0.95rem;
-  line-height: 1.9;
-  color: rgb(203 213 225);
-}
-
-.auth-hero-grid {
-  margin-top: 2rem;
-  display: grid;
-  gap: 1rem;
-}
-
-.auth-mini-card {
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1rem;
-}
-
-.auth-mini-card-top {
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: rgb(148 163 184);
-}
-
-.auth-mini-card-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-}
-
-.auth-mini-card-value {
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: white;
-}
-
-.auth-mini-card-description {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: rgb(148 163 184);
-}
-
-.auth-panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 1.5rem;
-}
-
-.auth-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.35rem 0.75rem;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: rgb(203 213 225);
-}
-
-.auth-pill-dot {
-  height: 0.5rem;
-  width: 0.5rem;
-  border-radius: 9999px;
-  background: var(--color-accent);
-}
-
-.auth-panel-title {
-  margin-top: 0.9rem;
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: white;
-}
-
-.auth-panel-text {
-  margin-top: 0.5rem;
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: rgb(148 163 184);
-}
-
-.auth-switch {
-  border-radius: 0.875rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.65rem 0.9rem;
-  font-size: 0.75rem;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-size: 13px;
   font-weight: 500;
-  color: rgb(203 213 225);
-  transition: 180ms ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.auth-switch:hover {
-  border-color: rgba(0, 229, 255, 0.3);
-  color: white;
+.ds-btn-primary {
+  background: linear-gradient(90deg, #0891b2, #22d3ee);
+  color: #0b1120;
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: 0 12px 40px rgba(8, 145, 178, 0.4);
 }
 
-.auth-panel-body {
-  padding-top: 1.5rem;
+.ds-btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 16px 50px rgba(8, 145, 178, 0.55);
 }
 
-.auth-tabs {
+.ds-btn-ghost {
+  background: transparent;
+  color: rgba(148, 163, 184, 0.9);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.ds-btn-ghost:hover {
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+/* Pequeno texto para “trocar modo” */
+.ds-link-muted {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.ds-link-muted button {
+  color: #22d3ee;
+}
+
+/* Container centralizado (login) */
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 55%),
+    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.9), #020b18);
+}
+
+.app-shell-inner {
+  width: 100%;
+  max-width: 960px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 32px;
 }
 
-.auth-tab {
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1rem;
-  text-align: left;
-  color: rgb(203 213 225);
-  transition: 180ms ease;
+@media (max-width: 768px) {
+  .app-shell-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
 }
 
-.auth-tab:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+/* Lado “branding” do login */
+
+.login-hero {
+  padding: 24px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(34, 211, 238, 0.1);
+  background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 55%),
+    rgba(8, 28, 53, 0.96);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.7);
 }
 
-.auth-tab-active {
-  border-color: rgba(0, 229, 255, 0.4);
-  background: rgba(0, 229, 255, 0.1);
-  color: white;
-  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.08);
+.login-hero-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-.auth-fields {
-  display: grid;
-  gap: 1rem;
+.login-hero-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
-.auth-input-wrap {
+.login-hero-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.78);
+  margin-bottom: 18px;
+}
+
+/* Spacer responsivo só pra mobile */
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 16px 14px;
+  }
+  .login-hero {
+    padding: 18px 14px;
+  }
+}
+
+/* Checkbox simples em linha com texto */
+
+.ds-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.ds-checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(2, 11, 24, 0.7);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
   position: relative;
 }
 
-.auth-input {
-  height: 3rem;
-  padding-left: 2.75rem;
+.ds-checkbox-row input[type="checkbox"]:checked {
+  border-color: rgba(34, 211, 238, 0.9);
+  background: linear-gradient(90deg, #0891b2, #22d3ee);
 }
 
-.auth-input-password {
-  padding-right: 3rem;
-}
-
-.auth-input-icon {
-  pointer-events: none;
+.ds-checkbox-row input[type="checkbox"]:checked::after {
+  content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  display: flex;
-  align-items: center;
-  padding-left: 1rem;
-  color: rgb(100 116 139);
+  inset: 2px 3px 3px 2px;
+  border-radius: 3px;
+  border: 2px solid #0b1120;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
 }
 
-.auth-input-action {
-  position: absolute;
-  inset: 0 0 0 auto;
-  display: flex;
-  align-items: center;
-  padding-right: 1rem;
-  color: rgb(100 116 139);
-  transition: 180ms ease;
-}
+/* Erros globais de formulário */
 
-.auth-input-action:hover {
-  color: rgb(103 232 249);
-}
-
-.auth-submit {
-  height: 3rem;
-  width: 100%;
-}
-
-.auth-help {
-  font-size: 0.75rem;
-  color: rgb(100 116 139);
-}
-
-.auth-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.auth-link {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: rgb(103 232 249);
-  transition: 180ms ease;
-}
-
-.auth-link:hover {
-  color: rgb(165 243 252);
-}
-
-.auth-error {
-  font-size: 0.875rem;
-  color: rgb(248 113 113);
-}
-
-@media (min-width: 1280px) {
-  .auth-grid {
-    grid-template-columns: 1.05fr 560px;
-    align-items: stretch;
-  }
-
-  .auth-hero-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1279px) {
-  .auth-hero {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .auth-container {
-    padding: 1rem;
-  }
-
-  .auth-hero,
-  .auth-panel {
-    padding: 1.25rem;
-  }
-
-  .auth-panel-header {
-    flex-direction: column;
-  }
-
-  .auth-tabs {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.form-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #f87171;
 }

@@ -1,454 +1,322 @@
-"use client";
+<!-- page-login.html (ou page.tsx adaptando a sintaxe) -->
 
-import { useActionState, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Building2,
-  Eye,
-  EyeOff,
-  FileText,
-  Lock,
-  Mail,
-  Phone,
-  ShieldCheck,
-  User2,
-} from "lucide-react";
-import { login, signup } from "./actions";
-
-type FormState = { error: string } | null;
-type AccountType = "PF" | "PJ";
-
-async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  return login(formData) as Promise<FormState>;
-}
-
-async function signupAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  return signup(formData) as Promise<FormState>;
-}
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-function maskCpf(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
-  return digits
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1-$2");
-}
-
-function maskCnpj(value: string) {
-  const digits = onlyDigits(value).slice(0, 14);
-  return digits
-    .replace(/^(\d{2})(\d)/, "$1.$2")
-    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1/$2")
-    .replace(/(\d{4})(\d)/, "$1-$2");
-}
-
-function maskPhone(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
-
-  if (digits.length <= 10) {
-    return digits
-      .replace(/^(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{4})(\d)/, "$1-$2");
-  }
-
-  return digits
-    .replace(/^(\d{2})(\d)/, "($1) $2")
-    .replace(/(\d{5})(\d)/, "$1-$2");
-}
-
-export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "signup">("signup");
-  const [accountType, setAccountType] = useState<AccountType>("PF");
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [documentValue, setDocumentValue] = useState("");
-  const [phoneValue, setPhoneValue] = useState("");
-
-  const [loginState, loginDispatch, isLoginPending] = useActionState(loginAction, null);
-  const [signupState, signupDispatch, isSignupPending] = useActionState(signupAction, null);
-
-  const isPending = isLoginPending || isSignupPending;
-  const error = mode === "login" ? loginState?.error : signupState?.error;
-
-  const labels = useMemo(() => {
-    return accountType === "PF"
-      ? {
-          primaryName: "Nome completo",
-          primaryDoc: "CPF",
-          primaryPlaceholder: "Seu nome completo",
-          docPlaceholder: "000.000.000-00",
-          legalHint: "Cadastro individual para proponentes pessoa física.",
-        }
-      : {
-          primaryName: "Razão social",
-          primaryDoc: "CNPJ",
-          primaryPlaceholder: "Nome jurídico da organização",
-          docPlaceholder: "00.000.000/0000-00",
-          legalHint: "Cadastro institucional para produtoras, coletivos e empresas culturais.",
-        };
-  }, [accountType]);
-
-  function handleDocumentChange(value: string) {
-    const cleaned = onlyDigits(value);
-    setDocumentValue(accountType === "PF" ? maskCpf(cleaned) : maskCnpj(cleaned));
-  }
-
-  function handlePhoneChange(value: string) {
-    setPhoneValue(maskPhone(value));
-  }
-
-  return (
-    <main className="auth-shell">
-      <div className="auth-noise" />
-      <div className="auth-container">
-        <div className="auth-grid">
-          <section className="auth-hero ds-card">
-            <div className="auth-badge">
-              <ShieldCheck className="h-4 w-4" />
-              Poseidon
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Poseidon — Acesso</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/globals.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="app-shell-inner">
+        <!-- Lado hero / branding -->
+        <section class="login-hero">
+          <div class="login-hero-header">
+            <!-- Mesmo logo do dashboard -->
+            <svg
+              aria-label="Poseidon"
+              viewBox="0 0 32 32"
+              width="28"
+              height="28"
+              fill="none"
+            >
+              <path
+                d="M16 3 L16 29 M10 10 L16 3 L22 10 M8 18 L16 29 L24 18"
+                stroke="#22d3ee"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle
+                cx="16"
+                cy="16"
+                r="13"
+                stroke="rgba(34,211,238,0.2)"
+                stroke-width="1.5"
+                stroke-dasharray="4 3"
+              />
+            </svg>
+            <div>
+              <div class="login-hero-title">Poseidon</div>
+              <div
+                class="text-[11px] uppercase tracking-[0.14em]"
+                style="color: rgba(148,163,184,0.9);"
+              >
+                Controle e auditoria cultural
+              </div>
             </div>
+          </div>
 
-            <div className="auth-hero-copy">
-              <h1 className="auth-hero-title">
-                O sistema que trata projeto cultural com a seriedade que ele merece.
+          <span class="ds-badge ds-badge-warning" style="margin-bottom: 10px;">
+            Feito para quem vive de edital
+          </span>
+
+          <p class="login-hero-sub">
+            Organize captação, execução e prestação de contas em um só sistema,
+            sem se perder em planilhas e e-mails espalhados pela maré de
+            burocracia.
+          </p>
+
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px;
+              font-size: 11px;
+              color: rgba(148,163,184,0.9);
+            "
+          >
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="num-tabular">R$ 4.200.000</span>
+              <span style="opacity: 0.8;">em orçamento simulado</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="num-tabular">IA + regras MinC</span>
+              <span style="opacity: 0.8;">pra não afundar em glosa</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lado formulário -->
+        <section class="ds-card-soft" style="padding: 22px 20px;">
+          <header
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+              margin-bottom: 18px;
+            "
+          >
+            <div>
+              <h1
+                style="
+                  font-size: 17px;
+                  font-weight: 600;
+                  color: var(--color-text);
+                "
+                id="form-title"
+              >
+                Entrar no Poseidon
               </h1>
-              <p className="auth-hero-text">
-                Criação, gestão e prestação de contas no mesmo ambiente. Sem gambiarra,
-                sem planilha solta e sem perder prazo. O Poseidon nasceu para ser o jeito
-                mais forte, completo e confiável de operar projetos culturais no Brasil.
+              <p
+                style="
+                  font-size: 12px;
+                  color: rgba(148,163,184,0.9);
+                  margin-top: 4px;
+                "
+                id="form-sub"
+              >
+                Acompanhe seus projetos culturais com o mesmo cuidado que o
+                fiscal do edital.
               </p>
             </div>
+          </header>
 
-            <div className="auth-hero-grid">
-              <InfoCard
-                icon={<FileText className="h-4 w-4" />}
-                label="Compliance ativo"
-                value="IN 29/2026"
-                description="Estrutura pronta para execução, auditoria e rastreabilidade."
-              />
-              <InfoCard
-                icon={<Building2 className="h-4 w-4" />}
-                label="Perfis suportados"
-                value="PF + PJ"
-                description="Cadastro inicial já alinhado com o perfil real do proponente."
+          <form
+            id="auth-form"
+            style="display: flex; flex-direction: column; gap: 12px;"
+          >
+            <div class="ds-field">
+              <label for="email" class="ds-label">E-mail</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                class="ds-input"
+                placeholder="voce@produtora.com"
+                required
               />
             </div>
-          </section>
 
-          <section className="auth-panel ds-card">
-            <div className="auth-panel-header">
-              <div>
-                <div className="auth-pill">
-                  <span className="auth-pill-dot" />
-                  acesso seguro
-                </div>
+            <div class="ds-field" id="field-name" style="display: none;">
+              <label for="name" class="ds-label">Nome completo</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                class="ds-input"
+                placeholder="Nome de quem responde pelo projeto"
+              />
+            </div>
 
-                <h2 className="auth-panel-title">
-                  {mode === "login" ? "Entrar" : "Criar conta"}
-                </h2>
+            <div class="ds-field" id="field-doc" style="display: none;">
+              <label for="doc" class="ds-label">CPF ou CNPJ</label>
+              <input
+                type="text"
+                id="doc"
+                name="doc"
+                class="ds-input num-tabular"
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              />
+            </div>
 
-                <p className="auth-panel-text">
-                  {mode === "login"
-                    ? "Acesse sua operação e continue de onde parou."
-                    : "Cadastre seu perfil inicial e entre no Poseidon do jeito certo, já no primeiro acesso."}
-                </p>
-              </div>
+            <div class="ds-field">
+              <label for="password" class="ds-label">Senha</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                class="ds-input"
+                placeholder="Use uma senha forte"
+                required
+              />
+            </div>
 
-              <button
-                type="button"
-                onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
-                className="auth-switch"
+            <div
+              id="field-password-confirm"
+              class="ds-field"
+              style="display: none;"
+            >
+              <label for="password-confirm" class="ds-label"
+                >Confirmar senha</label
               >
-                {mode === "login" ? "Criar conta" : "Já tenho acesso"}
-              </button>
+              <input
+                type="password"
+                id="password-confirm"
+                name="password-confirm"
+                class="ds-input"
+                placeholder="Repita a senha"
+              />
             </div>
 
-            <div className="auth-panel-body">
-              {mode === "signup" ? (
-                <form action={signupDispatch} className="space-y-6" noValidate>
-                  <input type="hidden" name="tipo" value={accountType} />
-                  <input type="hidden" name="cpf_cnpj" value={onlyDigits(documentValue)} />
-                  <input type="hidden" name="telefone" value={onlyDigits(phoneValue)} />
-
-                  <div className="space-y-3">
-                    <label className="ds-label">Tipo de proponente</label>
-
-                    <div className="auth-tabs">
-                      <TypeTab
-                        active={accountType === "PF"}
-                        title="Pessoa Física"
-                        subtitle="CPF e atuação individual"
-                        onClick={() => {
-                          setAccountType("PF");
-                          setDocumentValue("");
-                        }}
-                      />
-                      <TypeTab
-                        active={accountType === "PJ"}
-                        title="Pessoa Jurídica"
-                        subtitle="CNPJ e perfil institucional"
-                        onClick={() => {
-                          setAccountType("PJ");
-                          setDocumentValue("");
-                        }}
-                      />
-                    </div>
-
-                    <p className="auth-help">{labels.legalHint}</p>
-                  </div>
-
-                  <div className="auth-fields">
-                    <Field
-                      label={labels.primaryName}
-                      name="nome_razao_social"
-                      placeholder={labels.primaryPlaceholder}
-                      icon={<User2 className="h-4 w-4" />}
-                      disabled={isPending}
-                    />
-
-                    <MaskedField
-                      label={labels.primaryDoc}
-                      displayName={`${accountType.toLowerCase()}_display`}
-                      value={documentValue}
-                      onChange={handleDocumentChange}
-                      placeholder={labels.docPlaceholder}
-                      icon={<FileText className="h-4 w-4" />}
-                      disabled={isPending}
-                      mono
-                      inputMode="numeric"
-                    />
-
-                    <Field
-                      label="E-mail"
-                      name="email"
-                      type="email"
-                      placeholder="voce@projeto.com"
-                      autoComplete="email"
-                      icon={<Mail className="h-4 w-4" />}
-                      disabled={isPending}
-                    />
-
-                    <MaskedField
-                      label="Telefone"
-                      displayName="telefone_display"
-                      value={phoneValue}
-                      onChange={handlePhoneChange}
-                      placeholder="(21) 99999-9999"
-                      icon={<Phone className="h-4 w-4" />}
-                      disabled={isPending}
-                      inputMode="numeric"
-                    />
-
-                    <PasswordField
-                      label="Senha"
-                      name="password"
-                      placeholder="Mínimo de 8 caracteres"
-                      showPassword={showPassword}
-                      onToggle={() => setShowPassword((value) => !value)}
-                      disabled={isPending}
-                    />
-                  </div>
-
-                  {error && <p className="auth-error">{error}</p>}
-
-                  <button type="submit" disabled={isPending} className="ds-btn-primary auth-submit">
-                    {isPending ? "Criando conta..." : "Criar conta"}
-                    {!isPending && <ArrowRight className="h-4 w-4" />}
-                  </button>
-                </form>
-              ) : (
-                <form action={loginDispatch} className="space-y-5" noValidate>
-                  <Field
-                    label="E-mail"
-                    name="email"
-                    type="email"
-                    placeholder="voce@projeto.com"
-                    autoComplete="email"
-                    icon={<Mail className="h-4 w-4" />}
-                    disabled={isPending}
-                  />
-
-                  <PasswordField
-                    label="Senha"
-                    name="password"
-                    placeholder="Sua senha de acesso"
-                    showPassword={showPassword}
-                    onToggle={() => setShowPassword((value) => !value)}
-                    disabled={isPending}
-                  />
-
-                  <div className="auth-row">
-                    <span className="auth-help">Acesso seguro ao Poseidon.</span>
-                    <button type="button" className="auth-link">
-                      Esqueci minha senha
-                    </button>
-                  </div>
-
-                  {error && <p className="auth-error">{error}</p>}
-
-                  <button type="submit" disabled={isPending} className="ds-btn-primary auth-submit">
-                    {isPending ? "Entrando..." : "Entrar"}
-                    {!isPending && <ArrowRight className="h-4 w-4" />}
-                  </button>
-                </form>
-              )}
+            <div
+              class="ds-checkbox-row"
+              id="row-remember"
+              style="margin-top: 4px;"
+            >
+              <input type="checkbox" id="remember" name="remember" checked />
+              <label for="remember">Manter conectado neste dispositivo</label>
             </div>
-          </section>
-        </div>
-      </div>
-    </main>
-  );
-}
 
-function Field({
-  label,
-  icon,
-  mono = false,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-  icon: React.ReactNode;
-  mono?: boolean;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="ds-label">{label}</label>
-      <div className="auth-input-wrap">
-        <div className="auth-input-icon">{icon}</div>
-        <input
-          {...props}
-          className={`ds-input auth-input ${mono ? "ds-mono tracking-[0.04em]" : ""}`}
-        />
-      </div>
-    </div>
-  );
-}
+            <div
+              id="row-terms"
+              class="ds-checkbox-row"
+              style="display: none; margin-top: 4px;"
+            >
+              <input type="checkbox" id="terms" name="terms" />
+              <label for="terms">
+                Concordo com o uso de dados para análise de projetos culturais.
+              </label>
+            </div>
 
-function MaskedField({
-  label,
-  icon,
-  value,
-  onChange,
-  mono = false,
-  displayName,
-  ...props
-}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "name"> & {
-  label: string;
-  icon: React.ReactNode;
-  value: string;
-  onChange: (value: string) => void;
-  mono?: boolean;
-  displayName: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="ds-label">{label}</label>
-      <div className="auth-input-wrap">
-        <div className="auth-input-icon">{icon}</div>
-        <input
-          {...props}
-          name={displayName}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`ds-input auth-input ${mono ? "ds-mono tracking-[0.04em]" : ""}`}
-        />
+            <button
+              type="submit"
+              class="ds-btn ds-btn-primary"
+              style="width: 100%; margin-top: 10px;"
+              id="primary-action"
+            >
+              Entrar
+            </button>
+
+            <p
+              class="ds-link-muted"
+              style="margin-top: 10px; text-align: center;"
+            >
+              <span id="toggle-text">
+                Ainda não tem acesso?
+                <button
+                  type="button"
+                  id="toggle-mode"
+                  style="
+                    background: none;
+                    border: none;
+                    padding: 0;
+                    cursor: pointer;
+                    font-size: 12px;
+                  "
+                >
+                  Criar conta
+                </button>
+              </span>
+            </p>
+
+            <!-- Mensagem de erro genérica (placeholder) -->
+            <p
+              id="form-error"
+              class="form-error"
+              style="display: none; text-align: center;"
+            >
+              Verifique os dados informados.
+            </p>
+          </form>
+        </section>
       </div>
     </div>
-  );
-}
 
-function PasswordField({
-  label,
-  name,
-  placeholder,
-  showPassword,
-  onToggle,
-  disabled,
-}: {
-  label: string;
-  name: string;
-  placeholder: string;
-  showPassword: boolean;
-  onToggle: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="ds-label">{label}</label>
-      <div className="auth-input-wrap">
-        <div className="auth-input-icon">
-          <Lock className="h-4 w-4" />
-        </div>
+    <script>
+      // Toggle entre login e cadastro (sem backend, só front)
+      const toggleBtn = document.getElementById("toggle-mode");
+      const formTitle = document.getElementById("form-title");
+      const formSub = document.getElementById("form-sub");
+      const primaryAction = document.getElementById("primary-action");
+      const rowRemember = document.getElementById("row-remember");
+      const rowTerms = document.getElementById("row-terms");
+      const fieldName = document.getElementById("field-name");
+      const fieldDoc = document.getElementById("field-doc");
+      const fieldPassConf = document.getElementById("field-password-confirm");
+      const formError = document.getElementById("form-error");
 
-        <input
-          type={showPassword ? "text" : "password"}
-          name={name}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="ds-input auth-input auth-input-password"
-        />
+      let mode = "login"; // ou "signup"
 
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-          disabled={disabled}
-          className="auth-input-action"
-        >
-          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-    </div>
-  );
-}
+      toggleBtn.addEventListener("click", () => {
+        formError.style.display = "none";
 
-function TypeTab({
-  title,
-  subtitle,
-  active,
-  onClick,
-}: {
-  title: string;
-  subtitle: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`auth-tab ${active ? "auth-tab-active" : ""}`}
-    >
-      <div className="text-sm font-medium">{title}</div>
-      <div className="mt-1 text-xs leading-5 text-slate-400">{subtitle}</div>
-    </button>
-  );
-}
+        if (mode === "login") {
+          mode = "signup";
+          formTitle.textContent = "Criar acesso ao Poseidon";
+          formSub.textContent =
+            "Comece a testar o controle de rubricas e o feed de auditoria com um projeto simulado.";
+          primaryAction.textContent = "Criar conta";
+          toggleBtn.textContent = "Voltar para login";
 
-function InfoCard({
-  icon,
-  label,
-  value,
-  description,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  description: string;
-}) {
-  return (
-    <div className="auth-mini-card">
-      <div className="auth-mini-card-top">
-        <span className="auth-mini-card-label">{label}</span>
-        {icon}
-      </div>
-      <div className="auth-mini-card-value">{value}</div>
-      <p className="auth-mini-card-description">{description}</p>
-    </div>
-  );
-}
+          rowRemember.style.display = "none";
+          rowTerms.style.display = "flex";
+          fieldName.style.display = "flex";
+          fieldDoc.style.display = "flex";
+          fieldPassConf.style.display = "flex";
+        } else {
+          mode = "login";
+          formTitle.textContent = "Entrar no Poseidon";
+          formSub.textContent =
+            "Acompanhe seus projetos culturais com o mesmo cuidado que o fiscal do edital.";
+          primaryAction.textContent = "Entrar";
+          toggleBtn.textContent = "Criar conta";
+
+          rowRemember.style.display = "flex";
+          rowTerms.style.display = "none";
+          fieldName.style.display = "none";
+          fieldDoc.style.display = "none";
+          fieldPassConf.style.display = "none";
+        }
+      });
+
+      // Placeholder de submit: só evita reload e exibe msg
+      document
+        .getElementById("auth-form")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          formError.style.display = "block";
+          formError.textContent =
+            mode === "login"
+              ? "Login ainda não conectado ao backend."
+              : "Cadastro ainda não conectado ao backend.";
+        });
+    </script>
+  </body>
+</html>
