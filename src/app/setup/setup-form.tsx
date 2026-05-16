@@ -1,96 +1,98 @@
-'use client'
+"use client";
 
-import { useActionState, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowRight, FolderPlus, Loader2 } from 'lucide-react'
-import type { ActionState } from '@/app/actions/setupProjeto'
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowRight, FolderPlus, Loader2 } from "lucide-react";
+import type { ActionState } from "@/app/actions/setupProjeto";
 
-const initialState: ActionState = { status: 'idle' }
+const initialState: ActionState = { status: "idle" };
 
 type SetupProjetoFormProps = {
-  action: (prevState: ActionState, formData: FormData) => Promise<ActionState>
-}
+  action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+};
 
-// Opções de mecanismo e segmento
+/* ── Opções dos selects ─────────────────────────────────────────── */
 const MECANISMOS = [
-  { value: 'incentivo_fiscal', label: 'Lei Rouanet – Mecenato (Incentivo Fiscal)' },
-  { value: 'fundo', label: 'Lei Rouanet – FNC (Fundo Nacional da Cultura)' },
-  { value: 'pnab', label: 'Política Nacional Aldir Blanc (PNAB)' },
-] as const
+  { value: "incentivo_fiscal", label: "Lei Rouanet — Mecenato (Incentivo Fiscal)" },
+  { value: "fundo", label: "Lei Rouanet — FNC (Fundo Nacional da Cultura)" },
+  { value: "pnab", label: "Política Nacional Aldir Blanc (PNAB)" },
+] as const;
 
 const SEGMENTOS = [
-  { value: 'artes_cenicas', label: 'Artes Cênicas' },
-  { value: 'musica', label: 'Música' },
-  { value: 'artes_visuais', label: 'Artes Visuais' },
-  { value: 'audiovisual', label: 'Cinema e Audiovisual' },
-  { value: 'fotografia', label: 'Fotografia' },
-  { value: 'artesanato', label: 'Artesanato' },
-  { value: 'design_moda', label: 'Design e Moda' },
-  { value: 'literatura', label: 'Literatura' },
-  { value: 'patrimonio', label: 'Patrimônio Cultural e Museologia' },
-  { value: 'artes_integradas', label: 'Artes Integradas' },
-] as const
+  { value: "artes_cenicas", label: "Artes Cênicas" },
+  { value: "musica", label: "Música" },
+  { value: "artes_visuais", label: "Artes Visuais" },
+  { value: "audiovisual", label: "Cinema e Audiovisual" },
+  { value: "fotografia", label: "Fotografia" },
+  { value: "artesanato", label: "Artesanato" },
+  { value: "design_moda", label: "Design e Moda" },
+  { value: "literatura", label: "Literatura" },
+  { value: "patrimonio", label: "Patrimônio Cultural e Museologia" },
+  { value: "artes_integradas", label: "Artes Integradas" },
+] as const;
 
-// Helpers de máscara e formatação
+/* ── Máscara e formatação ─────────────────────────────────────── */
 function digitsToDisplay(digits: string): string {
-  if (!digits) return ''
-  const num = parseInt(digits, 10) / 100
-  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  if (!digits) return "";
+  const num = parseInt(digits, 10) / 100;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function digitsToNumber(digits: string): number {
-  if (!digits) return 0
-  return parseInt(digits, 10) / 100
+  if (!digits) return 0;
+  return parseInt(digits, 10) / 100;
 }
 
 function formatBRL(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/* ── Componente principal ───────────────────────────────────────── */
 export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
-  const router = useRouter()
-  const [state, formAction, isPending] = useActionState(action, initialState)
+  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(action, initialState);
 
   // Máscara do orçamento
-  const [rawDigits, setRawDigits] = useState('')
-  const [displayValue, setDisplayValue] = useState('')
+  const [rawDigits, setRawDigits] = useState("");
+  const [displayValue, setDisplayValue] = useState("");
 
-  // Estados visuais dos selects
-  const [mecanismo, setMecanismo] = useState('')
-  const [segmento, setSegmento] = useState('')
+  // Controle visual dos selects
+  const [mecanismo, setMecanismo] = useState("");
+  const [segmento, setSegmento] = useState("");
 
-  // Redireciona no sucesso
   useEffect(() => {
-    if (state.status === 'success' && state.redirectTo) {
-      router.push(state.redirectTo)
+    if (state.status === "success" && state.redirectTo) {
+      router.push(state.redirectTo);
     }
-  }, [router, state.redirectTo, state.status])
+  }, [router, state.redirectTo, state.status]);
 
-  // Máscara: apenas dígitos, formata em tempo real
   function handleOrcamentoInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const digits = e.target.value.replace(/\D/g, '').replace(/^0+/, '') || ''
-    setRawDigits(digits)
-    setDisplayValue(digitsToDisplay(digits))
+    const digits = e.target.value.replace(/\D/g, "").replace(/^0+/, "") || "";
+    setRawDigits(digits);
+    setDisplayValue(digitsToDisplay(digits));
   }
 
-  const orcamentoNum = digitsToNumber(rawDigits)
-  const adm = orcamentoNum * 0.15
-  const captacao = Math.min(orcamentoNum * 0.1, 150_000)
-  const divulgacao = orcamentoNum * 0.2
-  const showPreview = orcamentoNum > 0
+  const orcamentoNum = digitsToNumber(rawDigits);
+  const adm = orcamentoNum * 0.15;
+  const captacao = Math.min(orcamentoNum * 0.1, 150_000);
+  const divulgacao = orcamentoNum * 0.2;
+  const showPreview = orcamentoNum > 0;
 
-  // Cor condicional dos selects
   const selectColor = (val: string) =>
-    val === '' ? 'var(--color-ds-text-muted)' : 'var(--color-ds-text)'
+    val === "" ? "var(--color-text-faint)" : "var(--color-text-primary)";
 
   return (
     <form action={formAction} className="space-y-10">
-      {/* Seção: Identificação */}
+      {/* Seção 1: Identificação */}
       <section>
-        <SectionTitle>Identificação do Projeto</SectionTitle>
+        <div className="flex items-center gap-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-400">
+            Identificação do Projeto
+          </h2>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Nome do projeto ocupa as duas colunas */}
           <div className="md:col-span-2">
             <Field
               id="nome_projeto"
@@ -101,13 +103,12 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
                 id="nome_projeto"
                 name="nome_projeto"
                 placeholder="Ex.: Circuito Atlântico de Arte Viva"
-                className="ds-input"
+                className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                 autoComplete="off"
               />
             </Field>
           </div>
 
-          {/* Segmento cultural */}
           <Field
             id="segmento_cultural"
             label="Segmento cultural"
@@ -116,23 +117,22 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
             <select
               id="segmento_cultural"
               name="segmento_cultural"
-              className="ds-input"
-              value={segmento}
+              className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm outline-none focus:border-cyan-400/40"
               style={{ color: selectColor(segmento) }}
+              value={segmento}
               onChange={(e) => setSegmento(e.target.value)}
             >
-              <option value="" disabled style={{ color: 'var(--color-ds-text-muted)' }}>
+              <option value="" disabled style={{ color: "var(--color-text-faint)" }}>
                 Selecione um segmento…
               </option>
               {SEGMENTOS.map(({ value, label }) => (
-                <option key={value} value={value} style={{ color: 'var(--color-ds-text)' }}>
+                <option key={value} value={value} style={{ color: "var(--color-text-primary)" }}>
                   {label}
                 </option>
               ))}
             </select>
           </Field>
 
-          {/* Mecanismo */}
           <Field
             id="mecanismo"
             label="Mecanismo de fomento"
@@ -141,16 +141,16 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
             <select
               id="mecanismo"
               name="mecanismo"
-              className="ds-input"
-              value={mecanismo}
+              className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm outline-none focus:border-cyan-400/40"
               style={{ color: selectColor(mecanismo) }}
+              value={mecanismo}
               onChange={(e) => setMecanismo(e.target.value)}
             >
-              <option value="" disabled style={{ color: 'var(--color-ds-text-muted)' }}>
+              <option value="" disabled style={{ color: "var(--color-text-faint)" }}>
                 Selecione o mecanismo…
               </option>
               {MECANISMOS.map(({ value, label }) => (
-                <option key={value} value={value} style={{ color: 'var(--color-ds-text)' }}>
+                <option key={value} value={value} style={{ color: "var(--color-text-primary)" }}>
                   {label}
                 </option>
               ))}
@@ -159,12 +159,16 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
         </div>
       </section>
 
-      {/* Seção: Orçamento */}
+      {/* Seção 2: Orçamento */}
       <section>
-        <SectionTitle>Orçamento</SectionTitle>
+        <div className="flex items-center gap-3">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-400">
+            Orçamento
+          </h2>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
 
         <div className="mt-6 space-y-6">
-          {/* Campo com máscara */}
           <Field
             id="orcamento_total"
             label="Valor total do projeto"
@@ -172,7 +176,7 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
           >
             <input type="hidden" name="orcamento_total_aprovado" value={orcamentoNum} />
             <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center font-mono text-sm text-[var(--color-ds-text-muted)]">
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center font-mono text-sm text-slate-400">
                 R$
               </span>
               <input
@@ -182,39 +186,27 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
                 placeholder="0,00"
                 value={displayValue}
                 onChange={handleOrcamentoInput}
-                className="ds-input ds-mono pl-10"
+                className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 pl-10 pr-3 text-sm text-white tabular-nums placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
                 autoComplete="off"
               />
             </div>
           </Field>
 
-          {/* Preview de blindagem automática */}
+          {/* Preview de rubricas */}
           <div
             aria-live="polite"
             className={`overflow-hidden transition-all duration-300 ${
-              showPreview ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              showPreview ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
             }`}
           >
-            <div className="rounded-2xl border border-[var(--color-ds-cyan)]/15 bg-[var(--color-ds-cyan)]/5 p-5 backdrop-blur-sm">
-              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--color-ds-cyan)]">
+            <div className="rounded-2xl border border-cyan-400/10 bg-cyan-500/5 p-5">
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.15em] text-cyan-400">
                 Rubricas geradas automaticamente · IN MinC 29/2026
               </p>
               <div className="grid gap-3 md:grid-cols-3">
-                <RubricaCard
-                  label="Administração"
-                  percent="15%"
-                  valor={adm}
-                />
-                <RubricaCard
-                  label="Captação"
-                  percent="10% · teto R$ 150 mil"
-                  valor={captacao}
-                />
-                <RubricaCard
-                  label="Divulgação / Acessibilidade"
-                  percent="20%"
-                  valor={divulgacao}
-                />
+                <RubricaCard label="Administração" percent="15%" valor={adm} />
+                <RubricaCard label="Captação" percent="10% · teto R$ 150 mil" valor={captacao} />
+                <RubricaCard label="Divulgação / Acessibilidade" percent="20%" valor={divulgacao} />
               </div>
             </div>
           </div>
@@ -226,9 +218,9 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
         <div
           role="alert"
           className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${
-            state.status === 'success'
-              ? 'border-[rgba(0,214,143,.3)] bg-[rgba(0,214,143,.07)] text-[var(--color-ds-success)]'
-              : 'border-[rgba(255,77,106,.3)] bg-[rgba(255,77,106,.07)] text-[var(--color-ds-error)]'
+            state.status === "success"
+              ? "border-emerald-400/20 bg-emerald-500/5 text-emerald-400"
+              : "border-red-400/20 bg-red-500/5 text-red-400"
           }`}
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -241,54 +233,42 @@ export default function SetupProjetoForm({ action }: SetupProjetoFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-ds-cyan)] px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-[var(--color-ds-cyan)]/20 transition-all hover:bg-[var(--color-ds-cyan)]/90 disabled:opacity-60"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
         >
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <FolderPlus className="h-4 w-4" />
           )}
-          {isPending ? 'Configurando…' : 'Criar projeto e continuar'}
+          {isPending ? "Configurando…" : "Criar projeto e continuar"}
           {!isPending && <ArrowRight className="h-4 w-4" />}
         </button>
       </div>
     </form>
-  )
+  );
 }
 
-/* ── Subcomponentes ─────────────────────────────── */
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-ds-cyan)]">
-        {children}
-      </h2>
-      <div className="h-px flex-1 bg-white/10" />
-    </div>
-  )
-}
-
+/* ── Subcomponentes ────────────────────────────────────────────── */
 function Field({
   id,
   label,
   error,
   children,
 }: {
-  id: string
-  label: string
-  error?: string
-  children: React.ReactNode
+  id: string;
+  label: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="ds-label text-white/80">
+      <label htmlFor={id} className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
         {label}
       </label>
       {children}
-      {error && <p className="text-xs text-[var(--color-ds-error)] mt-1">{error}</p>}
+      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
     </div>
-  )
+  );
 }
 
 function RubricaCard({
@@ -296,19 +276,17 @@ function RubricaCard({
   percent,
   valor,
 }: {
-  label: string
-  percent: string
-  valor: number
+  label: string;
+  percent: string;
+  valor: number;
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="text-xs font-semibold text-[var(--color-ds-cyan)]">{label}</p>
-      <p className="mt-0.5 font-mono text-[10px] text-[var(--color-ds-text-muted)]">
-        {percent}
-      </p>
-      <p className="ds-mono mt-2 text-lg font-bold text-white">
+      <p className="text-xs font-semibold text-cyan-400">{label}</p>
+      <p className="mt-0.5 font-mono text-[10px] text-slate-400">{percent}</p>
+      <p className="mt-2 text-lg font-semibold tabular-nums text-white">
         {formatBRL(valor)}
       </p>
     </div>
-  )
+  );
 }
