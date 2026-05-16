@@ -1,106 +1,202 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Loader2, Eye, EyeOff, Waves } from "lucide-react";
-import { login, signup, type AuthResult } from "./actions";
+import { useActionState, useState, useTransition } from "react";
+import { login, signup } from "./actions";
 
-const INITIAL: AuthResult = null;
+/* ============================================================
+   Tipos
+   ============================================================ */
+type FormState = { error: string } | null;
 
+/* ============================================================
+   Wrapper: adapta as actions para useActionState
+   Ambas fazem redirect em sucesso, logo sÃ³ chegam aqui em erro.
+   ============================================================ */
+async function loginAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  return login(formData) as Promise<FormState>;
+}
+
+async function signupAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  return signup(formData) as Promise<FormState>;
+}
+
+/* ============================================================
+   Componente principal
+   ============================================================ */
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
 
-  const [loginState, loginAction, loginPending] = useActionState(login, INITIAL);
-  const [signupState, signupAction, signupPending] = useActionState(signup, INITIAL);
+  const [loginState,  loginDispatch,  isLoginPending]  =
+    useActionState(loginAction,  null);
+  const [signupState, signupDispatch, isSignupPending] =
+    useActionState(signupAction, null);
 
-  const state = isLogin ? loginState : signupState;
-  const formAction = isLogin ? loginAction : signupAction;
-  const isPending = isLogin ? loginPending : signupPending;
+  const isPending = isLoginPending || isSignupPending;
+  const error     = isLogin ? loginState?.error : signupState?.error;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="ds-card ds-card-glow flex h-12 w-12 items-center justify-center rounded-2xl">
-            <Waves className="h-6 w-6 text-[var(--color-ds-cyan)]" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ds-text)]">Poseidon</h1>
-            <p className="mt-1 text-sm text-[var(--color-ds-text-muted)]">
-              Gestão cultural com compliance IN 29/2026
+    <main className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-6">
+
+        {/* Logotipo / tÃ­tulo */}
+        <div className="text-center space-y-1">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-ds-text)]">
+            Pose<span className="text-[var(--color-ds-cyan)]">idon</span>
+          </h1>
+          <p className="text-sm text-[var(--color-ds-text-muted)]">
+            Auditoria Cultural Â· Lei Rouanet Â· IN 29/2026
+          </p>
+        </div>
+
+        {/* Card principal */}
+        <div className="ds-card-glow space-y-5">
+
+          {/* TÃ­tulo do formulÃ¡rio */}
+          <div>
+            <h2 className="text-xl font-bold text-[var(--color-ds-text)]">
+              {isLogin ? "Entrar na plataforma" : "Criar conta"}
+            </h2>
+            <p className="text-xs text-[var(--color-ds-text-muted)] mt-1">
+              {isLogin
+                ? "Acesse seu painel de auditorias."
+                : "Preencha os dados para se cadastrar como proponente."}
             </p>
           </div>
-        </div>
 
-        <div className="ds-card p-6">
-          <h2 className="mb-5 text-base font-semibold text-[var(--color-ds-text)]">
-            {isLogin ? "Entrar" : "Criar Conta"}
-          </h2>
+          <hr className="ds-divider" />
 
-          <form action={formAction} className="space-y-4" noValidate>
-            {!isLogin ? (
-              <>
-                <div>
-                  <label htmlFor="nome_completo" className="ds-label">Nome completo</label>
-                  <input id="nome_completo" name="nome_completo" type="text" autoComplete="name" className="ds-input" />
-                </div>
+          {/* FormulÃ¡rio de LOGIN */}
+          {isLogin && (
+            <form action={loginDispatch} className="space-y-4" noValidate>
+              <Field
+                id="email"
+                label="E-mail"
+                type="email"
+                name="email"
+                placeholder="seu@email.com"
+                disabled={isPending}
+                autoComplete="email"
+              />
+              <Field
+                id="password"
+                label="Senha"
+                type="password"
+                name="password"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                disabled={isPending}
+                autoComplete="current-password"
+              />
 
-                <div>
-                  <label htmlFor="cpf" className="ds-label">CPF</label>
-                  <input id="cpf" name="cpf" type="text" inputMode="numeric" className="ds-input ds-mono" />
-                </div>
-              </>
-            ) : null}
+              {error && <p className="ds-error">{error}</p>}
 
-            <div>
-              <label htmlFor="email" className="ds-label">E-mail</label>
-              <input id="email" name="email" type="email" autoComplete="email" className="ds-input" />
-            </div>
+              <button
+                type="submit"
+                className="ds-btn-primary"
+                disabled={isPending}
+              >
+                {isPending ? "Autenticandoâ€¦" : "Entrar â†’"}
+              </button>
+            </form>
+          )}
 
-            <div>
-              <label htmlFor="password" className="ds-label">Senha</label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  className="ds-input pr-11"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ds-text-muted)] transition hover:text-[var(--color-ds-text)]"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
+          {/* FormulÃ¡rio de CADASTRO */}
+          {!isLogin && (
+            <form action={signupDispatch} className="space-y-4" noValidate>
+              <Field
+                id="nome_completo"
+                label="Nome Completo"
+                type="text"
+                name="nome_completo"
+                placeholder="Maria da Silva"
+                disabled={isPending}
+                autoComplete="name"
+              />
+              <Field
+                id="cpf"
+                label="CPF"
+                type="text"
+                name="cpf"
+                placeholder="000.000.000-00"
+                disabled={isPending}
+                autoComplete="off"
+                maxLength={14}
+              />
+              <Field
+                id="email"
+                label="E-mail"
+                type="email"
+                name="email"
+                placeholder="seu@email.com"
+                disabled={isPending}
+                autoComplete="email"
+              />
+              <Field
+                id="password"
+                label="Senha"
+                type="password"
+                name="password"
+                placeholder="MÃ­nimo 8 caracteres"
+                disabled={isPending}
+                autoComplete="new-password"
+              />
 
-            {state?.error ? (
-              <div className="rounded-xl border border-[rgba(255,77,106,.3)] bg-[rgba(255,77,106,.07)] px-3 py-2 text-sm text-[var(--color-ds-error)]">
-                {state.error}
-              </div>
-            ) : null}
+              {error && <p className="ds-error">{error}</p>}
 
-            <button type="submit" disabled={isPending} className="ds-btn-primary w-full">
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isPending ? (isLogin ? "Entrando..." : "Criando conta...") : isLogin ? "Entrar" : "Criar conta"}
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="ds-btn-primary"
+                disabled={isPending}
+              >
+                {isPending ? "Criando contaâ€¦" : "Criar Conta â†’"}
+              </button>
+            </form>
+          )}
 
-          <div className="mt-5 text-center">
+          {/* Alternador de modo */}
+          <div className="text-center pt-1">
             <button
               type="button"
+              className="ds-btn-ghost text-sm"
               onClick={() => setIsLogin((v) => !v)}
-              className="text-sm text-[var(--color-ds-text-muted)] transition hover:text-[var(--color-ds-text)]"
+              disabled={isPending}
             >
-              {isLogin ? "Não tem conta? Crie uma" : "Já tem conta? Entre"}
+              {isLogin
+                ? "NÃ£o tem conta? Criar conta gratuita"
+                : "JÃ¡ tem conta? Entrar"}
             </button>
           </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-[var(--color-ds-text-muted)]">
+          Â© {new Date().getFullYear()} Poseidon Â· Todos os direitos reservados
+        </p>
       </div>
     </main>
+  );
+}
+
+/* ============================================================
+   Componente de campo reutilizÃ¡vel
+   ============================================================ */
+interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  id: string;
+  label: string;
+}
+
+function Field({ id, label, ...inputProps }: FieldProps) {
+  return (
+    <div>
+      <label htmlFor={id} className="ds-label">
+        {label}
+      </label>
+      <input id={id} className="ds-input" {...inputProps} />
+    </div>
   );
 }

@@ -1,79 +1,59 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
 
-export type AuthResult = { error: string } | null;
+/* ============================================================
+   Tipagem de retorno de erro
+   ============================================================ */
+type ActionResult = { error: string } | never;
 
-async function makeSupabase() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-          }
-        },
-      },
-    }
-  );
-}
-
-export async function login(
-  _prev: AuthResult,
-  formData: FormData
-): Promise<AuthResult> {
-  const email = String(formData.get("email") ?? "").trim();
+/* ============================================================
+   LOGIN
+   ============================================================ */
+export async function login(formData: FormData): Promise<ActionResult> {
+  const email    = String(formData.get("email")    ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { error: "Preencha e-mail e senha." };
+    return { error: "E-mail e senha são obrigatórios." };
   }
 
-  const supabase = await makeSupabase();
+  const supabase = await createClient();
+
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    return { error: "E-mail ou senha incorretos." };
+    return { error: error.message };
   }
 
   redirect("/setup");
 }
 
-export async function signup(
-  _prev: AuthResult,
-  formData: FormData
-): Promise<AuthResult> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+/* ============================================================
+   SIGNUP
+   ============================================================ */
+export async function signup(formData: FormData): Promise<ActionResult> {
+  const email         = String(formData.get("email")         ?? "").trim();
+  const password      = String(formData.get("password")      ?? "");
   const nome_completo = String(formData.get("nome_completo") ?? "").trim();
-  const cpf = String(formData.get("cpf") ?? "").trim();
+  const cpf           = String(formData.get("cpf")           ?? "").trim();
 
   if (!email || !password || !nome_completo || !cpf) {
-    return { error: "Preencha todos os campos." };
+    return { error: "Todos os campos são obrigatórios." };
   }
 
-  const supabase = await makeSupabase();
+  const supabase = await createClient();
 
+  /* 1. Cria o usuário no Auth */
   const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { nome_completo },
+      data: { nome_completo, cpf },
     },
   });
 
@@ -84,18 +64,21 @@ export async function signup(
   const userId = data.user?.id;
 
   if (!userId) {
-    return { error: "Não foi possível obter o ID do usuário." };
+    return { error: "Não foi possível obter o ID do usuário após o cadastro." };
   }
 
+  /* 2. Insere o proponente na tabela pública */
   const { error: insertError } = await supabase.from("proponentes").insert({
-    id: userId,
-    tipo: "PF",
+    id:            userId,
+    tipo:          "PF",          // padrão; pode ser editado no setup
     nome_completo,
     cpf,
     email,
   });
 
   if (insertError) {
+    // Rollback lógico: remove o usuário do Auth para não deixar órfão
+    await supabase.auth.admin.deleteUser(userId).catch(() => null);
     return { error: insertError.message };
   }
 
