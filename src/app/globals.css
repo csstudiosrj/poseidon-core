@@ -1,43 +1,44 @@
 @import "tailwindcss";
 
 /* ============================================================
-   DEEP SEA DESIGN SYSTEM — POSEIDON
-   Dark-native, Navy background, Neon Cyan accents
+   POSEIDON DESIGN TOKENS — Console de Auditoria Cultural
+   Base: Dark operational dashboard, accent cyan, no glow gimmicks.
    ============================================================ */
-
 @theme {
-  /* --- Paleta principal --- */
-  --color-ds-bg:          #020b18;   /* Navy profundo */
-  --color-ds-surface:     #06101f;   /* Superfície de cards */
-  --color-ds-surface-2:   #0b1a30;   /* Superfície secundária / hover */
-  --color-ds-border:      #112240;   /* Borda sutil */
+  /* Backgrounds */
+  --color-bg:           #020617;      /* slate-950 */
+  --color-surface-1:    #081121;
+  --color-surface-2:    #0b1730;
+  --color-surface-3:    #0f1e3d;
 
-  /* --- Texto --- */
-  --color-ds-text:        #e2eaf4;   /* Texto primário */
-  --color-ds-text-muted:  #7a92b0;   /* Texto secundário / placeholder */
+  /* Borders */
+  --color-border-subtle: rgba(148, 163, 184, 0.14);
 
-  /* --- Acento Ciano Neon --- */
-  --color-ds-cyan:        #00e5ff;
-  --color-ds-cyan-dim:    #00b8d4;
-  --color-ds-cyan-glow:   rgba(0, 229, 255, 0.15);
+  /* Text */
+  --color-text-primary:   rgba(255, 255, 255, 0.96);
+  --color-text-secondary: rgba(226, 232, 240, 0.72);
+  --color-text-faint:     rgba(148, 163, 184, 0.52);
 
-  /* --- Estados --- */
-  --color-ds-error:       #ff5370;
-  --color-ds-success:     #00e676;
-  --color-ds-warning:     #ffb300;
+  /* Accent (cyan) */
+  --color-accent:        #22d3ee;
+  --color-accent-strong: #06b6d4;
 
-  /* --- Tipografia --- */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger:  #ef4444;
 
-  /* --- Border radius --- */
-  --radius-ds: 0.75rem;
-  --radius-ds-sm: 0.5rem;
+  /* Fonts */
+  --font-sans:  "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:  "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radius */
+  --radius-card: 1rem; /* 16px ≈ rounded-2xl */
 }
 
 /* ============================================================
-   RESET GLOBAL — aplica o tema escuro em toda a aplicação
+   BASE STYLES
    ============================================================ */
-
 *,
 *::before,
 *::after {
@@ -53,143 +54,20 @@ html {
 }
 
 body {
-  background-color: var(--color-ds-bg);
-  color: var(--color-ds-text);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
 }
 
 /* ============================================================
-   COMPONENTES DO DESIGN SYSTEM
+   UTILITY OVERRIDES (opcional, garante consistência)
    ============================================================ */
 
-/* Card padrão */
-.ds-card {
-  background-color: var(--color-ds-surface);
-  border: 1px solid var(--color-ds-border);
-  border-radius: var(--radius-ds);
-  padding: 1.5rem;
-}
-
-/* Card com brilho sutil de cyan na borda */
-.ds-card-glow {
-  background-color: var(--color-ds-surface);
-  border: 1px solid rgba(0, 229, 255, 0.2);
-  border-radius: var(--radius-ds);
-  padding: 1.5rem;
-  box-shadow: 0 0 24px var(--color-ds-cyan-glow);
-}
-
-/* Label */
-.ds-label {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-ds-text-muted);
-  margin-bottom: 0.375rem;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-/* Input */
-.ds-input {
-  width: 100%;
-  background-color: var(--color-ds-bg);
-  border: 1px solid var(--color-ds-border);
-  border-radius: var(--radius-ds-sm);
-  color: var(--color-ds-text);
-  font-size: 0.9375rem;
-  padding: 0.625rem 0.875rem;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.ds-input::placeholder {
-  color: var(--color-ds-text-muted);
-}
-
-.ds-input:focus {
-  border-color: var(--color-ds-cyan);
-  box-shadow: 0 0 0 3px var(--color-ds-cyan-glow);
-}
-
-.ds-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Botão primário */
-.ds-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
-  background-color: var(--color-ds-cyan);
-  color: var(--color-ds-bg);
-  font-weight: 700;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
-  border: none;
-  border-radius: var(--radius-ds-sm);
-  padding: 0.75rem 1.25rem;
-  cursor: pointer;
-  transition: background-color 0.2s, box-shadow 0.2s, opacity 0.2s;
-}
-
-.ds-btn-primary:hover:not(:disabled) {
-  background-color: var(--color-ds-cyan-dim);
-  box-shadow: 0 0 20px var(--color-ds-cyan-glow);
-}
-
-.ds-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Botão fantasma (outline) */
-.ds-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: transparent;
-  color: var(--color-ds-text-muted);
-  font-size: 0.875rem;
-  border: none;
-  border-radius: var(--radius-ds-sm);
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.ds-btn-ghost:hover {
-  color: var(--color-ds-cyan);
-}
-
-/* Mensagem de erro inline */
-.ds-error {
-  color: var(--color-ds-error);
-  font-size: 0.8125rem;
-  margin-top: 0.375rem;
-}
-
-/* Divisor */
-.ds-divider {
-  border: none;
-  border-top: 1px solid var(--color-ds-border);
-  margin: 1.25rem 0;
-}
-
-/* Badge */
-.ds-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background-color: var(--color-ds-cyan-glow);
-  color: var(--color-ds-cyan);
-  border: 1px solid rgba(0, 229, 255, 0.3);
+/* Força a fonte mono em números financeiros quando a classe .tabular-nums não for suficiente */
+@layer base {
+  .font-mono, .ds-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
 }
