@@ -4,50 +4,56 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// Tipo de retorno compatível com useActionState
 export type ActionState = {
-  success: boolean
-  message: string
-  errors?: Record<string, string[]>
-  alerta?: string
+  status: 'idle' | 'success' | 'error' | 'compliance_violation'
+  message?: string
+  field_errors?: Record<string, string[]>
+  violation?: {
+    rubrica: string
+    categoria: string
+    valor_tentado: number
+    valor_executado_atual: number
+    teto_legal: number
+    referencia_legal: string
+  }
 }
 
-// Assinatura exigida pelo useActionState: (prevState, formData) => Promise<ActionState>
 export async function processarNovaDespesa(
   prevState: ActionState,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionState> {
-  // Extração e sanitização dos campos
+  // Extrai e sanitiza os campos
   const projeto_id = formData.get('projeto_id')?.toString() ?? ''
   const rubrica_id = formData.get('rubrica_id')?.toString() ?? ''
   const valor_bruto_str = formData.get('valor_bruto')?.toString() ?? ''
-  const cpf_cnpj_fornecedor = (formData.get('cpf_cnpj_fornecedor')?.toString() ?? '')
-    .replace(/[\.\-\/]/g, '')   // remove pontos, traços e barras
+  const beneficiario_cpf_cnpj = (
+    formData.get('beneficiario_cpf_cnpj')?.toString() ?? ''
+  ).replace(/[\.\-\/]/g, '')
   const descricao = formData.get('descricao')?.toString() ?? ''
   const data_pagamento = formData.get('data_pagamento')?.toString() ?? ''
 
   const valor_bruto = Number(valor_bruto_str)
 
-  // Validação básica
-  const errors: Record<string, string[]> = {}
+  // Validação dos campos obrigatórios
+  const field_errors: Record<string, string[]> = {}
 
-  if (!projeto_id) errors.projeto_id = ['Projeto é obrigatório.']
-  if (!rubrica_id) errors.rubrica_id = ['Rubrica é obrigatória.']
+  if (!projeto_id) field_errors.projeto_id = ['Projeto é obrigatório.']
+  if (!rubrica_id) field_errors.rubrica_id = ['Rubrica é obrigatória.']
   if (!valor_bruto_str || isNaN(valor_bruto) || valor_bruto <= 0)
-    errors.valor_bruto = ['Valor bruto deve ser um número positivo.']
-  if (!cpf_cnpj_fornecedor) errors.cpf_cnpj_fornecedor = ['CPF/CNPJ do fornecedor é obrigatório.']
-  if (!descricao) errors.descricao = ['Descrição é obrigatória.']
-  if (!data_pagamento) errors.data_pagamento = ['Data de pagamento é obrigatória.']
+    field_errors.valor_bruto = ['Valor bruto deve ser um número positivo.']
+  if (!beneficiario_cpf_cnpj)
+    field_errors.beneficiario_cpf_cnpj = ['CPF/CNPJ do beneficiário é obrigatório.']
+  if (!descricao) field_errors.descricao = ['Descrição é obrigatória.']
+  if (!data_pagamento) field_errors.data_pagamento = ['Data de pagamento é obrigatória.']
 
-  if (Object.keys(errors).length > 0) {
+  if (Object.keys(field_errors).length > 0) {
     return {
-      success: false,
+      status: 'error',
       message: 'Dados inválidos.',
-      errors,
+      field_errors,
     }
   }
 
-  // Inicialização do Supabase (Server Side)
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,28 +64,30 @@ export async function processarNovaDespesa(
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          (cookieStore as any).set({ name, value, ...options })
+          ;(cookieStore as any).set({ name, value, ...options })
         },
         remove(name: string, options: any) {
-          (cookieStore as any).set({ name, value: '', ...options })
+          ;(cookieStore as any).set({ name, value: '', ...options })
         },
       },
-    },
+    }
   )
 
   try {
-    // 1. Buscar rubrica e validar saldo
+    // 1. Busca rubrica com dados completos para auditoria
     const { data: rubrica, error: rubricaError } = await supabase
       .from('rubricas')
-      .select('id, valor_orcado, valor_executado')
+      .select(
+        'id, valor_orcado, valor_executado, descricao, categoria, teto_legal, referencia_legal'
+      )
       .eq('id', rubrica_id)
       .single()
 
     if (rubricaError || !rubrica) {
       return {
-        success: false,
+        status: 'error',
         message: 'Rubrica não encontrada.',
-        errors: { rubrica_id: ['Rubrica inválida ou inexistente.'] },
+        field_errors: { rubrica_id: ['Rubrica inválida.'] },
       }
     }
 
@@ -87,7 +95,7 @@ export async function processarNovaDespesa(
     const estouraOrcamento = valor_bruto + executadoAtual > rubrica.valor_orcado
     const statusAuditoria = estouraOrcamento ? 'glosada' : 'aprovada'
 
-    // 2. Buscar proponente do projeto
+    // 2. Proponente do projeto
     const { data: projeto, error: projetoError } = await supabase
       .from('projetos')
       .select('proponente_id')
@@ -96,13 +104,13 @@ export async function processarNovaDespesa(
 
     if (projetoError || !projeto) {
       return {
-        success: false,
+        status: 'error',
         message: 'Projeto não encontrado.',
-        errors: { projeto_id: ['Projeto inválido ou inexistente.'] },
+        field_errors: { projeto_id: ['Projeto inválido.'] },
       }
     }
 
-    // 3. Inserir despesa
+    // 3. Insere a despesa
     const { data: despesaInserida, error: insertError } = await supabase
       .from('despesas')
       .insert({
@@ -110,7 +118,7 @@ export async function processarNovaDespesa(
         rubrica_id,
         proponente_id: projeto.proponente_id,
         valor_bruto,
-        beneficiario_cpf_cnpj: cpf_cnpj_fornecedor,
+        beneficiario_cpf_cnpj,
         descricao,
         data_pagamento,
         status_auditoria: statusAuditoria,
@@ -120,30 +128,29 @@ export async function processarNovaDespesa(
 
     if (insertError || !despesaInserida) {
       return {
-        success: false,
+        status: 'error',
         message: 'Falha ao registrar a despesa.',
       }
     }
 
     const despesaId = despesaInserida.id
 
-    // 4. Atualizar valor executado da rubrica
+    // 4. Atualiza saldo da rubrica
     const { error: updateError } = await supabase
       .from('rubricas')
       .update({ valor_executado: executadoAtual + valor_bruto })
       .eq('id', rubrica_id)
 
     if (updateError) {
-      // Rollback lógico: remove a despesa
+      // Rollback lógico
       await supabase.from('despesas').delete().eq('id', despesaId)
-
       return {
-        success: false,
+        status: 'error',
         message: 'Falha ao atualizar o saldo da rubrica. Operação revertida.',
       }
     }
 
-    // 5. Alerta de compliance se glosada
+    // 5. Se foi glosada, gera alerta e retorna violação
     if (statusAuditoria === 'glosada') {
       const { error: alertaError } = await supabase
         .from('compliance_alertas')
@@ -156,24 +163,30 @@ export async function processarNovaDespesa(
 
       if (alertaError) {
         console.error('Erro ao gerar alerta de compliance:', alertaError)
-        // Não revertemos; o alerta é informativo
       }
 
       return {
-        success: true,
+        status: 'compliance_violation',
         message: 'Despesa registrada, porém glosada por falta de saldo.',
-        alerta: 'SALDO_INSUFICIENTE',
+        violation: {
+          rubrica: rubrica.descricao,
+          categoria: rubrica.categoria,
+          valor_tentado: valor_bruto,
+          valor_executado_atual: executadoAtual,
+          teto_legal: rubrica.teto_legal,
+          referencia_legal: rubrica.referencia_legal,
+        },
       }
     }
 
     return {
-      success: true,
+      status: 'success',
       message: 'Despesa processada com sucesso.',
     }
   } catch (erro) {
     console.error('Erro inesperado:', erro)
     return {
-      success: false,
+      status: 'error',
       message: 'Erro interno ao processar a despesa.',
     }
   }
