@@ -16,13 +16,6 @@ import {
 import { processarNovaDespesa, type ActionState } from "@/app/actions/processarNovaDespesa";
 import type { DashboardData } from "@/app/actions/getDashboardData";
 
-/* ================================================================
-   FONTES NECESSÁRIAS (configurar no layout.tsx / tailwind.config)
-   - Syne (títulos)
-   - Inter (interface)
-   - JetBrains Mono (números)
-   ================================================================ */
-
 type DashboardProps = {
   initialData: DashboardData;
 };
@@ -40,7 +33,7 @@ const percent = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 1,
 });
 
-/* ── Helpers de estilo ───────────────────────────────────────── */
+/* ── Helpers ──────────────────────────────────────────────────── */
 function rubricaBadge(status: "ok" | "warning" | "critical") {
   if (status === "critical")
     return "inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400 border border-red-400/20";
@@ -70,7 +63,7 @@ function alertBorder(nivel: "info" | "aviso" | "critico" | "bloqueante") {
   return "border-white/10 bg-white/[0.02]";
 }
 
-/* ── KPI Card padrão ─────────────────────────────────────────── */
+/* ── KPI Card ─────────────────────────────────────────────────── */
 function MetricCard({
   label,
   value,
@@ -94,7 +87,7 @@ function MetricCard({
   );
 }
 
-/* ── Gauge de risco (termômetro) ─────────────────────────────── */
+/* ── Gauge de risco ──────────────────────────────────────────── */
 function RiskGauge({ percentual }: { percentual: number }) {
   const color =
     percentual >= 85 ? "bg-red-500" : percentual >= 60 ? "bg-amber-400" : "bg-emerald-500";
@@ -123,7 +116,7 @@ function RiskGauge({ percentual }: { percentual: number }) {
   );
 }
 
-/* ── Dashboard ───────────────────────────────────────────────── */
+/* ── Dashboard principal ──────────────────────────────────────── */
 export default function Dashboard({ initialData }: DashboardProps) {
   const [data] = useState<DashboardData>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,7 +136,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">
-      {/* ── Topbar compacta ──────────────────────────────────── */}
+      {/* Topbar compacta */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-white font-['Syne']">
@@ -154,7 +147,6 @@ export default function Dashboard({ initialData }: DashboardProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Pills de contexto */}
           <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-3 py-1 text-[11px] font-medium text-cyan-400 border border-cyan-400/20">
             {data.status}
           </span>
@@ -164,7 +156,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
         </div>
       </div>
 
-      {/* ── KPIs (3 cards) ───────────────────────────────────── */}
+      {/* KPIs (3 cards) */}
       <section className="grid gap-4 md:grid-cols-3">
         <MetricCard
           label="Total Captado"
@@ -181,7 +173,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
         <RiskGauge percentual={data.riscoPercentual} />
       </section>
 
-      {/* ── Conteúdo principal (duas colunas) ────────────────── */}
+      {/* Conteúdo principal (duas colunas) */}
       <section className="grid gap-6 xl:grid-cols-[1.35fr_360px]">
         {/* Coluna esquerda: Rubricas */}
         <div className="rounded-2xl border border-white/10 bg-[#081121]/90 backdrop-blur-sm p-6 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
@@ -217,7 +209,6 @@ export default function Dashboard({ initialData }: DashboardProps) {
                   key={rubrica.id}
                   className="rounded-2xl border border-white/10 bg-white/[0.02] p-4"
                 >
-                  {/* Linha superior: nome, badge, valores */}
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -280,7 +271,6 @@ export default function Dashboard({ initialData }: DashboardProps) {
                     </span>
                   </div>
 
-                  {/* Referência legal */}
                   <p className="mt-2 text-xs text-slate-500">{rubrica.referenciaLegal}</p>
                 </div>
               );
@@ -343,13 +333,12 @@ export default function Dashboard({ initialData }: DashboardProps) {
               <p>{summary.warnings} rubrica(s) em atenção</p>
               <p>{summary.blocked} rubrica(s) bloqueadas</p>
               <p>Projeto: {data.nomeP}</p>
-              <p className="text-xs text-slate-500">Mecanismo: {data.mecanismo}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Modal de Nova Despesa ─────────────────────────────── */}
+      {/* Modal de Nova Despesa */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-2xl border border-cyan-400/10 bg-[#081121] p-6 shadow-2xl">
