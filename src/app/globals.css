@@ -42,7 +42,7 @@
   }
 
   body {
-    @apply min-h-screen;
+    min-height: 100vh;
     margin: 0;
     background-color: var(--color-bg);
     color: var(--color-text-primary);
@@ -66,58 +66,54 @@
   }
 }
 
-@layer components {
-  .ds-card {
-    @apply rounded-2xl border backdrop-blur-sm;
-    background-color: var(--color-surface);
-    border-color: var(--color-border-subtle);
-    box-shadow: var(--shadow-card);
-  }
-
-  .ds-input {
-    @apply w-full rounded-2xl border px-4 py-3 text-sm outline-none transition;
-    background-color: var(--color-surface-2);
-    border-color: var(--color-border-subtle);
-    color: var(--color-text-primary);
-  }
-
-  .ds-input::placeholder {
-    color: var(--color-text-faint);
-  }
-
-  .ds-input:focus {
-    border-color: var(--color-border-strong);
-    box-shadow:
-      0 0 0 1px rgba(0, 229, 255, 0.24),
-      0 0 0 4px rgba(0, 229, 255, 0.1);
-  }
-
-  .ds-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition;
-    background-color: var(--color-accent);
-    color: #03131b;
-    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.14);
-  }
-
-  .ds-btn-primary:hover {
-    background-color: var(--color-accent-strong);
-    box-shadow: 0 14px 36px rgba(0, 229, 255, 0.18);
-  }
-
-  .ds-btn-primary:disabled {
-    @apply cursor-not-allowed opacity-60;
-    box-shadow: none;
-  }
-
-  .ds-label {
-    @apply text-[11px] uppercase tracking-[0.22em];
-    color: rgb(148 163 184);
-  }
+@utility ds-card {
+  @apply rounded-2xl border backdrop-blur-sm;
+  background-color: var(--color-surface);
+  border-color: var(--color-border-subtle);
+  box-shadow: var(--shadow-card);
 }
 
-@layer utilities {
-  .ds-mono {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
+@utility ds-input {
+  @apply w-full rounded-2xl border px-4 py-3 text-sm outline-none transition;
+  background-color: var(--color-surface-2);
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.ds-input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.ds-input:focus {
+  border-color: var(--color-border-strong);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.24),
+    0 0 0 4px rgba(0, 229, 255, 0.1);
+}
+
+@utility ds-btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition;
+  background-color: var(--color-accent);
+  color: #03131b;
+  box-shadow: 0 10px 30px rgba(0, 229, 255, 0.14);
+}
+
+.ds-btn-primary:hover {
+  background-color: var(--color-accent-strong);
+  box-shadow: 0 14px 36px rgba(0, 229, 255, 0.18);
+}
+
+.ds-btn-primary:disabled {
+  @apply cursor-not-allowed opacity-60;
+  box-shadow: none;
+}
+
+@utility ds-label {
+  @apply text-[11px] uppercase tracking-[0.22em];
+  color: rgb(148 163 184);
+}
+
+@utility ds-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
