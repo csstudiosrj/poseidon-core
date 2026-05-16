@@ -1,17 +1,10 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState } from "react";
 import { login, signup } from "./actions";
 
-/* ============================================================
-   Tipos
-   ============================================================ */
 type FormState = { error: string } | null;
 
-/* ============================================================
-   Wrapper: adapta as actions para useActionState
-   Ambas fazem redirect em sucesso, logo sÃ³ chegam aqui em erro.
-   ============================================================ */
 async function loginAction(
   _prev: FormState,
   formData: FormData
@@ -26,38 +19,38 @@ async function signupAction(
   return signup(formData) as Promise<FormState>;
 }
 
-/* ============================================================
-   Componente principal
-   ============================================================ */
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
 
-  const [loginState,  loginDispatch,  isLoginPending]  =
-    useActionState(loginAction,  null);
-  const [signupState, signupDispatch, isSignupPending] =
-    useActionState(signupAction, null);
+  const [loginState, loginDispatch, isLoginPending] = useActionState(
+    loginAction,
+    null
+  );
+  const [signupState, signupDispatch, isSignupPending] = useActionState(
+    signupAction,
+    null
+  );
 
   const isPending = isLoginPending || isSignupPending;
-  const error     = isLogin ? loginState?.error : signupState?.error;
+  const error = isLogin ? loginState?.error : signupState?.error;
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-6">
 
-        {/* Logotipo / tÃ­tulo */}
+        {/* Logotipo */}
         <div className="text-center space-y-1">
           <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-ds-text)]">
             Pose<span className="text-[var(--color-ds-cyan)]">idon</span>
           </h1>
           <p className="text-sm text-[var(--color-ds-text-muted)]">
-            Auditoria Cultural Â· Lei Rouanet Â· IN 29/2026
+            Auditoria Cultural &middot; Lei Rouanet &middot; IN 29/2026
           </p>
         </div>
 
         {/* Card principal */}
         <div className="ds-card-glow space-y-5">
 
-          {/* TÃ­tulo do formulÃ¡rio */}
           <div>
             <h2 className="text-xl font-bold text-[var(--color-ds-text)]">
               {isLogin ? "Entrar na plataforma" : "Criar conta"}
@@ -71,7 +64,7 @@ export default function LoginPage() {
 
           <hr className="ds-divider" />
 
-          {/* FormulÃ¡rio de LOGIN */}
+          {/* Formulario de LOGIN */}
           {isLogin && (
             <form action={loginDispatch} className="space-y-4" noValidate>
               <Field
@@ -88,7 +81,7 @@ export default function LoginPage() {
                 label="Senha"
                 type="password"
                 name="password"
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="Minimo 8 caracteres"
                 disabled={isPending}
                 autoComplete="current-password"
               />
@@ -100,12 +93,12 @@ export default function LoginPage() {
                 className="ds-btn-primary"
                 disabled={isPending}
               >
-                {isPending ? "Autenticandoâ€¦" : "Entrar â†’"}
+                {isPending ? "Autenticando..." : "Entrar"}
               </button>
             </form>
           )}
 
-          {/* FormulÃ¡rio de CADASTRO */}
+          {/* Formulario de CADASTRO */}
           {!isLogin && (
             <form action={signupDispatch} className="space-y-4" noValidate>
               <Field
@@ -141,7 +134,7 @@ export default function LoginPage() {
                 label="Senha"
                 type="password"
                 name="password"
-                placeholder="MÃ­nimo 8 caracteres"
+                placeholder="Minimo 8 caracteres"
                 disabled={isPending}
                 autoComplete="new-password"
               />
@@ -153,7 +146,7 @@ export default function LoginPage() {
                 className="ds-btn-primary"
                 disabled={isPending}
               >
-                {isPending ? "Criando contaâ€¦" : "Criar Conta â†’"}
+                {isPending ? "Criando conta..." : "Criar Conta"}
               </button>
             </form>
           )}
@@ -167,24 +160,22 @@ export default function LoginPage() {
               disabled={isPending}
             >
               {isLogin
-                ? "NÃ£o tem conta? Criar conta gratuita"
-                : "JÃ¡ tem conta? Entrar"}
+                ? "Nao tem conta? Criar conta gratuita"
+                : "Ja tem conta? Entrar"}
             </button>
           </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-[var(--color-ds-text-muted)]">
-          Â© {new Date().getFullYear()} Poseidon Â· Todos os direitos reservados
+          &copy; {new Date().getFullYear()} Poseidon &middot; Todos os direitos reservados
         </p>
       </div>
     </main>
   );
 }
 
-/* ============================================================
-   Componente de campo reutilizÃ¡vel
-   ============================================================ */
+/* Campo reutilizavel */
 interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
   id: string;
   label: string;
