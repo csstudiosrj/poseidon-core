@@ -1,139 +1,128 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-export type ActionState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  projetoId?: string;
-  redirectTo?: string;
-  fieldErrors?: {
-    nome_projeto?: string[];
-    orcamento_total_aprovado?: string[];
-    segmento_cultural?: string[];
-    mecanismo?: string[];
-  };
-};
+/* ============================================================
+   Tipos
+   ============================================================ */
+type SetupProjetoResult =
+  | { status: "success"; projetoId: string }
+  | { status: "error"; message: string };
 
-function parseMoney(value: FormDataEntryValue | null): number {
-  if (typeof value !== "string") return NaN;
-  const normalized = value.replace(/\./g, "").replace(",", ".").trim();
-  return Number(normalized);
+/* ============================================================
+   Constantes das rubricas obrigatorias (IN 29/2026)
+   ============================================================ */
+const LIMITE_CAPTACAO = 150_000;
+
+function calcularRubricas(orcamento: number) {
+  const administracao   = orcamento * 0.15;
+  const captacaoRaw     = orcamento * 0.10;
+  const captacao        = Math.min(captacaoRaw, LIMITE_CAPTACAO);
+  const divulgacao      = orcamento * 0.20;
+
+  return [
+    {
+      categoria:   "Administracao",
+      descricao:   "Rubrica de Administracao - 15% do orcamento total (IN 29/2026)",
+      valor_orcado: administracao,
+    },
+    {
+      categoria:   "Captacao de Recursos",
+      descricao:   "Rubrica de Captacao - 10% do orcamento, limitado a R$ 150.000,00 (IN 29/2026)",
+      valor_orcado: captacao,
+    },
+    {
+      categoria:   "Divulgacao e Acessibilidade",
+      descricao:   "Rubrica de Divulgacao/Acessibilidade - 20% do orcamento total (IN 29/2026)",
+      valor_orcado: divulgacao,
+    },
+  ];
 }
 
+/* ============================================================
+   Action principal
+   ============================================================ */
 export async function setupProjeto(
-  _prevState: ActionState,
+  _prevState: SetupProjetoResult | null,
   formData: FormData
-): Promise<ActionState> {
+): Promise<SetupProjetoResult> {
   const supabase = await createClient();
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  /* 1. Valida sessao */
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return {
-      status: "error",
-      message: "Sessão expirada. Faça login novamente.",
-    };
+    return { status: "error", message: "Sessao expirada. Faca login novamente." };
   }
 
-  const nome_projeto = String(formData.get("nome_projeto") ?? "").trim();
-  const segmento_cultural = String(formData.get("segmento_cultural") ?? "").trim();
-  const mecanismo = String(formData.get("mecanismo") ?? "incentivo_fiscal").trim();
-  const orcamento_total_aprovado = parseMoney(formData.get("orcamento_total_aprovado"));
+  /* 2. Extrai e valida campos do formulario */
+  const nome_projeto              = String(formData.get("nome_projeto") ?? "").trim();
+  const orcamento_str             = String(formData.get("orcamento_total_aprovado") ?? "").replace(",", ".");
+  const segmento_cultural         = String(formData.get("segmento_cultural") ?? "").trim();
+  const mecanismo                 = String(formData.get("mecanismo") ?? "").trim();
 
-  const fieldErrors: ActionState["fieldErrors"] = {};
-  if (!nome_projeto) fieldErrors.nome_projeto = ["Informe o nome do projeto."];
-  if (!segmento_cultural) fieldErrors.segmento_cultural = ["Informe o segmento cultural."];
-  if (!Number.isFinite(orcamento_total_aprovado) || orcamento_total_aprovado <= 0) {
-    fieldErrors.orcamento_total_aprovado = ["Informe um orçamento total válido."];
+  if (!nome_projeto) {
+    return { status: "error", message: "O nome do projeto e obrigatorio." };
   }
 
-  const mecsMV = ["incentivo_fiscal", "fundo", "pnab"] as const;
-  if (!mecsMV.includes(mecanismo as typeof mecsMV[number])) {
-    fieldErrors.mecanismo = ["Selecione um mecanismo válido."];
+  const orcamento_total_aprovado = parseFloat(orcamento_str);
+
+  if (isNaN(orcamento_total_aprovado) || orcamento_total_aprovado <= 0) {
+    return { status: "error", message: "Informe um orcamento valido maior que zero." };
   }
 
-  if (Object.values(fieldErrors).some((v) => v && v.length > 0)) {
-    return {
-      status: "error",
-      message: "Corrija os campos obrigatórios.",
-      fieldErrors,
-    };
+  if (!segmento_cultural) {
+    return { status: "error", message: "O segmento cultural e obrigatorio." };
   }
 
-  // teto_captacao calculado aqui para usar no valor_orcado da rubrica
-  const teto_administracao = Number((orcamento_total_aprovado * 0.15).toFixed(2));
-  const teto_captacao       = Number(Math.min(orcamento_total_aprovado * 0.10, 150000).toFixed(2));
-  const teto_divulgacao     = Number((orcamento_total_aprovado * 0.20).toFixed(2));
+  if (!mecanismo) {
+    return { status: "error", message: "O mecanismo e obrigatorio." };
+  }
 
-  const { data: projetoData, error: projetoError } = await supabase
+  /* 3. Insere o projeto */
+  const { data: projeto, error: projetoError } = await supabase
     .from("projetos")
     .insert({
-      proponente_id: user.id,
+      proponente_id:           user.id,
       nome_projeto,
+      orcamento_total_aprovado,
       segmento_cultural,
       mecanismo,
-      orcamento_total_aprovado,
-      status: "rascunho",
     })
     .select("id")
     .single();
 
-  if (projetoError || !projetoData) {
+  if (projetoError || !projeto) {
     return {
       status: "error",
-      message: `Erro ao criar projeto: ${projetoError?.message ?? "Resposta inesperada do banco."}`,
+      message: projetoError?.message ?? "Erro ao criar o projeto.",
     };
   }
 
-  const projetoId = projetoData.id as string;
+  /* 4. Calcula e insere as 3 rubricas obrigatorias */
+  const rubricas = calcularRubricas(orcamento_total_aprovado).map((r) => ({
+    ...r,
+    projeto_id:    projeto.id,
+    proponente_id: user.id,
+  }));
 
-  const { error: rubricasError } = await supabase.from("rubricas").insert([
-    {
-      proponente_id: user.id,
-      projeto_id: projetoId,
-      categoria: "administracao",
-      descricao: "Administração",
-      valor_orcado: teto_administracao,
-      teto_percentual: 15,
-    },
-    {
-      proponente_id: user.id,
-      projeto_id: projetoId,
-      categoria: "captacao_recursos",
-      descricao: "Captação de Recursos",
-      valor_orcado: teto_captacao,
-      teto_percentual: 10,
-      teto_absoluto: 150000.00,
-    },
-    {
-      proponente_id: user.id,
-      projeto_id: projetoId,
-      categoria: "divulgacao_comunicacao",
-      descricao: "Divulgação e Acessibilidade",
-      valor_orcado: teto_divulgacao,
-      teto_percentual: 20,
-    },
-  ]);
+  const { error: rubricasError } = await supabase
+    .from("rubricas")
+    .insert(rubricas);
 
   if (rubricasError) {
-    // rollback manual: apaga projeto para evitar registro órfão
-    await supabase.from("projetos").delete().eq("id", projetoId);
+    /* Rollback logico: remove o projeto para nao deixar registro sem rubricas */
+    await supabase.from("projetos").delete().eq("id", projeto.id);
     return {
       status: "error",
-      message: `Projeto criado, mas falhou ao criar rubricas: ${rubricasError.message}`,
+      message: `Erro ao criar as rubricas: ${rubricasError.message}`,
     };
   }
 
-  const redirectTo = `/dashboard/${projetoId}`;
-  revalidatePath("/setup");
-  revalidatePath(redirectTo);
-
-  return {
-    status: "success",
-    message: "Projeto criado com sucesso.",
-    projetoId,
-    redirectTo,
-  };
+  /* 5. Sucesso — redireciona para o dashboard do projeto */
+  redirect(`/dashboard/${projeto.id}`);
 }

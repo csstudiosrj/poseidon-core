@@ -1,37 +1,112 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
+import { useActionState, useState } from "react";
+import { setupProjeto } from "@/app/actions/setupProjeto";
 
+type SetupState =
+  | { status: "success"; projetoId: string }
+  | { status: "error"; message: string }
+  | null;
+
+/* ============================================================
+   Preview das rubricas calculadas em tempo real
+   ============================================================ */
+function PreviewRubricas({ orcamento }: { orcamento: number }) {
+  if (!orcamento || orcamento <= 0) return null;
+
+  const administracao = orcamento * 0.15;
+  const captacao      = Math.min(orcamento * 0.10, 150_000);
+  const divulgacao    = orcamento * 0.20;
+
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  return (
+    <div className="space-y-2">
+      <p className="ds-label">Rubricas geradas automaticamente (IN 29/2026)</p>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="ds-card" style={{ padding: "12px" }}>
+          <p className="text-[var(--color-ds-text-muted)] text-xs mb-1">
+            Administracao
+          </p>
+          <p className="text-[var(--color-ds-text)] font-bold text-sm">
+            {fmt(administracao)}
+          </p>
+          <p className="text-[var(--color-ds-text-muted)] text-xs mt-1">
+            15% do orcamento
+          </p>
+        </div>
+        <div className="ds-card" style={{ padding: "12px" }}>
+          <p className="text-[var(--color-ds-text-muted)] text-xs mb-1">
+            Captacao
+          </p>
+          <p className="text-[var(--color-ds-cyan)] font-bold text-sm">
+            {fmt(captacao)}
+          </p>
+          <p className="text-[var(--color-ds-text-muted)] text-xs mt-1">
+            10%, limite R$ 150k
+          </p>
+        </div>
+        <div className="ds-card" style={{ padding: "12px" }}>
+          <p className="text-[var(--color-ds-text-muted)] text-xs mb-1">
+            Divulgacao
+          </p>
+          <p className="text-[var(--color-ds-text)] font-bold text-sm">
+            {fmt(divulgacao)}
+          </p>
+          <p className="text-[var(--color-ds-text-muted)] text-xs mt-1">
+            20% do orcamento
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Campo de orcamento com preview reativo
+   Componente separado para isolar o estado local do input
+   ============================================================ */
+function OrcamentoField({ isPending }: { isPending: boolean }) {
+  const [raw, setRaw] = useState("");
+
+  const parsed   = parseFloat(raw.replace(",", "."));
+  const orcamento = isNaN(parsed) ? 0 : parsed;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label htmlFor="orcamento_total_aprovado" className="ds-label">
+          Orcamento Total Aprovado (R$)
+        </label>
+        <input
+          id="orcamento_total_aprovado"
+          name="orcamento_total_aprovado"
+          type="number"
+          min="0"
+          step="0.01"
+          className="ds-input"
+          placeholder="0,00"
+          disabled={isPending}
+          required
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+        />
+      </div>
+
+      <PreviewRubricas orcamento={orcamento} />
+    </div>
+  );
+}
+
+/* ============================================================
+   Pagina principal
+   ============================================================ */
 export default function SetupPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.replace("/login");
-      } else {
-        setUser(data.user);
-      }
-      setLoading(false);
-    });
-  }, [router]);
-
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <span className="text-[var(--color-ds-text-muted)] animate-pulse">
-          Carregando...
-        </span>
-      </main>
-    );
-  }
+  const [state, dispatch, isPending] = useActionState<SetupState, FormData>(
+    setupProjeto,
+    null
+  );
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12">
@@ -39,70 +114,104 @@ export default function SetupPage() {
 
         {/* Cabecalho */}
         <div className="text-center space-y-2">
-          <span className="ds-badge">IN 29/2026</span>
+          <span className="ds-badge">POSEIDON &middot; DEEP SEA SETUP</span>
           <h1 className="text-3xl font-extrabold text-[var(--color-ds-text)] mt-3">
-            Bem-vindo ao{" "}
-            <span className="text-[var(--color-ds-cyan)]">Poseidon</span>
+            Novo Projeto Cultural
           </h1>
-          <p className="text-[var(--color-ds-text-muted)] text-sm">
-            Configure seu perfil para comecar as auditorias culturais.
+          <p className="text-[var(--color-ds-text-muted)] text-sm max-w-md mx-auto">
+            Cadastre o projeto e as rubricas de{" "}
+            <span className="text-[var(--color-ds-cyan)]">Administracao</span>
+            {", "}
+            <span className="text-[var(--color-ds-cyan)]">Captacao</span> e{" "}
+            <span className="text-[var(--color-ds-cyan)]">
+              Divulgacao/Acessibilidade
+            </span>{" "}
+            serao criadas automaticamente com os valores-teto da{" "}
+            <strong className="text-[var(--color-ds-text)]">
+              IN MinC 29/2026
+            </strong>
+            .
           </p>
         </div>
 
-        {/* Card de perfil */}
-        <div className="ds-card-glow space-y-6">
+        {/* Formulario */}
+        <form action={dispatch} className="ds-card-glow space-y-6">
 
+          {/* Nome do projeto */}
           <div>
-            <p className="ds-label">E-mail autenticado</p>
-            <p className="text-[var(--color-ds-text)] font-medium">
-              {user?.email}
-            </p>
+            <label htmlFor="nome_projeto" className="ds-label">
+              Nome do Projeto
+            </label>
+            <input
+              id="nome_projeto"
+              name="nome_projeto"
+              type="text"
+              className="ds-input"
+              placeholder="Ex.: Circuito Atlantico de Arte Viva"
+              disabled={isPending}
+              required
+            />
           </div>
 
-          <hr className="ds-divider" />
+          {/* Orcamento com preview reativo */}
+          <OrcamentoField isPending={isPending} />
 
-          {/* Selecao de tipo de proponente */}
-          <div>
-            <p className="ds-label mb-3">Tipo de Proponente</p>
-            <div className="grid grid-cols-3 gap-3">
-              {(["PF", "MEI", "PJ"] as const).map((tipo) => (
-                <TipoCard key={tipo} tipo={tipo} />
-              ))}
+          {/* Segmento + Mecanismo */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="segmento_cultural" className="ds-label">
+                Segmento Cultural
+              </label>
+              <input
+                id="segmento_cultural"
+                name="segmento_cultural"
+                type="text"
+                className="ds-input"
+                placeholder="Ex.: Artes integradas"
+                disabled={isPending}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="mecanismo" className="ds-label">
+                Mecanismo
+              </label>
+              <input
+                id="mecanismo"
+                name="mecanismo"
+                type="text"
+                className="ds-input"
+                placeholder="Ex.: FIA / Fomento direto"
+                disabled={isPending}
+                required
+              />
             </div>
           </div>
 
-          <hr className="ds-divider" />
+          {/* Erro */}
+          {state?.status === "error" && (
+            <div
+              className="ds-error"
+              style={{
+                background: "rgba(255,83,112,0.08)",
+                border: "1px solid rgba(255,83,112,0.25)",
+                borderRadius: "6px",
+                padding: "10px 14px",
+              }}
+            >
+              {state.message}
+            </div>
+          )}
 
-          {/* Proximos passos */}
-          <div className="space-y-3">
-            <p className="ds-label">Proximos Passos</p>
-            <StepItem
-              number={1}
-              title="Completar Perfil"
-              description="Preencha seus dados de proponente"
-            />
-            <StepItem
-              number={2}
-              title="Criar Projeto"
-              description="Cadastre seu projeto cultural (Lei Rouanet)"
-            />
-            <StepItem
-              number={3}
-              title="Iniciar Auditoria"
-              description="Acompanhe a conformidade com a IN 29/2026"
-            />
-          </div>
-
+          {/* Botao */}
           <button
+            type="submit"
             className="ds-btn-primary"
             disabled={isPending}
-            onClick={() =>
-              startTransition(() => router.push("/dashboard"))
-            }
           >
-            {isPending ? "Acessando..." : "Ir para o Dashboard"}
+            {isPending ? "Criando projeto..." : "Criar projeto e continuar"}
           </button>
-        </div>
+        </form>
 
         {/* Footer */}
         <p className="text-center text-xs text-[var(--color-ds-text-muted)]">
@@ -110,54 +219,5 @@ export default function SetupPage() {
         </p>
       </div>
     </main>
-  );
-}
-
-function TipoCard({ tipo }: { tipo: "PF" | "MEI" | "PJ" }) {
-  const labels: Record<string, string> = {
-    PF: "Pessoa Fisica",
-    MEI: "MEI",
-    PJ: "Pessoa Juridica",
-  };
-
-  return (
-    <div
-      className="ds-card text-center cursor-pointer transition-all duration-200
-        hover:border-[var(--color-ds-cyan)] hover:shadow-[0_0_16px_var(--color-ds-cyan-glow)]"
-    >
-      <p className="font-bold text-[var(--color-ds-cyan)] text-lg">{tipo}</p>
-      <p className="text-[var(--color-ds-text-muted)] text-xs mt-1">
-        {labels[tipo]}
-      </p>
-    </div>
-  );
-}
-
-function StepItem({
-  number,
-  title,
-  description,
-}: {
-  number: number;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <span
-        className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center
-          text-xs font-bold text-[var(--color-ds-bg)] bg-[var(--color-ds-cyan)]"
-      >
-        {number}
-      </span>
-      <div>
-        <p className="text-sm font-semibold text-[var(--color-ds-text)]">
-          {title}
-        </p>
-        <p className="text-xs text-[var(--color-ds-text-muted)]">
-          {description}
-        </p>
-      </div>
-    </div>
   );
 }
