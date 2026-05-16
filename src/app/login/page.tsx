@@ -1,70 +1,60 @@
-"use client";
+'use client'
 
-import { useActionState, useState } from "react";
-import { login, signup } from "./actions";
+import { useActionState, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { login, signup } from './actions'
 
-type FormState = { error: string } | null;
+type FormState = { error: string } | null
 
-async function loginAction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
-  return login(formData) as Promise<FormState>;
+async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  return login(formData) as Promise<FormState>
 }
 
-async function signupAction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
-  return signup(formData) as Promise<FormState>;
+async function signupAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  return signup(formData) as Promise<FormState>
 }
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true)
 
-  const [loginState, loginDispatch, isLoginPending] = useActionState(
-    loginAction,
-    null
-  );
-  const [signupState, signupDispatch, isSignupPending] = useActionState(
-    signupAction,
-    null
-  );
+  const [loginState, loginDispatch, isLoginPending] = useActionState(loginAction, null)
+  const [signupState, signupDispatch, isSignupPending] = useActionState(signupAction, null)
 
-  const isPending = isLoginPending || isSignupPending;
-  const error = isLogin ? loginState?.error : signupState?.error;
+  const isPending = isLoginPending || isSignupPending
+  const error = isLogin ? loginState?.error : signupState?.error
+
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-12">
+    <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-[var(--color-bg)]">
       <div className="w-full max-w-md space-y-6">
-
         {/* Logotipo */}
         <div className="text-center space-y-1">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-ds-text)]">
-            Pose<span className="text-[var(--color-ds-cyan)]">idon</span>
+          <h1 className="text-4xl font-extrabold tracking-tight text-white">
+            Pose<span className="text-cyan-400">idon</span>
           </h1>
-          <p className="text-sm text-[var(--color-ds-text-muted)]">
-            Auditoria Cultural &middot; Lei Rouanet &middot; IN 29/2026
+          <p className="text-sm text-slate-400">
+            Auditoria Cultural · Lei Rouanet · IN 29/2026
           </p>
         </div>
 
         {/* Card principal */}
-        <div className="ds-card-glow space-y-5">
-
+        <div className="rounded-2xl border border-cyan-400/10 bg-[#081121]/90 p-6 shadow-2xl space-y-5">
           <div>
-            <h2 className="text-xl font-bold text-[var(--color-ds-text)]">
-              {isLogin ? "Entrar na plataforma" : "Criar conta"}
+            <h2 className="text-xl font-bold text-white">
+              {isLogin ? 'Entrar na plataforma' : 'Criar conta'}
             </h2>
-            <p className="text-xs text-[var(--color-ds-text-muted)] mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               {isLogin
-                ? "Acesse seu painel de auditorias."
-                : "Preencha os dados para se cadastrar como proponente."}
+                ? 'Acesse seu painel de auditorias.'
+                : 'Preencha os dados para se cadastrar como proponente.'}
             </p>
           </div>
 
-          <hr className="ds-divider" />
+          <hr className="border-white/10" />
 
-          {/* Formulario de LOGIN */}
+          {/* Formulário de LOGIN */}
           {isLogin && (
             <form action={loginDispatch} className="space-y-4" noValidate>
               <Field
@@ -76,29 +66,39 @@ export default function LoginPage() {
                 disabled={isPending}
                 autoComplete="email"
               />
-              <Field
-                id="password"
-                label="Senha"
-                type="password"
-                name="password"
-                placeholder="Minimo 8 caracteres"
-                disabled={isPending}
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Field
+                  id="password"
+                  label="Senha"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Mínimo 8 caracteres"
+                  disabled={isPending}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
 
-              {error && <p className="ds-error">{error}</p>}
+              {error && <p className="text-xs text-red-400">{error}</p>}
 
               <button
                 type="submit"
-                className="ds-btn-primary"
                 disabled={isPending}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
               >
-                {isPending ? "Autenticando..." : "Entrar"}
+                {isPending ? 'Autenticando...' : 'Entrar'}
               </button>
             </form>
           )}
 
-          {/* Formulario de CADASTRO */}
+          {/* Formulário de CADASTRO */}
           {!isLogin && (
             <form action={signupDispatch} className="space-y-4" noValidate>
               <Field
@@ -129,24 +129,53 @@ export default function LoginPage() {
                 disabled={isPending}
                 autoComplete="email"
               />
-              <Field
-                id="password"
-                label="Senha"
-                type="password"
-                name="password"
-                placeholder="Minimo 8 caracteres"
-                disabled={isPending}
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <Field
+                  id="password"
+                  label="Senha"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Mínimo 8 caracteres"
+                  disabled={isPending}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <div className="relative">
+                <Field
+                  id="confirm_password"
+                  label="Confirmar Senha"
+                  type={showConfirm ? 'text' : 'password'}
+                  name="confirm_password"
+                  placeholder="Repita a senha"
+                  disabled={isPending}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-white"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
 
-              {error && <p className="ds-error">{error}</p>}
+              {error && <p className="text-xs text-red-400">{error}</p>}
 
               <button
                 type="submit"
-                className="ds-btn-primary"
                 disabled={isPending}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
               >
-                {isPending ? "Criando conta..." : "Criar Conta"}
+                {isPending ? 'Criando conta...' : 'Criar Conta'}
               </button>
             </form>
           )}
@@ -155,39 +184,43 @@ export default function LoginPage() {
           <div className="text-center pt-1">
             <button
               type="button"
-              className="ds-btn-ghost text-sm"
               onClick={() => setIsLogin((v) => !v)}
               disabled={isPending}
+              className="text-sm text-slate-400 hover:text-cyan-400 transition"
             >
               {isLogin
-                ? "Nao tem conta? Criar conta gratuita"
-                : "Ja tem conta? Entrar"}
+                ? 'Não tem conta? Criar conta gratuita'
+                : 'Já tem conta? Entrar'}
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-[var(--color-ds-text-muted)]">
-          &copy; {new Date().getFullYear()} Poseidon &middot; Todos os direitos reservados
+        <p className="text-center text-xs text-slate-500">
+          &copy; {new Date().getFullYear()} Poseidon · Todos os direitos reservados
         </p>
       </div>
     </main>
-  );
+  )
 }
 
-/* Campo reutilizavel */
+/* Campo reutilizável */
 interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  id: string;
-  label: string;
+  id: string
+  label: string
 }
 
 function Field({ id, label, ...inputProps }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="ds-label">
+      <label htmlFor={id} className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
         {label}
       </label>
-      <input id={id} className="ds-input" {...inputProps} />
+      <input
+        id={id}
+        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400/40 outline-none"
+        {...inputProps}
+      />
     </div>
-  );
+  )
 }
