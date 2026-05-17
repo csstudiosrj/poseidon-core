@@ -1,15 +1,7 @@
-// src/app/actions/setup.ts
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-
-interface SetupFormData {
-  nome_projeto: string;
-  esfera: string;
-  mecanismo_id: string;
-  orcamento_pretendido: number; // em centavos (ex.: 500000 para R$ 5.000,00)
-}
 
 export async function criarProjetoAction(
   _prevState: { error?: string; success?: boolean } | null,
@@ -75,7 +67,6 @@ export async function criarProjetoAction(
     return { error: "Erro ao salvar o projeto. Tente novamente." };
   }
 
-  // 5. Redirecionar para o hub (o retorno com success dispara o redirect no client)
-  // Como é server action, podemos usar redirect diretamente aqui
+  // 5. Redirecionar para o hub
   redirect("/hub");
 }
