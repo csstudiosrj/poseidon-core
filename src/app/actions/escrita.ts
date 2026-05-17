@@ -112,8 +112,8 @@ export async function gerarProjetoAction(
       documentos_obrigatorios: [],
     };
 
-  // 5. Chamar o motor de geração
-  const { conteudo_escrita, itens_orcamentarios } = gerarConteudoProjeto(
+  // 5. Chamar o motor de geração (agora com await)
+  const { conteudo_escrita, itens_orcamentarios } = await gerarConteudoProjeto(
     projetoBase,
     respostas,
     regras
