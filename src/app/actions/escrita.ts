@@ -27,7 +27,6 @@ export async function gerarProjetoAction(
   if (!publico || publico.trim().length < 10) return { error: "Público-alvo muito curto. Mínimo 10 caracteres." };
   if (!objetivos || objetivos.trim().length < 20) return { error: "Objetivos muito curtos. Mínimo 20 caracteres." };
 
-  // Verifica permissão
   const { data: proponente } = await supabase.from("proponentes").select("id").eq("user_id", user.id).single();
   if (!proponente) return { error: "Proponente não encontrado." };
 
@@ -40,7 +39,6 @@ export async function gerarProjetoAction(
 
   if (!projeto) return { error: "Projeto não encontrado." };
 
-  // Busca a fonte e seu valor
   const { data: fonte } = await supabase
     .from("projeto_fontes")
     .select("id, tipo, mecanismo_id, nome_fonte, valor_captacao, configuracao_regras, biblioteca_regras (mecanismo_nome, esfera, configuracao_regras)")
@@ -72,7 +70,6 @@ export async function gerarProjetoAction(
 
   const { conteudo_escrita, itens_orcamentarios } = await gerarConteudoProjeto(projetoBase, respostas, regras);
 
-  // Atualiza conteúdo na fonte
   const { error: updateFonteError } = await supabase
     .from("projeto_fontes")
     .update({ conteudo_escrita, updated_at: new Date().toISOString() })
@@ -80,7 +77,6 @@ export async function gerarProjetoAction(
 
   if (updateFonteError) return { error: "Erro ao salvar conteúdo na fonte." };
 
-  // Limpa itens orçamentários anteriores e insere novos
   const { error: deleteItensError } = await supabase.from("itens_orcamentarios").delete().eq("projeto_id", projetoId);
   if (!deleteItensError) {
     await supabase.from("itens_orcamentarios").insert(
@@ -124,4 +120,15 @@ export async function buscarProjetosRascunho(userId: string) {
   }));
 
   return { projetos };
+}
+
+export async function buscarConteudoFonte(fonteId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("projeto_fontes")
+    .select("conteudo_escrita")
+    .eq("id", fonteId)
+    .single();
+  if (error) return { conteudo: null };
+  return { conteudo: data?.conteudo_escrita || {} };
 }

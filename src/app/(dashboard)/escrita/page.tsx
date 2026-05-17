@@ -4,7 +4,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
-import { gerarProjetoAction, buscarProjetosRascunho } from "@/app/actions/escrita";
+import { gerarProjetoAction, buscarProjetosRascunho, buscarConteudoFonte } from "@/app/actions/escrita";
 import { createClient } from "@/lib/supabase/client";
 import "../../globals.css";
 
@@ -32,7 +32,7 @@ const etapas: Etapa[] = [
     titulo: "Descrição da Proposta",
     descricao: "Descreva detalhadamente o que será realizado. Mínimo de 50 caracteres.",
     campo: "descricao",
-    placeholder: "Ex.: O projeto consiste na realização de um festival gratuito de música instrumental com 10 shows, oficinas de formação musical e exposições interativas...",
+    placeholder: "Ex.: O projeto consiste na realização de um festival gratuito...",
     obrigatorio: true,
     minLength: 50,
   },
@@ -85,6 +85,7 @@ function EscritaContent() {
   const [projetoSelecionado, setProjetoSelecionado] = useState(projetoIdParam || "");
   const [fonteSelecionada, setFonteSelecionada] = useState(fonteIdParam || "");
   const [carregandoProjetos, setCarregandoProjetos] = useState(true);
+  const [carregandoConteudo, setCarregandoConteudo] = useState(false);
 
   const [etapaAtual, setEtapaAtual] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, string>>({});
@@ -115,20 +116,34 @@ function EscritaContent() {
     ? projetosRascunho.find((p) => p.id === projetoSelecionado)?.fontes || []
     : [];
 
-  // Se veio com projeto e fonte, já carrega o valor da fonte
+  // Carrega conteúdo existente quando edita
   useEffect(() => {
-    if (pularSelecao && fonteSelecionada) {
+    async function carregarConteudo() {
+      if (!projetoSelecionado || !fonteSelecionada) return;
+      setCarregandoConteudo(true);
       const fonte = fontesDoProjeto.find((f) => f.id === fonteSelecionada);
       if (fonte) setValorFonte(fonte.valor_captacao);
+      const resultado = await buscarConteudoFonte(fonteSelecionada);
+      if (resultado?.conteudo) {
+        const novoEstado: Record<string, string> = {};
+        // Mapeia campos do conteudo_escrita para as respostas
+        if (resultado.conteudo.descricao_projeto) novoEstado["descricao"] = resultado.conteudo.descricao_projeto;
+        if (resultado.conteudo.publico_alvo) novoEstado["publico"] = resultado.conteudo.publico_alvo;
+        if (resultado.conteudo.objetivos) novoEstado["objetivos"] = resultado.conteudo.objetivos;
+        if (resultado.conteudo.local) novoEstado["local"] = resultado.conteudo.local;
+        if (resultado.conteudo.contrapartida) novoEstado["contrapartida"] = resultado.conteudo.contrapartida;
+        setRespostas(novoEstado);
+      }
+      setCarregandoConteudo(false);
     }
-  }, [pularSelecao, fonteSelecionada, fontesDoProjeto]);
+    carregarConteudo();
+  }, [projetoSelecionado, fonteSelecionada]);
 
   const etapa = etapas[etapaAtual];
   const progresso = ((etapaAtual + 1) / etapas.length) * 100;
 
   function avancar() {
     const valorAtual = respostas[etapa.campo] || "";
-    // Validações de obrigatoriedade e comprimento
     if (etapa.obrigatorio) {
       if (!valorAtual.trim()) {
         setErro("Este campo é obrigatório.");
@@ -143,7 +158,6 @@ function EscritaContent() {
     if (etapaAtual < etapas.length - 1) {
       setEtapaAtual(etapaAtual + 1);
     } else {
-      // Última etapa, envia
       enviarProjeto();
     }
   }
@@ -165,7 +179,6 @@ function EscritaContent() {
     formData.append("objetivos", respostas["objetivos"] || "");
     formData.append("local", respostas["local"] || "");
     formData.append("contrapartida", respostas["contrapartida"] || "");
-    // Não envia orcamento; o server usará o valor da fonte
 
     const result = await gerarProjetoAction(null, formData);
 
@@ -180,7 +193,6 @@ function EscritaContent() {
     }
   }
 
-  // Tela de conclusão
   if (concluido) {
     return (
       <div className="min-h-screen bg-sea-950 flex items-center justify-center p-6">
@@ -189,7 +201,7 @@ function EscritaContent() {
             <Check size={32} className="text-emerald-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">Conteúdo Gerado com Sucesso!</h2>
+            <h2 className="text-xl font-bold text-white tracking-tight">Conteúdo {respostas["descricao"] ? "Atualizado" : "Gerado"} com Sucesso!</h2>
             <p className="text-white/50 text-sm mt-2">O texto foi salvo na fonte selecionada.</p>
           </div>
           <button
@@ -203,7 +215,6 @@ function EscritaContent() {
     );
   }
 
-  // Tela de seleção de projeto/fonte
   if (!pularSelecao && (!projetoSelecionado || !fonteSelecionada)) {
     return (
       <div className="min-h-screen bg-sea-950 p-6 md:p-10">
@@ -279,7 +290,14 @@ function EscritaContent() {
     );
   }
 
-  // Entrevista
+  if (carregandoConteudo) {
+    return (
+      <div className="min-h-screen bg-sea-950 flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-sea-950 p-6 md:p-10">
       <div className="max-w-3xl mx-auto space-y-6">
