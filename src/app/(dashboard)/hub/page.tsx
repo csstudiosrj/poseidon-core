@@ -1,5 +1,6 @@
 // src/app/(dashboard)/hub/page.tsx
 import React from "react";
+import Link from "next/link";
 import "../../globals.css";
 import {
   Plus,
@@ -71,13 +72,13 @@ export default async function HubPage() {
               Console para criar, monitorar e auditar seus projetos culturais.
             </p>
           </div>
-          <button
-            type="button"
+          <Link
+            href="/setup"
             className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.2)]"
           >
             <Plus size={15} />
             <span>Novo Projeto</span>
-          </button>
+          </Link>
         </header>
 
         {/* ERRO (não-autenticação já redireciona) */}
@@ -284,13 +285,13 @@ function EmptyStateHub() {
       <p className="text-xs text-white/40 mb-6 max-w-xs leading-relaxed px-4">
         Crie seu primeiro projeto para acompanhar captação, execução e prestação de contas em um console único.
       </p>
-      <button
-        type="button"
+      <Link
+        href="/setup"
         className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.2)]"
       >
         <Plus size={15} />
         <span>Criar Primeiro Projeto</span>
-      </button>
+      </Link>
     </section>
   );
 }
