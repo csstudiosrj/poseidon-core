@@ -66,7 +66,7 @@ export default function LoginPage() {
             <div>
               <div className="text-lg font-bold text-white tracking-tight leading-none">Poseidon</div>
               <div className="text-[10px] uppercase tracking-[0.16em] text-white/40 mt-1 font-medium">
-                Controle e auditoria cultural
+                POSEIDON: A tecnologia que domina a maré da burocracia cultural.
               </div>
             </div>
           </div>
