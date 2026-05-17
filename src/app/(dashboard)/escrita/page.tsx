@@ -8,7 +8,6 @@ import { gerarProjetoAction, buscarProjetosRascunho, buscarConteudoFonte } from 
 import { createClient } from "@/lib/supabase/client";
 import "../../globals.css";
 
-/* ─── TIPOS ─────────────────────────────────────────────────── */
 interface ProjetoRascunho {
   id: string;
   nome_projeto: string;
@@ -32,7 +31,7 @@ const etapas: Etapa[] = [
     titulo: "Descrição da Proposta",
     descricao: "Descreva detalhadamente o que será realizado. Mínimo de 50 caracteres.",
     campo: "descricao",
-    placeholder: "Ex.: O projeto consiste na realização de um festival gratuito...",
+    placeholder: "Ex.: O projeto consiste na realização de um festival gratuito de música instrumental com 10 shows, oficinas de formação musical e exposições interativas...",
     obrigatorio: true,
     minLength: 50,
   },
@@ -72,7 +71,6 @@ const etapas: Etapa[] = [
   },
 ];
 
-/* ─── COMPONENTE PRINCIPAL ──────────────────────────────────── */
 function EscritaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -116,7 +114,6 @@ function EscritaContent() {
     ? projetosRascunho.find((p) => p.id === projetoSelecionado)?.fontes || []
     : [];
 
-  // Carrega conteúdo existente quando edita
   useEffect(() => {
     async function carregarConteudo() {
       if (!projetoSelecionado || !fonteSelecionada) return;
@@ -126,7 +123,6 @@ function EscritaContent() {
       const resultado = await buscarConteudoFonte(fonteSelecionada);
       if (resultado?.conteudo) {
         const novoEstado: Record<string, string> = {};
-        // Mapeia campos do conteudo_escrita para as respostas
         if (resultado.conteudo.descricao_projeto) novoEstado["descricao"] = resultado.conteudo.descricao_projeto;
         if (resultado.conteudo.publico_alvo) novoEstado["publico"] = resultado.conteudo.publico_alvo;
         if (resultado.conteudo.objetivos) novoEstado["objetivos"] = resultado.conteudo.objetivos;
