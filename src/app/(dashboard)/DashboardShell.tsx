@@ -21,6 +21,33 @@ import {
 } from "lucide-react";
 import "../globals.css";
 
+/* ─── ÍCONE DO TRIDENTE (SVG) ─────────────────────────────────── */
+function TridentIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#22d3ee"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* Haste central */}
+      <line x1="12" y1="4" x2="12" y2="22" />
+      {/* Pontas do tridente */}
+      <line x1="6" y1="4" x2="12" y2="10" />
+      <line x1="12" y1="10" x2="18" y2="4" />
+      {/* Arco inferior (onda) */}
+      <path d="M8 20 Q12 16 16 20" />
+      {/* Traços laterais decorativos */}
+      <line x1="8" y1="14" x2="8" y2="18" />
+      <line x1="16" y1="14" x2="16" y2="18" />
+    </svg>
+  );
+}
+
 /* ─── TIPOS ─────────────────────────────────────────────────────── */
 interface NavItem {
   label: string;
@@ -53,7 +80,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Fecha os menus ao clicar fora
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -66,6 +92,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const consolePath =
+    pathname === "/hub"
+      ? "console://hub"
+      : pathname === "/setup"
+      ? "console://setup"
+      : "console://poseidon";
 
   return (
     <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans flex">
@@ -80,25 +113,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {sidebarOpen ? (
             <div className="flex items-center gap-2.5">
               <div className="p-1.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-                  <path d="M16 3 L16 29 M10 10 L16 3 L22 10 M8 18 L16 29 L24 18" stroke="#22d3ee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx={16} cy={16} r={13} stroke="rgba(34,211,238,0.2)" strokeWidth={1.5} strokeDasharray="4 3" />
-                </svg>
+                <TridentIcon size={18} />
               </div>
               <span className="text-white font-bold text-sm tracking-tight">Poseidon</span>
             </div>
           ) : (
             <div className="p-1.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20 mx-auto">
-              <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-                <path d="M16 3 L16 29 M10 10 L16 3 L22 10 M8 18 L16 29 L24 18" stroke="#22d3ee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <TridentIcon size={18} />
             </div>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1 rounded hover:bg-white/5 transition-colors text-white/40 hover:text-white/70 cursor-pointer shrink-0"
           >
-            {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+            {sidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
           </button>
         </div>
 
@@ -112,19 +140,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 key={item.label}
                 href={isDisabled ? "#" : item.href}
                 onClick={(e) => isDisabled && e.preventDefault()}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all group cursor-pointer ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group cursor-pointer ${
                   isActive
                     ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15"
-                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.03] border border-transparent"
+                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.03] border border-transparent"
                 } ${isDisabled ? "opacity-50 pointer-events-none" : ""}`}
                 title={item.label}
               >
-                <item.icon size={18} className={isActive ? "text-cyan-400" : "text-white/30 group-hover:text-white/50"} />
+                <item.icon size={20} className={isActive ? "text-cyan-400" : "text-white/40 group-hover:text-white/60"} />
                 {sidebarOpen && (
-                  <span className="text-xs font-medium flex-1">{item.label}</span>
+                  <span className="text-sm font-medium flex-1">{item.label}</span>
                 )}
                 {sidebarOpen && item.badge && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/15 font-semibold whitespace-nowrap">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/15 font-semibold whitespace-nowrap">
                     {item.badge}
                   </span>
                 )}
@@ -143,15 +171,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 key={item.label}
                 href={isDisabled ? "#" : item.href}
                 onClick={(e) => isDisabled && e.preventDefault()}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all group cursor-pointer ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group cursor-pointer ${
                   isActive
                     ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15"
-                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.03] border border-transparent"
+                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.03] border border-transparent"
                 } ${isDisabled ? "opacity-50 pointer-events-none" : ""}`}
                 title={item.label}
               >
-                <item.icon size={18} className={isActive ? "text-cyan-400" : "text-white/30 group-hover:text-white/50"} />
-                {sidebarOpen && <span className="text-xs font-medium">{item.label}</span>}
+                <item.icon size={20} className={isActive ? "text-cyan-400" : "text-white/40 group-hover:text-white/60"} />
+                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
               </Link>
             );
           })}
@@ -163,19 +191,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* HEADER */}
         <header className="h-16 bg-sea-950/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 sticky top-0 z-20">
           <div className="flex items-center gap-4">
-            {/* Mobile: toggle sidebar (sobrepõe a sidebar) */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-1.5 rounded hover:bg-white/5 transition-colors text-white/50 cursor-pointer"
             >
-              <Menu size={18} />
+              <Menu size={20} />
             </button>
-            <span className="text-[10px] text-white/30 font-mono hidden sm:inline">
-              {pathname === "/hub"
-                ? "console://hub"
-                : pathname === "/setup"
-                ? "console://setup"
-                : "console://poseidon"}
+            <span className="text-sm text-white/40 font-mono hidden sm:inline">
+              {consolePath}
             </span>
           </div>
 
@@ -186,24 +209,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 onClick={() => { setNotifOpen(!notifOpen); setUserMenuOpen(false); }}
                 className="p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer relative"
               >
-                <Bell size={17} className="text-white/40 hover:text-white/70 transition-colors" />
-                {/* Indicador de alerta */}
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-sea-950 animate-pulse" />
+                <Bell size={20} className="text-white/50 hover:text-white/80 transition-colors" />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 border border-sea-950 animate-pulse" />
               </button>
-              {/* Dropdown Notificações */}
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-sea-900 border border-white/5 rounded-xl shadow-2xl shadow-black/50 backdrop-blur-md z-40 p-4">
-                  <h3 className="text-[10px] font-semibold text-white/50 uppercase tracking-wide mb-3">Alertas Recentes</h3>
+                <div className="absolute right-0 mt-2 w-80 bg-sea-900 border border-white/5 rounded-xl shadow-2xl shadow-black/50 backdrop-blur-md z-40 p-4">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-3">Alertas Recentes</h3>
                   <div className="space-y-3">
                     <div className="flex items-start gap-2.5">
                       <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
-                      <p className="text-xs text-white/60 leading-relaxed">
+                      <p className="text-sm text-white/60 leading-relaxed">
                         Compliance atualizado para a Lei Rouanet 2025. Novos tetos disponíveis.
                       </p>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                      <p className="text-xs text-white/60 leading-relaxed">
+                      <p className="text-sm text-white/60 leading-relaxed">
                         Projeto "Festival Raízes" está com 30% de execução e prazo se aproximando.
                       </p>
                     </div>
@@ -218,28 +239,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
                 className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">
-                  <User size={16} />
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-sm font-bold">
+                  <User size={18} />
                 </div>
-                <ChevronRight size={12} className={`text-white/30 transition-transform ${userMenuOpen ? "rotate-90" : ""}`} />
+                <ChevronRight size={14} className={`text-white/40 transition-transform ${userMenuOpen ? "rotate-90" : ""}`} />
               </button>
-              {/* Dropdown Menu */}
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-sea-900 border border-white/5 rounded-xl shadow-2xl shadow-black/50 backdrop-blur-md z-40 py-1.5">
+                <div className="absolute right-0 mt-2 w-52 bg-sea-900 border border-white/5 rounded-xl shadow-2xl shadow-black/50 backdrop-blur-md z-40 py-1.5">
                   <div className="px-4 py-2 border-b border-white/5 mb-1">
-                    <p className="text-xs text-white font-medium">Admin</p>
-                    <p className="text-[10px] text-white/30">admin@poseidon.com</p>
+                    <p className="text-sm text-white font-medium">Admin</p>
+                    <p className="text-xs text-white/40">admin@poseidon.com</p>
                   </div>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-white/50 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
-                    <User size={14} />
+                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
+                    <User size={16} />
                     <span>Perfil</span>
                   </button>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-white/50 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
-                    <Settings size={14} />
+                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
+                    <Settings size={16} />
                     <span>Configurações</span>
                   </button>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-white/50 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
-                    <CreditCard size={14} />
+                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
+                    <CreditCard size={16} />
                     <span>Pagamentos</span>
                   </button>
                   <div className="border-t border-white/5 mt-1 pt-1">
@@ -250,9 +270,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         await supabase.auth.signOut();
                         router.push("/login");
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-400/70 hover:text-red-400 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400/70 hover:text-red-400 hover:bg-white/[0.03] transition-colors cursor-pointer"
                     >
-                      <LogOut size={14} />
+                      <LogOut size={16} />
                       <span>Sair</span>
                     </button>
                   </div>
