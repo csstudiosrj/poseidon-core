@@ -2,7 +2,6 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createClient() {
-  // Next.js 15+: cookies() é assíncrono; aguardamos o cookieStore
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -15,15 +14,19 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Chamada em Server Component: ignorar, o middleware pode
-            // cuidar da renovação da sessão.
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, {
+                ...options,
+                path: options.path ?? '/',
+                sameSite: options.sameSite ?? 'lax',
+                secure: options.secure ?? process.env.NODE_ENV === 'production',
+              });
+            });
+          } catch (error) {
+            console.error('Falha ao definir cookies (provavelmente Server Component):', error);
           }
         },
       },
-    },
+    }
   );
 }

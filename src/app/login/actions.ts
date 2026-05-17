@@ -7,20 +7,6 @@ function cleanDocument(doc: string): string {
   return doc.replace(/\D/g, '');
 }
 
-function validateCPF(cpf: string): boolean {
-  // Remove não dígitos
-  cpf = cleanDocument(cpf);
-  if (cpf.length !== 11) return false;
-  // Validação simples de CPF (opcional, mas pode ser adicionada)
-  return true;
-}
-
-function validateCNPJ(cnpj: string): boolean {
-  cnpj = cleanDocument(cnpj);
-  if (cnpj.length !== 14) return false;
-  return true;
-}
-
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
@@ -29,7 +15,6 @@ export async function signup(formData: FormData) {
   const nomeCompleto = formData.get('nome_completo') as string;
   const documento = formData.get('documento') as string;
 
-  // Validações básicas
   if (!email || !password || !nomeCompleto || !documento) {
     return { error: 'Todos os campos são obrigatórios.' };
   }
@@ -41,15 +26,6 @@ export async function signup(formData: FormData) {
     return { error: 'Documento inválido. Informe CPF (11 dígitos) ou CNPJ (14 dígitos).' };
   }
 
-  // Validação opcional de formato (pode ser aprofundada se desejar)
-  if (tipo === 'PF' && !validateCPF(cleanDoc)) {
-    return { error: 'CPF inválido.' };
-  }
-  if (tipo === 'PJ' && !validateCNPJ(cleanDoc)) {
-    return { error: 'CNPJ inválido.' };
-  }
-
-  // Cadastro no Auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -63,6 +39,7 @@ export async function signup(formData: FormData) {
   });
 
   if (authError) {
+    console.error('Erro no signup:', authError.message);
     return { error: authError.message };
   }
 
@@ -71,7 +48,6 @@ export async function signup(formData: FormData) {
     return { error: 'Falha ao obter ID do usuário.' };
   }
 
-  // Inserir na tabela proponentes
   const { error: proponenteError } = await supabase.from('proponentes').insert({
     user_id: userId,
     tipo,
@@ -81,7 +57,7 @@ export async function signup(formData: FormData) {
   });
 
   if (proponenteError) {
-    // Se falhar a inserção, remover o usuário auth (rollback manual)
+    console.error('Erro ao criar proponente:', proponenteError.message);
     await supabase.auth.admin.deleteUser(userId);
     return { error: 'Erro ao criar proponente: ' + proponenteError.message };
   }
@@ -99,14 +75,16 @@ export async function login(formData: FormData) {
     return { error: 'Email e senha são obrigatórios.' };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
+    console.error('Erro no login:', error.message);
     return { error: error.message };
   }
 
+  console.log('Login bem-sucedido para:', data.user?.email);
   redirect('/hub');
 }

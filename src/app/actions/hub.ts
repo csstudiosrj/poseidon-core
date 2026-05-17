@@ -24,7 +24,6 @@ interface ProjetoHub {
   } | null;
 }
 
-// Tipo cru retornado pelo Supabase com biblioteca_regras como array
 type ProjetoRowRaw = {
   id: string;
   nome_projeto: string;
@@ -42,19 +41,23 @@ export async function getHubData(): Promise<
 > {
   const supabase = await createClient();
 
-  // 1. Validar sessão
   const {
     data: { session },
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (sessionError || !session) {
+  if (sessionError) {
+    console.error('Erro ao obter sessão:', sessionError);
+    return { error: 'Usuário não autenticado.' };
+  }
+
+  if (!session) {
+    console.error('Nenhuma sessão encontrada. Verifique se os cookies estão sendo enviados.');
     return { error: 'Usuário não autenticado.' };
   }
 
   const userId = session.user.id;
 
-  // 2. Obter proponente vinculado ao user_id
   const { data: proponente, error: proponenteError } = await supabase
     .from('proponentes')
     .select('id')
@@ -65,7 +68,6 @@ export async function getHubData(): Promise<
     return { error: 'Perfil de proponente não encontrado.' };
   }
 
-  // 3. Buscar projetos com join na biblioteca_regras
   const { data: rawProjetos, error: projetosError } = await supabase
     .from('projetos')
     .select(`
@@ -83,19 +85,15 @@ export async function getHubData(): Promise<
     return { error: 'Erro ao carregar projetos: ' + projetosError.message };
   }
 
-  // 4. Mapear para o formato esperado: extrai o primeiro item do array
-  const projetos: ProjetoHub[] = (rawProjetos as ProjetoRowRaw[]).map(
-    (item) => ({
-      id: item.id,
-      nome_projeto: item.nome_projeto,
-      status: item.status,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      biblioteca_regras: item.biblioteca_regras?.[0] ?? null,
-    })
-  );
+  const projetos: ProjetoHub[] = (rawProjetos as ProjetoRowRaw[]).map((item) => ({
+    id: item.id,
+    nome_projeto: item.nome_projeto,
+    status: item.status,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    biblioteca_regras: item.biblioteca_regras?.[0] ?? null,
+  }));
 
-  // 5. Resumo de contadores
   const resumo: ResumoProjetos = {
     total: projetos.length,
     rascunhos: projetos.filter((p) => p.status === 'rascunho').length,

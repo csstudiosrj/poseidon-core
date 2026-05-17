@@ -2,7 +2,8 @@
 import React from "react";
 import "../../globals.css";
 import { Plus, FolderKanban, Calendar, Sparkles } from "lucide-react";
-import { getHubData } from "@/app/actions/hub"; // ← import corrigido
+import { getHubData } from "@/app/actions/hub";
+import { redirect } from "next/navigation";
 
 /* ─── Tipos (espelham exatamente o que a action retorna) ─────────── */
 type ProjetoStatus =
@@ -37,8 +38,12 @@ interface ResumoProjetos {
 
 /* ─── Página (Server Component) ──────────────────────────────────── */
 export default async function HubPage() {
-  // Busca de dados direta no servidor — sem useEffect, sem useState
   const data = await getHubData();
+
+  // 🚨 Redireciona imediatamente se a sessão não for encontrada
+  if ('error' in data && data.error.includes('não autenticado')) {
+    redirect('/login');
+  }
 
   const error    = "error"   in data ? data.error    : null;
   const projetos = "projetos" in data ? (data.projetos as ProjetoHub[]) : [];
@@ -66,7 +71,7 @@ export default async function HubPage() {
           </button>
         </header>
 
-        {/* ERRO */}
+        {/* ERRO (que não seja de autenticação) */}
         {error && (
           <div className="text-xs text-red-400 mb-4">{error}</div>
         )}
