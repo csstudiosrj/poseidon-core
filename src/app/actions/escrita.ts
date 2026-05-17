@@ -53,10 +53,14 @@ export async function gerarProjetoAction(
 
   if (!fonte) return { error: "Fonte não encontrada." };
 
-  const regras: RegrasMecanismo = fonte.configuracao_regras as RegrasMecanismo ||
-    (fonte.biblioteca_regras?.configuracao_regras as RegrasMecanismo) || {
-      mecanismo_nome: fonte.biblioteca_regras?.mecanismo_nome || "Fonte",
-      esfera: (fonte.biblioteca_regras?.esfera as any) || "Federal",
+  const biblioteca = Array.isArray(fonte.biblioteca_regras)
+    ? fonte.biblioteca_regras[0]
+    : fonte.biblioteca_regras;
+
+  const regras: RegrasMecanismo = (fonte.configuracao_regras as RegrasMecanismo) ||
+    (biblioteca?.configuracao_regras as RegrasMecanismo) || {
+      mecanismo_nome: biblioteca?.mecanismo_nome || fonte.nome_fonte || "Fonte",
+      esfera: (biblioteca?.esfera as "Federal" | "Estadual" | "Municipal") || "Federal",
       secoes_obrigatorias: [],
       tetos: [],
       campos_formulario: [],
@@ -76,8 +80,7 @@ export async function gerarProjetoAction(
 
   if (updateFonteError) return { error: "Erro ao salvar conteúdo na fonte." };
 
-  // Insere/atualiza itens orçamentários vinculados ao projeto (ou poderiam ser vinculados à fonte)
-  // Aqui mantemos no projeto, mas podemos evoluir depois.
+  // Insere itens orçamentários no projeto (limpa antes)
   const { error: deleteItensError } = await supabase.from("itens_orcamentarios").delete().eq("projeto_id", projetoId);
   if (!deleteItensError) {
     await supabase.from("itens_orcamentarios").insert(
