@@ -1,11 +1,9 @@
 // src/app/(dashboard)/hub/page.tsx
 import React from "react";
-import "../../globals.css";
 import {
   Plus,
   FolderKanban,
   Calendar,
-  Sparkles,
   Layers,
   PlayCircle,
   FilePenLine,
@@ -14,6 +12,7 @@ import {
 import { getHubData } from "@/app/actions/hub";
 import { redirect } from "next/navigation";
 
+// Tipos mantidos inalterados
 type ProjetoStatus =
   | "rascunho"
   | "enviado"
@@ -59,36 +58,35 @@ export default async function HubPage() {
   const isEmpty = !error && projetos.length === 0;
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "#020b18", color: "#e2e8f0" }}
-    >
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        {/* HEADER */}
-        <header className="flex items-center justify-between gap-4 mb-6">
+    <div className="min-h-screen bg-slate-950">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* HEADER – hierarquia Poseidon */}
+        <header className="flex items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-xl font-semibold text-white">
+            <h1 className="text-2xl font-['Syne'] tracking-tight text-white">
               Meus Projetos
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Console para criar, monitorar e auditar seus projetos
-              culturais.
+            <p className="text-xs uppercase tracking-wider text-slate-400 mt-1 font-['Inter']">
+              Console para criar, monitorar e auditar projetos culturais
             </p>
           </div>
-          <button type="button" className="ds-btn ds-btn-primary">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 bg-cyan-400/90 hover:bg-cyan-400 text-slate-900 font-medium rounded-xl py-2.5 px-4 text-sm transition-colors"
+          >
             <Plus size={16} />
             <span>Novo Projeto</span>
           </button>
         </header>
 
-        {/* ERRO (não-autenticação já redireciona) */}
+        {/* ERRO */}
         {error && (
-          <div className="ds-card border border-red-500/40 bg-red-950/30 text-xs text-red-200 mb-6 px-4 py-3">
+          <div className="bg-red-950/30 border border-red-500/40 text-xs text-red-200 mb-6 px-4 py-3 rounded-xl">
             {error}
           </div>
         )}
 
-        {/* KPI CARDS – replicando estilo dos 3 cards do dashboard */}
+        {/* KPI CARDS – replicando visual dos 3 cards do dashboard */}
         {resumo && !error && (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
             <ResumoCard
@@ -114,13 +112,13 @@ export default async function HubPage() {
           </section>
         )}
 
-        {/* GRID / EMPTY */}
+        {/* GRID DE PROJETOS / EMPTY STATE */}
         {!error && (
           <>
             {isEmpty ? (
               <EmptyStateHub />
             ) : (
-              <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {projetos.map((projeto) => (
                   <ProjetoCard key={projeto.id} projeto={projeto} />
                 ))}
@@ -133,7 +131,7 @@ export default async function HubPage() {
   );
 }
 
-/* ─── Sub-componentes ───────────────────────────────────────────── */
+/* ─── Sub-componentes refatorados com tokens Poseidon ───────────── */
 
 interface ResumoCardProps {
   label: string;
@@ -143,31 +141,21 @@ interface ResumoCardProps {
 
 function ResumoCard({ label, valor, icon: Icon }: ResumoCardProps) {
   return (
-    <div
-      className="ds-card"
-      style={{
-        background: "#081c35", // mesmo card do dashboard
-        borderColor: "rgba(34,211,238,0.10)",
-        padding: "20px 18px",
-        boxShadow:
-          "0 0 0 1px rgba(34,211,238,0.05), 0 4px 24px rgba(0,0,0,0.4)",
-      }}
-    >
+    <div className="bg-slate-900/80 backdrop-blur-sm border border-white/5 rounded-2xl p-5 shadow-2xl">
       <div className="flex items-start justify-between mb-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] text-white/40 uppercase tracking-[0.18em] font-medium">
+          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-medium font-['Inter']">
             {label}
           </span>
-          <span className="text-2xl font-bold text-white num-tabular">
+          <span className="text-2xl font-bold text-white font-mono tabular-nums">
             {valor.toString().padStart(2, "0")}
           </span>
         </div>
-        <div className="opacity-70 text-cyan-300">
+        <div className="text-cyan-400/70">
           <Icon size={18} />
         </div>
       </div>
-      <div className="text-[11px] text-white/30 font-mono">
-        {/* linha de subtítulo sutil pra dar a mesma “linha de base” dos cards */}
+      <div className="text-[11px] text-slate-500 font-mono">
         console://{label.toLowerCase().replace(/\s+/g, "_")}
       </div>
     </div>
@@ -211,8 +199,9 @@ function getStatusConfig(statusRaw: string) {
     case "prestacao_contas":
       return {
         label: "Prestação de contas",
+        // Sem roxo, usamos um tom de cyan mais neutro
         className:
-          "bg-purple-500/14 text-purple-200 border border-purple-500/60",
+          "bg-cyan-500/10 text-cyan-300 border border-cyan-500/40",
       };
     default:
       return {
@@ -234,20 +223,13 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
   );
 
   return (
-    <article
-      className="ds-card flex flex-col justify-between"
-      style={{
-        background: "#081121",
-        borderColor: "rgba(255,255,255,0.08)",
-        padding: "14px 14px",
-      }}
-    >
+    <article className="bg-slate-900/80 backdrop-blur-sm border border-white/5 rounded-2xl p-5 shadow-2xl flex flex-col justify-between">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-white truncate">
+          <h2 className="text-sm font-semibold text-white truncate font-['Inter']">
             {projeto.nome_projeto}
           </h2>
-          <p className="text-xs text-slate-400 mt-1 truncate">
+          <p className="text-xs text-slate-400 mt-1 truncate font-['Inter']">
             {mecanismoLabel}
           </p>
         </div>
@@ -258,7 +240,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3">
+      <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3 font-['Inter']">
         <div className="inline-flex items-center gap-1">
           <Calendar size={12} className="text-slate-500" />
           <span>Criado em {dataCriacao}</span>
@@ -269,14 +251,14 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
-        <span className="text-[11px] text-slate-500">
+      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+        <span className="text-[11px] text-slate-500 font-['Inter']">
           Última atualização em{" "}
           {new Date(projeto.updated_at).toLocaleDateString("pt-BR")}
         </span>
         <button
           type="button"
-          className="text-[11px] font-medium text-cyan-300 hover:text-cyan-200 inline-flex items-center gap-1"
+          className="text-[11px] font-medium text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 transition-colors"
         >
           Acessar Console
           <span aria-hidden className="text-cyan-400">→</span>
@@ -288,7 +270,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
 
 function EmptyStateHub() {
   return (
-    <section className="flex flex-col items-center justify-center text-center py-20">
+    <section className="flex flex-col items-center justify-center text-center py-24">
       <div className="relative mb-6">
         <div
           className="rounded-full flex items-center justify-center"
@@ -303,14 +285,17 @@ function EmptyStateHub() {
           <FolderKanban size={34} className="text-cyan-300" />
         </div>
       </div>
-      <h2 className="text-sm font-semibold text-white mb-2">
+      <h2 className="text-sm font-semibold text-white mb-2 font-['Inter']">
         Sua jornada cultural começa aqui
       </h2>
-      <p className="text-xs text-slate-400 mb-5 max-w-xs">
+      <p className="text-xs text-slate-400 mb-5 max-w-xs font-['Inter']">
         Crie seu primeiro projeto para acompanhar captação, execução e
         prestação de contas em um console único.
       </p>
-      <button type="button" className="ds-btn ds-btn-primary">
+      <button
+        type="button"
+        className="inline-flex items-center gap-2 bg-cyan-400/90 hover:bg-cyan-400 text-slate-900 font-medium rounded-xl py-2.5 px-4 text-sm transition-colors"
+      >
         <Plus size={16} />
         <span>Criar Primeiro Projeto</span>
       </button>
