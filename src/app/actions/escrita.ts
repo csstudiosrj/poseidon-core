@@ -43,10 +43,10 @@ export async function gerarProjetoAction(
 
   if (!projeto) return { error: "Projeto não encontrado." };
 
-  // Busca a fonte
+  // Busca a fonte (AGORA COM nome_fonte)
   const { data: fonte } = await supabase
     .from("projeto_fontes")
-    .select("id, tipo, mecanismo_id, configuracao_regras, biblioteca_regras (mecanismo_nome, esfera, configuracao_regras)")
+    .select("id, tipo, mecanismo_id, nome_fonte, configuracao_regras, biblioteca_regras (mecanismo_nome, esfera, configuracao_regras)")
     .eq("id", fonteId)
     .eq("projeto_id", projetoId)
     .single();
@@ -117,7 +117,7 @@ export async function buscarProjetosRascunho(userId: string) {
     created_at: p.created_at,
     fontes: (p.projeto_fontes || []).map((f: any) => ({
       id: f.id,
-      nome: f.tipo === "incentivo_fiscal" ? f.biblioteca_regras?.mecanismo_nome || "Incentivo Fiscal" : f.nome_fonte || f.tipo,
+      nome: f.tipo === "incentivo_fiscal" ? (Array.isArray(f.biblioteca_regras) ? f.biblioteca_regras[0]?.mecanismo_nome : f.biblioteca_regras?.mecanismo_nome) || "Incentivo Fiscal" : f.nome_fonte || f.tipo,
       tipo: f.tipo,
       valor_captacao: f.valor_captacao,
     })),
