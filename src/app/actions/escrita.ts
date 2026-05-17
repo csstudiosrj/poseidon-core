@@ -96,11 +96,16 @@ export async function gerarProjetoAction(
     contrapartida,
   };
 
-  // Usa as regras já carregadas ou o JSONB da biblioteca
-  const regras: RegrasMecanismo = projeto.configuracao_regras as RegrasMecanismo ||
-    (projeto.biblioteca_regras?.configuracao_regras as RegrasMecanismo) || {
-      mecanismo_nome: projeto.biblioteca_regras?.mecanismo_nome || "Desconhecido",
-      esfera: (projeto.biblioteca_regras?.esfera as "Federal") || "Federal",
+  // ⚠️ biblioteca_regras é um array (relação 1:N). Pegamos o primeiro elemento.
+  const biblioteca = Array.isArray(projeto.biblioteca_regras)
+    ? projeto.biblioteca_regras[0]
+    : projeto.biblioteca_regras;
+
+  // Usa as regras já carregadas no projeto ou as regras da biblioteca
+  const regras: RegrasMecanismo = (projeto.configuracao_regras as RegrasMecanismo) ||
+    (biblioteca?.configuracao_regras as RegrasMecanismo) || {
+      mecanismo_nome: biblioteca?.mecanismo_nome || "Desconhecido",
+      esfera: (biblioteca?.esfera as "Federal" | "Estadual" | "Municipal") || "Federal",
       secoes_obrigatorias: [],
       tetos: [],
       campos_formulario: [],
@@ -179,11 +184,13 @@ export async function buscarProjetosRascunho(userId: string) {
   }
 
   return {
-    projetos: data.map((p) => ({
+    projetos: data.map((p: any) => ({
       id: p.id,
       nome_projeto: p.nome_projeto,
       created_at: p.created_at,
-      mecanismo: p.biblioteca_regras?.[0] ?? null,
+      mecanismo: Array.isArray(p.biblioteca_regras)
+        ? p.biblioteca_regras[0] ?? null
+        : p.biblioteca_regras ?? null,
     })),
   };
 }
