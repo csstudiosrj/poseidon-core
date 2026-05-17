@@ -29,7 +29,7 @@ import {
     if (seeds.length > 0) return seeds;
     try {
       const modulo = await import("./seeds.json");
-      seeds = modulo.default || modulo || [];
+      seeds = (modulo.default || modulo || []) as ProjetoSeed[];
     } catch {
       console.warn("⚠️ seeds.json não encontrado. Usando apenas templates internos.");
       seeds = [];
@@ -196,7 +196,6 @@ import {
   
   function buscarSeeds(segmento?: SegmentoCultural): ProjetoSeed[] {
     if (!segmento) return [];
-    // Acesso síncrono ao array carregado
     return seeds.filter((s) => s.segmento === segmento);
   }
   
