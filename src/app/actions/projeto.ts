@@ -19,6 +19,7 @@ export async function getProjeto(projetoId: string) {
     return { error: "Perfil de proponente não encontrado." };
   }
 
+  // Busca o projeto com suas fontes
   const { data: projeto, error: projError } = await supabase
     .from("projetos")
     .select(`
@@ -27,11 +28,19 @@ export async function getProjeto(projetoId: string) {
       status,
       conteudo_escrita,
       cronograma,
-      configuracao_regras,
       created_at,
       updated_at,
-      mecanismo_id,
-      biblioteca_regras (mecanismo_nome, esfera),
+      projeto_fontes (
+        id,
+        tipo,
+        nome_fonte,
+        mecanismo_id,
+        valor_captacao,
+        status,
+        conteudo_escrita,
+        configuracao_regras,
+        biblioteca_regras (mecanismo_nome, esfera)
+      ),
       itens_orcamentarios (id, descricao, valor, quantidade, categoria)
     `)
     .eq("id", projetoId)

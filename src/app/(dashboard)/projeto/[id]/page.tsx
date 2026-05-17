@@ -2,16 +2,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { getProjeto } from "@/app/actions/projeto";
-import {
-  FileText,
-  Calendar,
-  DollarSign,
-  Tag,
-  ArrowLeft,
-  Edit3,
-  Layers,
-  Clock,
-} from "lucide-react";
+import { FileText, ArrowLeft, Edit3, DollarSign, Layers } from "lucide-react";
 import Link from "next/link";
 import "../../../globals.css";
 
@@ -29,15 +20,10 @@ export default async function ProjetoPage({
 
   const { projeto } = data;
 
-  // Trata biblioteca_regras (vem como array)
-  const biblioteca = Array.isArray(projeto.biblioteca_regras)
-    ? projeto.biblioteca_regras[0]
-    : projeto.biblioteca_regras;
-
-  const conteudo = projeto.conteudo_escrita || {};
+  const fontes = projeto.projeto_fontes || [];
   const itens = projeto.itens_orcamentarios || [];
-  const orcamentoTotal = itens.reduce(
-    (soma: number, item: any) => soma + Number(item.valor) * Number(item.quantidade),
+  const orcamentoTotal = fontes.reduce(
+    (soma: number, f: any) => soma + Number(f.valor_captacao),
     0
   );
 
@@ -57,82 +43,77 @@ export default async function ProjetoPage({
           </h1>
           <p className="text-sm text-white/40 flex items-center gap-2 mt-1">
             <Layers size={14} />
-            {biblioteca?.mecanismo_nome || "Mecanismo não informado"} ·{" "}
-            {biblioteca?.esfera || ""}
+            {fontes.length} fonte{fontes.length !== 1 ? "s" : ""} · Status: {projeto.status}
           </p>
         </div>
         <span className="badge badge-warning">{projeto.status}</span>
       </div>
 
-      {/* Grid principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna de conteúdo escrito */}
+        {/* Coluna principal: conteúdo das fontes */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Seções do conteúdo */}
-          {conteudo.justificativa && (
-            <SectionCard
-              title="Justificativa"
-              content={conteudo.justificativa}
-              icon={FileText}
-            />
-          )}
-          {conteudo.objetivos && (
-            <SectionCard
-              title="Objetivos"
-              content={conteudo.objetivos}
-              icon={Target}
-            />
-          )}
-          {conteudo.publico_alvo && (
-            <SectionCard
-              title="Público-Alvo"
-              content={conteudo.publico_alvo}
-              icon={Users}
-            />
-          )}
-          {conteudo.acessibilidade && (
-            <SectionCard
-              title="Acessibilidade"
-              content={conteudo.acessibilidade}
-              icon={Accessibility}
-            />
-          )}
-          {conteudo.contrapartida && (
-            <SectionCard
-              title="Contrapartida Social"
-              content={conteudo.contrapartida}
-              icon={Heart}
-            />
-          )}
-          {conteudo.democratizacao && (
-            <SectionCard
-              title="Democratização do Acesso"
-              content={conteudo.democratizacao}
-              icon={Globe}
-            />
-          )}
-          {conteudo.descricao_projeto && (
-            <SectionCard
-              title="Descrição do Projeto"
-              content={conteudo.descricao_projeto}
-              icon={FileText}
-            />
-          )}
-
-          {Object.keys(conteudo).length === 0 && (
+          {fontes.length === 0 ? (
             <div className="card p-6 text-center">
               <FileText size={24} className="text-white/20 mx-auto mb-3" />
               <p className="text-white/50 text-sm">
-                O conteúdo ainda não foi gerado. Acesse a{" "}
-                <Link
-                  href={`/escrita?projeto=${projeto.id}`}
-                  className="text-cyan-400 hover:text-cyan-300"
-                >
-                  Fábrica de Escrita
-                </Link>{" "}
-                para gerar o texto técnico.
+                Nenhuma fonte de captação configurada. Edite o projeto para adicionar.
               </p>
             </div>
+          ) : (
+            fontes.map((fonte: any) => {
+              const nomeFonte =
+                fonte.tipo === "incentivo_fiscal"
+                  ? fonte.biblioteca_regras?.mecanismo_nome || "Incentivo Fiscal"
+                  : fonte.nome_fonte || fonte.tipo;
+
+              const conteudo = fonte.conteudo_escrita || {};
+
+              return (
+                <div key={fonte.id} className="card p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <FileText size={16} className="text-cyan-400" />
+                      {nomeFonte}
+                    </h2>
+                    <span className="text-xs text-white/40 uppercase">{fonte.tipo}</span>
+                  </div>
+
+                  {conteudo.justificativa && (
+                    <SectionContent titulo="Justificativa" conteudo={conteudo.justificativa} />
+                  )}
+                  {conteudo.objetivos && (
+                    <SectionContent titulo="Objetivos" conteudo={conteudo.objetivos} />
+                  )}
+                  {conteudo.publico_alvo && (
+                    <SectionContent titulo="Público-Alvo" conteudo={conteudo.publico_alvo} />
+                  )}
+                  {conteudo.acessibilidade && (
+                    <SectionContent titulo="Acessibilidade" conteudo={conteudo.acessibilidade} />
+                  )}
+                  {conteudo.contrapartida && (
+                    <SectionContent titulo="Contrapartida" conteudo={conteudo.contrapartida} />
+                  )}
+                  {conteudo.democratizacao && (
+                    <SectionContent titulo="Democratização" conteudo={conteudo.democratizacao} />
+                  )}
+                  {conteudo.descricao_projeto && (
+                    <SectionContent titulo="Descrição" conteudo={conteudo.descricao_projeto} />
+                  )}
+
+                  {Object.keys(conteudo).length === 0 && (
+                    <p className="text-white/40 text-xs">Conteúdo ainda não gerado para esta fonte.</p>
+                  )}
+
+                  <Link
+                    href={`/escrita?projeto=${projeto.id}&fonte=${fonte.id}`}
+                    className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer mt-2"
+                  >
+                    <Edit3 size={14} />
+                    Editar Escrita
+                  </Link>
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -158,50 +139,38 @@ export default async function ProjetoPage({
                   {new Date(projeto.updated_at).toLocaleDateString("pt-BR")}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-white/40">Mecanismo</span>
-                <span className="text-white font-medium">
-                  {biblioteca?.mecanismo_nome || "—"}
-                </span>
-              </div>
             </div>
-            <Link
-              href={`/escrita?projeto=${projeto.id}`}
-              className="w-full mt-2 inline-flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.2)]"
-            >
-              <Edit3 size={14} />
-              Editar na Escrita
-            </Link>
           </div>
 
-          {/* Orçamento */}
+          {/* Fontes e valores */}
           <div className="card p-5 space-y-4">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <DollarSign size={16} className="text-cyan-400" />
-              Orçamento
+              Captação
             </h3>
-            {itens.length > 0 ? (
+            {fontes.length > 0 ? (
               <>
                 <div className="space-y-2">
-                  {itens.map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between text-xs border-b border-white/5 pb-2"
-                    >
-                      <div>
-                        <p className="text-white/70">{item.descricao}</p>
-                        <p className="text-white/30 text-[10px]">
-                          {item.categoria} · Qtd: {item.quantidade}
-                        </p>
+                  {fontes.map((fonte: any) => {
+                    const nome =
+                      fonte.tipo === "incentivo_fiscal"
+                        ? fonte.biblioteca_regras?.mecanismo_nome || "Incentivo Fiscal"
+                        : fonte.nome_fonte || fonte.tipo;
+                    return (
+                      <div
+                        key={fonte.id}
+                        className="flex items-center justify-between text-xs border-b border-white/5 pb-2"
+                      >
+                        <span className="text-white/70">{nome}</span>
+                        <span className="text-white font-mono">
+                          {Number(fonte.valor_captacao).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </span>
                       </div>
-                      <span className="text-white font-mono tabular-nums">
-                        {Number(item.valor).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-white/10">
                   <span className="text-xs font-semibold text-white/60">Total</span>
@@ -214,53 +183,48 @@ export default async function ProjetoPage({
                 </div>
               </>
             ) : (
-              <p className="text-white/40 text-xs">
-                Nenhum item orçamentário cadastrado.
-              </p>
+              <p className="text-white/40 text-xs">Nenhuma fonte de captação.</p>
             )}
           </div>
+
+          {/* Itens orçamentários (se existirem) */}
+          {itens.length > 0 && (
+            <div className="card p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-white">Itens Orçamentários</h3>
+              <div className="space-y-2">
+                {itens.map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between text-xs border-b border-white/5 pb-2"
+                  >
+                    <div>
+                      <p className="text-white/70">{item.descricao}</p>
+                      <p className="text-white/30 text-[10px]">
+                        {item.categoria} · Qtd: {item.quantidade}
+                      </p>
+                    </div>
+                    <span className="text-white font-mono">
+                      {Number(item.valor).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>
   );
 }
 
-/* Componentes auxiliares de ícones (fictícios para evitar imports extras) */
-function Target({ size, className }: { size?: number; className?: string }) {
-  return <FileText size={size} className={className} />;
-}
-function Users({ size, className }: { size?: number; className?: string }) {
-  return <FileText size={size} className={className} />;
-}
-function Accessibility({ size, className }: { size?: number; className?: string }) {
-  return <FileText size={size} className={className} />;
-}
-function Heart({ size, className }: { size?: number; className?: string }) {
-  return <FileText size={size} className={className} />;
-}
-function Globe({ size, className }: { size?: number; className?: string }) {
-  return <FileText size={size} className={className} />;
-}
-
-/* Card de seção */
-function SectionCard({
-  title,
-  content,
-  icon: Icon,
-}: {
-  title: string;
-  content: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-}) {
+function SectionContent({ titulo, conteudo }: { titulo: string; conteudo: string }) {
   return (
-    <div className="card p-5 space-y-3">
-      <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-        <Icon size={16} className="text-cyan-400" />
-        {title}
-      </h2>
-      <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">
-        {content}
-      </p>
+    <div>
+      <h3 className="text-xs font-semibold text-white/60 mb-1">{titulo}</h3>
+      <p className="text-sm text-white/50 leading-relaxed whitespace-pre-wrap">{conteudo}</p>
     </div>
   );
 }
