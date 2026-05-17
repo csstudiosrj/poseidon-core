@@ -14,8 +14,6 @@ import {
 import { getHubData } from "@/app/actions/hub";
 import { redirect } from "next/navigation";
 
-/* ─── Tipos (espelham a action) ─────────────────────────────────── */
-
 type ProjetoStatus =
   | "rascunho"
   | "enviado"
@@ -45,8 +43,6 @@ interface ResumoProjetos {
   finalizados: number;
   prestacao_contas: number;
 }
-
-/* ─── Página (Server Component) ─────────────────────────────────── */
 
 export default async function HubPage() {
   const data = await getHubData();
@@ -92,32 +88,28 @@ export default async function HubPage() {
           </div>
         )}
 
-        {/* KPI CARDS – estilo console */}
+        {/* KPI CARDS – replicando estilo dos 3 cards do dashboard */}
         {resumo && !error && (
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
             <ResumoCard
-              label="Total de projetos"
+              label="Total de Projetos"
               valor={resumo.total}
               icon={Layers}
-              cor="text-cyan-300"
             />
             <ResumoCard
               label="Ativos"
               valor={resumo.ativos}
               icon={PlayCircle}
-              cor="text-emerald-300"
             />
             <ResumoCard
               label="Rascunhos"
               valor={resumo.rascunhos}
               icon={FilePenLine}
-              cor="text-slate-200"
             />
             <ResumoCard
               label="Pendentes"
               valor={resumo.enviados}
               icon={Clock}
-              cor="text-sky-300"
             />
           </section>
         )}
@@ -141,39 +133,42 @@ export default async function HubPage() {
   );
 }
 
-/* ─── Sub-componentes (sem hooks) ───────────────────────────────── */
+/* ─── Sub-componentes ───────────────────────────────────────────── */
 
 interface ResumoCardProps {
   label: string;
   valor: number;
-  cor: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-function ResumoCard({ label, valor, cor, icon: Icon }: ResumoCardProps) {
+function ResumoCard({ label, valor, icon: Icon }: ResumoCardProps) {
   return (
     <div
-      className="ds-card relative overflow-hidden"
+      className="ds-card"
       style={{
-        background: "#081121",
-        borderColor: "rgba(255,255,255,0.08)",
-        padding: "14px 14px",
+        background: "#081c35", // mesmo card do dashboard
+        borderColor: "rgba(34,211,238,0.10)",
+        padding: "20px 18px",
+        boxShadow:
+          "0 0 0 1px rgba(34,211,238,0.05), 0 4px 24px rgba(0,0,0,0.4)",
       }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 mb-1">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] text-white/40 uppercase tracking-[0.18em] font-medium">
             {label}
-          </p>
-          <p
-            className={`text-2xl font-semibold num-tabular ${cor}`}
-          >
+          </span>
+          <span className="text-2xl font-bold text-white num-tabular">
             {valor.toString().padStart(2, "0")}
-          </p>
+          </span>
         </div>
-        <div className="p-1.5 rounded-md bg-slate-900/70 border border-slate-700/80 text-slate-300">
-          <Icon size={14} className="opacity-80" />
+        <div className="opacity-70 text-cyan-300">
+          <Icon size={18} />
         </div>
+      </div>
+      <div className="text-[11px] text-white/30 font-mono">
+        {/* linha de subtítulo sutil pra dar a mesma “linha de base” dos cards */}
+        console://{label.toLowerCase().replace(/\s+/g, "_")}
       </div>
     </div>
   );
@@ -247,7 +242,6 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
         padding: "14px 14px",
       }}
     >
-      {/* Topo */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-white truncate">
@@ -264,7 +258,6 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
         </div>
       </div>
 
-      {/* Corpo */}
       <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3">
         <div className="inline-flex items-center gap-1">
           <Calendar size={12} className="text-slate-500" />
@@ -276,7 +269,6 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
         </div>
       </div>
 
-      {/* Rodapé */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
         <span className="text-[11px] text-slate-500">
           Última atualização em{" "}
@@ -287,9 +279,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
           className="text-[11px] font-medium text-cyan-300 hover:text-cyan-200 inline-flex items-center gap-1"
         >
           Acessar Console
-          <span aria-hidden className="text-cyan-400">
-            →
-          </span>
+          <span aria-hidden className="text-cyan-400">→</span>
         </button>
       </div>
     </article>
