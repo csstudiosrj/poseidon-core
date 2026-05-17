@@ -1,3 +1,4 @@
+// src/app/actions/setup.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -50,7 +51,19 @@ export async function criarProjetoAction(
     };
   }
 
-  // 4. Inserir o projeto com status 'rascunho'
+  // 4. Carregar a configuração de regras do mecanismo
+  const { data: mecanismo, error: mecanismoError } = await supabase
+    .from("biblioteca_regras")
+    .select("configuracao_regras")
+    .eq("id", mecanismo_id)
+    .single();
+
+  const configuracao = mecanismo?.configuracao_regras ?? null;
+  if (mecanismoError) {
+    console.warn("Não foi possível carregar as regras do mecanismo. Projeto será criado sem elas.");
+  }
+
+  // 5. Inserir o projeto com status 'rascunho' e as regras herdadas
   const { error: insertError } = await supabase.from("projetos").insert({
     nome_projeto: nome_projeto.trim(),
     esfera,
@@ -58,6 +71,7 @@ export async function criarProjetoAction(
     orcamento_pretendido,
     proponente_id: proponente.id,
     status: "rascunho",
+    configuracao_regras: configuracao, // JSONB com limites, campos, etc.
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });
@@ -67,6 +81,6 @@ export async function criarProjetoAction(
     return { error: "Erro ao salvar o projeto. Tente novamente." };
   }
 
-  // 5. Redirecionar para o hub
+  // 6. Redirecionar para o hub
   redirect("/hub");
 }
