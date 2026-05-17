@@ -1,11 +1,10 @@
 // src/app/(dashboard)/hub/page.tsx
-"use client";
-
 import React from "react";
 import "../../globals.css";
 import { Plus, FolderKanban, Calendar, Sparkles } from "lucide-react";
-import { getHubData } from "./actions";
+import { getHubData } from "@/app/actions/hub"; // ← import corrigido
 
+/* ─── Tipos (espelham exatamente o que a action retorna) ─────────── */
 type ProjetoStatus =
   | "rascunho"
   | "enviado"
@@ -36,45 +35,15 @@ interface ResumoProjetos {
   prestacao_contas: number;
 }
 
-export default function HubProjetosPage() {
-  const [projetos, setProjetos] = React.useState<ProjetoHub[]>([]);
-  const [resumo, setResumo] = React.useState<ResumoProjetos | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(true);
+/* ─── Página (Server Component) ──────────────────────────────────── */
+export default async function HubPage() {
+  // Busca de dados direta no servidor — sem useEffect, sem useState
+  const data = await getHubData();
 
-  React.useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      try {
-        const result = await getHubData();
-        if (!mounted) return;
-
-        if ("error" in result) {
-          setError(result.error);
-          setProjetos([]);
-          setResumo(null);
-        } else {
-          setProjetos(result.projetos as ProjetoHub[]);
-          setResumo(result.resumo);
-        }
-      } catch (e) {
-        if (!mounted) return;
-        setError("Erro ao carregar dados do hub.");
-        setProjetos([]);
-        setResumo(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const isEmpty = !loading && !error && projetos.length === 0;
+  const error    = "error"   in data ? data.error    : null;
+  const projetos = "projetos" in data ? (data.projetos as ProjetoHub[]) : [];
+  const resumo   = "resumo"  in data ? (data.resumo  as ResumoProjetos) : null;
+  const isEmpty  = !error && projetos.length === 0;
 
   return (
     <div
@@ -82,6 +51,7 @@ export default function HubProjetosPage() {
       style={{ background: "#020b18", color: "#e2e8f0" }}
     >
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+
         {/* HEADER */}
         <header className="flex items-center justify-between gap-4 mb-6">
           <div>
@@ -90,66 +60,46 @@ export default function HubProjetosPage() {
               Seu painel para criar, acompanhar e finalizar projetos culturais.
             </p>
           </div>
-
           <button type="button" className="ds-btn ds-btn-primary">
             <Plus size={16} />
             <span>Novo Projeto</span>
           </button>
         </header>
 
-        {/* ESTADOS: CARREGANDO / ERRO */}
-        {loading && (
-          <div className="text-xs text-slate-400">Carregando projetos…</div>
-        )}
-
-        {!loading && error && (
+        {/* ERRO */}
+        {error && (
           <div className="text-xs text-red-400 mb-4">{error}</div>
         )}
 
         {/* GRID RESUMO */}
-        {resumo && !loading && !error && (
+        {resumo && !error && (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <ResumoCard
-              label="Total de Projetos"
-              valor={resumo.total}
-              cor="text-cyan-300"
-            />
-            <ResumoCard
-              label="Ativos"
-              valor={resumo.ativos}
-              cor="text-emerald-300"
-            />
-            <ResumoCard
-              label="Rascunhos"
-              valor={resumo.rascunhos}
-              cor="text-slate-200"
-            />
-            <ResumoCard
-              label="Pendentes"
-              valor={resumo.enviados}
-              cor="text-sky-300"
-            />
+            <ResumoCard label="Total de Projetos" valor={resumo.total}    cor="text-cyan-300"    />
+            <ResumoCard label="Ativos"             valor={resumo.ativos}   cor="text-emerald-300" />
+            <ResumoCard label="Rascunhos"          valor={resumo.rascunhos} cor="text-slate-200"  />
+            <ResumoCard label="Pendentes"          valor={resumo.enviados}  cor="text-sky-300"    />
           </section>
         )}
 
         {/* LISTA / EMPTY STATE */}
-        {!loading && !error && (
-          <>
-            {isEmpty ? (
-              <EmptyStateHub />
-            ) : (
-              <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projetos.map((projeto) => (
-                  <ProjetoCard key={projeto.id} projeto={projeto} />
-                ))}
-              </section>
-            )}
-          </>
+        {!error && (
+          isEmpty ? (
+            <EmptyStateHub />
+          ) : (
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projetos.map((projeto) => (
+                <ProjetoCard key={projeto.id} projeto={projeto} />
+              ))}
+            </section>
+          )
         )}
+
       </main>
     </div>
   );
 }
+
+/* ─── Sub-componentes (sem hooks — compatíveis com Server Component) */
 
 function ResumoCard({
   label,
@@ -163,10 +113,7 @@ function ResumoCard({
   return (
     <div
       className="ds-card"
-      style={{
-        background: "#081121",
-        padding: "14px 14px",
-      }}
+      style={{ background: "#081121", padding: "14px 14px" }}
     >
       <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 mb-1">
         {label}
@@ -180,49 +127,21 @@ function ResumoCard({
 
 function getStatusConfig(statusRaw: string) {
   const status = statusRaw as ProjetoStatus;
-
   switch (status) {
     case "rascunho":
-      return {
-        label: "Rascunho",
-        className:
-          "bg-slate-700/40 text-slate-200 border border-slate-500/60",
-      };
+      return { label: "Rascunho",            className: "bg-slate-700/40 text-slate-200 border border-slate-500/60" };
     case "ativo":
-      return {
-        label: "Ativo",
-        className:
-          "bg-emerald-500/15 text-emerald-300 border border-emerald-500/50",
-      };
+      return { label: "Ativo",               className: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/50" };
     case "enviado":
-      return {
-        label: "Enviado",
-        className: "bg-sky-500/15 text-sky-300 border border-sky-500/60",
-      };
+      return { label: "Enviado",             className: "bg-sky-500/15 text-sky-300 border border-sky-500/60" };
     case "finalizado":
-      return {
-        label: "Finalizado",
-        className:
-          "bg-cyan-500/15 text-cyan-300 border border-cyan-500/60",
-      };
+      return { label: "Finalizado",          className: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/60" };
     case "inativo":
-      return {
-        label: "Inativo",
-        className:
-          "bg-slate-800/60 text-slate-300 border border-slate-600/80",
-      };
+      return { label: "Inativo",             className: "bg-slate-800/60 text-slate-300 border border-slate-600/80" };
     case "prestacao_contas":
-      return {
-        label: "Prestação de contas",
-        className:
-          "bg-amber-500/15 text-amber-300 border border-amber-500/60",
-      };
+      return { label: "Prestação de contas", className: "bg-amber-500/15 text-amber-300 border border-amber-500/60" };
     default:
-      return {
-        label: statusRaw || "—",
-        className:
-          "bg-slate-800/60 text-slate-200 border border-slate-600/80",
-      };
+      return { label: statusRaw || "—",      className: "bg-slate-800/60 text-slate-200 border border-slate-600/80" };
   }
 }
 
@@ -231,18 +150,12 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
   const mecanismoLabel = projeto.biblioteca_regras
     ? `${projeto.biblioteca_regras.mecanismo_nome} — ${projeto.biblioteca_regras.esfera}`
     : "Mecanismo não informado";
-
-  const dataCriacao = new Date(projeto.created_at).toLocaleDateString(
-    "pt-BR"
-  );
+  const dataCriacao = new Date(projeto.created_at).toLocaleDateString("pt-BR");
 
   return (
     <article
       className="ds-card flex flex-col justify-between"
-      style={{
-        background: "#081121",
-        padding: "14px 14px",
-      }}
+      style={{ background: "#081121", padding: "14px 14px" }}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
@@ -254,7 +167,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
           </p>
         </div>
         <div
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${statusCfg.className}`}
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${statusCfg.className}`}
         >
           {statusCfg.label}
         </div>
@@ -267,7 +180,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
         </div>
         <div className="inline-flex items-center gap-1 text-slate-500">
           <FolderKanban size={12} />
-          <span>ID {projeto.id.padStart(3, "0")}</span>
+          <span>ID {projeto.id.slice(0, 8)}</span>
         </div>
       </div>
     </article>
@@ -283,8 +196,7 @@ function EmptyStateHub() {
           style={{
             width: 80,
             height: 80,
-            background:
-              "radial-gradient(circle at top, rgba(56,189,248,0.25), transparent 60%)",
+            background: "radial-gradient(circle at top, rgba(56,189,248,0.25), transparent 60%)",
             border: "1px solid rgba(148,163,184,0.4)",
           }}
         >
