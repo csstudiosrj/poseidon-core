@@ -21,14 +21,11 @@ export async function gerarProjetoAction(
   const objetivos = formData.get("objetivos") as string;
   const local = (formData.get("local") as string) || "";
   const contrapartida = (formData.get("contrapartida") as string) || "";
-  const orcamentoStr = formData.get("orcamento") as string;
-  const orcamento = parseFloat(orcamentoStr || "0");
 
   if (!projetoId || !fonteId) return { error: "Projeto ou fonte não identificados." };
-  if (!descricao || descricao.trim().length < 50) return { error: "Descrição muito curta." };
-  if (!publico || publico.trim().length < 10) return { error: "Público-alvo obrigatório." };
-  if (!objetivos || objetivos.trim().length < 20) return { error: "Objetivos obrigatórios." };
-  if (orcamento <= 0) return { error: "Orçamento inválido." };
+  if (!descricao || descricao.trim().length < 50) return { error: "Descrição muito curta. Mínimo 50 caracteres." };
+  if (!publico || publico.trim().length < 10) return { error: "Público-alvo muito curto. Mínimo 10 caracteres." };
+  if (!objetivos || objetivos.trim().length < 20) return { error: "Objetivos muito curtos. Mínimo 20 caracteres." };
 
   // Verifica permissão
   const { data: proponente } = await supabase.from("proponentes").select("id").eq("user_id", user.id).single();
@@ -43,15 +40,18 @@ export async function gerarProjetoAction(
 
   if (!projeto) return { error: "Projeto não encontrado." };
 
-  // Busca a fonte (AGORA COM nome_fonte)
+  // Busca a fonte e seu valor
   const { data: fonte } = await supabase
     .from("projeto_fontes")
-    .select("id, tipo, mecanismo_id, nome_fonte, configuracao_regras, biblioteca_regras (mecanismo_nome, esfera, configuracao_regras)")
+    .select("id, tipo, mecanismo_id, nome_fonte, valor_captacao, configuracao_regras, biblioteca_regras (mecanismo_nome, esfera, configuracao_regras)")
     .eq("id", fonteId)
     .eq("projeto_id", projetoId)
     .single();
 
   if (!fonte) return { error: "Fonte não encontrada." };
+
+  const orcamento = fonte.valor_captacao || 0;
+  if (orcamento <= 0) return { error: "Orçamento da fonte não definido." };
 
   const biblioteca = Array.isArray(fonte.biblioteca_regras)
     ? fonte.biblioteca_regras[0]
@@ -80,7 +80,7 @@ export async function gerarProjetoAction(
 
   if (updateFonteError) return { error: "Erro ao salvar conteúdo na fonte." };
 
-  // Insere itens orçamentários no projeto (limpa antes)
+  // Limpa itens orçamentários anteriores e insere novos
   const { error: deleteItensError } = await supabase.from("itens_orcamentarios").delete().eq("projeto_id", projetoId);
   if (!deleteItensError) {
     await supabase.from("itens_orcamentarios").insert(
