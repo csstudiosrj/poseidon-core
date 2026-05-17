@@ -2,7 +2,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { getProjeto } from "@/app/actions/projeto";
-import { FileText, ArrowLeft, Edit3, DollarSign, Layers } from "lucide-react";
+import { FileText, ArrowLeft, Edit3, DollarSign, Layers, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import "../../../globals.css";
 
@@ -104,13 +104,23 @@ export default async function ProjetoPage({
                     <p className="text-white/40 text-xs">Conteúdo ainda não gerado para esta fonte.</p>
                   )}
 
-                  <Link
-                    href={`/escrita?projeto=${projeto.id}&fonte=${fonte.id}`}
-                    className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer mt-2"
-                  >
-                    <Edit3 size={14} />
-                    Editar Escrita
-                  </Link>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Link
+                      href={`/escrita?projeto=${projeto.id}&fonte=${fonte.id}`}
+                      className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer"
+                    >
+                      <Edit3 size={14} />
+                      Editar Escrita
+                    </Link>
+                    {/* BOTÃO DA TORRE DE CONTROLE */}
+                    <Link
+                      href={`/projeto/${projeto.id}/execucao`}
+                      className="inline-flex items-center gap-2 bg-sea-800 border border-white/10 hover:border-cyan-500/30 text-cyan-400 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer"
+                    >
+                      <ShieldCheck size={14} />
+                      Torre de Controle
+                    </Link>
+                  </div>
                 </div>
               );
             })
@@ -187,7 +197,7 @@ export default async function ProjetoPage({
             )}
           </div>
 
-          {/* Itens orçamentários (se existirem) */}
+          {/* Itens orçamentários */}
           {itens.length > 0 && (
             <div className="card p-5 space-y-4">
               <h3 className="text-sm font-semibold text-white">Itens Orçamentários</h3>
