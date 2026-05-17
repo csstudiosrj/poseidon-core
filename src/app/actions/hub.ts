@@ -74,10 +74,10 @@ export async function getHubData(): Promise<
 
   const projetos: ProjetoHub[] = (projetosRaw as any[]).map((item) => {
     const fontes = (item.projeto_fontes || []).map((f: any) => {
-      const nome =
-        f.tipo === 'incentivo_fiscal'
-          ? f.biblioteca_regras?.mecanismo_nome || 'Incentivo Fiscal'
-          : f.nome_fonte || f.tipo;
+      let nome = f.nome_fonte || f.tipo;
+      if (f.tipo === 'incentivo_fiscal' && f.biblioteca_regras?.mecanismo_nome) {
+        nome = f.biblioteca_regras.mecanismo_nome;
+      }
       return {
         tipo: f.tipo,
         nome,

@@ -79,6 +79,7 @@ export async function criarProjetoAction(
     .single();
 
   if (insertError || !projetoCriado) {
+    console.error("Erro ao criar projeto:", insertError);
     return { error: "Erro ao criar o projeto." };
   }
 
@@ -86,7 +87,6 @@ export async function criarProjetoAction(
   for (const fonte of fontes) {
     let configuracao_regras = null;
 
-    // Se for incentivo fiscal e tiver mecanismo, carrega as regras
     if (fonte.tipo === "incentivo_fiscal" && fonte.mecanismo_id) {
       const { data: mecanismo } = await supabase
         .from("biblioteca_regras")
@@ -110,6 +110,8 @@ export async function criarProjetoAction(
 
     if (fonteError) {
       console.error("Erro ao inserir fonte:", fonteError);
+      // Tenta deletar o projeto órfão
+      await supabase.from("projetos").delete().eq("id", projetoCriado.id);
       return { error: "Erro ao salvar as fontes de captação." };
     }
   }
