@@ -34,7 +34,6 @@ export default function LoginPage() {
   return (
     <div className="app-shell">
       <div className="app-shell-inner">
-        {/* Lado hero / branding */}
         <section className="login-hero">
           <div className="login-hero-header">
             <svg
@@ -107,8 +106,6 @@ export default function LoginPage() {
             </div>
           </div>
         </section>
-
-        {/* Lado formulário */}
         <LoginForm />
       </div>
     </div>
@@ -168,13 +165,10 @@ function LoginForm() {
           </p>
         </div>
       </header>
-
-      {/* ── Formulário conectado ao server action via useActionState ── */}
       <form
         action={formAction}
         style={{ display: "flex", flexDirection: "column", gap: 12 }}
       >
-        {/* E-mail */}
         <div className="ds-field">
           <label htmlFor="email" className="ds-label">
             E-mail
@@ -182,18 +176,15 @@ function LoginForm() {
           <input
             type="email"
             id="email"
-            name="email"           {/* ← bate com actions.ts */}
+            name="email"
             className="ds-input"
             placeholder="voce@produtora.com"
             required
             disabled={isPending}
           />
         </div>
-
-        {/* Campos exclusivos do cadastro */}
         {!isLogin && (
           <>
-            {/* Nome completo — name alinhado com actions.ts */}
             <div className="ds-field">
               <label htmlFor="nome_completo" className="ds-label">
                 Nome completo
@@ -201,14 +192,12 @@ function LoginForm() {
               <input
                 type="text"
                 id="nome_completo"
-                name="nome_completo"   {/* ← era "name", corrigido */}
+                name="nome_completo"
                 className="ds-input"
                 placeholder="Nome de quem responde pelo projeto"
                 disabled={isPending}
               />
             </div>
-
-            {/* CPF / CNPJ — name alinhado com actions.ts + máscara preservada */}
             <div className="ds-field">
               <label htmlFor="documento" className="ds-label">
                 CPF ou CNPJ
@@ -216,7 +205,7 @@ function LoginForm() {
               <input
                 type="text"
                 id="documento"
-                name="documento"       {/* ← era "doc", corrigido */}
+                name="documento"
                 className="ds-input num-tabular"
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 value={doc}
@@ -253,8 +242,6 @@ function LoginForm() {
             </div>
           </>
         )}
-
-        {/* Senha */}
         <div className="ds-field">
           <label htmlFor="password" className="ds-label">
             Senha
@@ -262,15 +249,13 @@ function LoginForm() {
           <input
             type="password"
             id="password"
-            name="password"        {/* ← bate com actions.ts */}
+            name="password"
             className="ds-input"
             placeholder="Use uma senha forte"
             required
             disabled={isPending}
           />
         </div>
-
-        {/* Confirmar senha (apenas no cadastro) */}
         {!isLogin && (
           <div className="ds-field">
             <label htmlFor="password-confirm" className="ds-label">
@@ -286,8 +271,6 @@ function LoginForm() {
             />
           </div>
         )}
-
-        {/* Checkbox contextual */}
         <div className="ds-checkbox-row" style={{ marginTop: 4 }}>
           {isLogin ? (
             <>
@@ -316,8 +299,6 @@ function LoginForm() {
             </>
           )}
         </div>
-
-        {/* Botão de submit com loading state */}
         <button
           type="submit"
           className="ds-btn ds-btn-primary"
@@ -337,8 +318,6 @@ function LoginForm() {
             ? isLogin ? "Entrando…" : "Criando conta…"
             : isLogin ? "Entrar"    : "Criar conta"}
         </button>
-
-        {/* Link de alternância login ↔ signup */}
         <p
           className="ds-link-muted"
           style={{ marginTop: 10, textAlign: "center" }}
@@ -383,8 +362,6 @@ function LoginForm() {
             </>
           )}
         </p>
-
-        {/* Erros vindos do server action */}
         {state?.error && (
           <p className="form-error" style={{ textAlign: "center" }}>
             {state.error}
