@@ -60,7 +60,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { label: "Hub", href: "/hub", icon: Layers },
   { label: "Novo Projeto", href: "/setup", icon: FileText },
-  { label: "Escrita", href: "#", icon: Sparkles, badge: "Em breve" },
+  { label: "Escrita", href: "/escrita", icon: Sparkles },
   { label: "Auditoria", href: "#", icon: ShieldCheck, badge: "Em breve" },
 ];
 
@@ -98,6 +98,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ? "console://hub"
       : pathname === "/setup"
       ? "console://setup"
+      : pathname === "/escrita"
+      ? "console://escrita"
       : "console://poseidon";
 
   return (

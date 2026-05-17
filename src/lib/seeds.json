@@ -1,0 +1,71 @@
+// src/lib/ia/seeds.json
+// ═══════════════════════════════════════════════════════════════
+// ARQUIVO DE SEEDS – CARGA INICIAL DO MOTOR POSEIDON
+// ═══════════════════════════════════════════════════════════════
+// 
+// INSTRUÇÕES DE PREENCHIMENTO:
+// Gere projetos culturais FICTÍCIOS usando IAs de mercado
+// (Claude, GPT, Gemini) com os prompts fornecidos abaixo.
+// 
+// PARA CADA SEGMENTO (8 segmentos), gere 3 projetos:
+//   - 1 pela Claude
+//   - 1 pelo GPT
+//   - 1 pelo Gemini
+// Total: 24 projetos.
+//
+// PROMPT PADRÃO PARA AS IAs (copie e cole):
+// ┌─────────────────────────────────────────────────────────────┐
+// │ Você é um produtor cultural brasileiro experiente. Crie um │
+// │ projeto cultural FICTÍCIO completo para um edital da Lei   │
+// │ Rouanet (Pronac), no segmento [SEGMENTO].                  │
+// │                                                             │
+// │ O projeto deve conter:                                     │
+// │ 1. Nome criativo e original do projeto                     │
+// │ 2. Descrição detalhada (mínimo 200 palavras)               │
+// │ 3. Justificativa (mínimo 150 palavras)                     │
+// │ 4. Objetivos gerais e específicos                          │
+// │ 5. Público-alvo estimado                                   │
+// │ 6. Medidas de acessibilidade                               │
+// │ 7. Contrapartida social                                    │
+// │ 8. Estratégia de democratização do acesso                  │
+// │ 9. Orçamento total entre R$ 80.000 e R$ 500.000, com      │
+// │    distribuição por categorias (administração, cachês,     │
+// │    infraestrutura, divulgação, etc.)                       │
+// │                                                             │
+// │ Use linguagem formal e técnica, adequada para aprovação    │
+// │ em edital do Ministério da Cultura. Inclua menção aos      │
+// │ artigos constitucionais pertinentes e ao Pronac.           │
+// │                                                             │
+// │ IMPORTANTE: Cada projeto deve ser ÚNICO e CRIATIVO.        │
+// │ Varie o estilo de escrita, a estrutura dos parágrafos      │
+// │ e os argumentos utilizados.                                │
+// └─────────────────────────────────────────────────────────────┘
+//
+// FORMATE A SAÍDA DA IA exatamente como o objeto abaixo,
+// preenchendo todos os campos.
+// ═══════════════════════════════════════════════════════════════
+
+[
+    // EXEMPLO DE UM SEED PREENCHIDO (siga este formato):
+    {
+      "segmento": "musica",
+      "esfera": "Federal",
+      "mecanismo": "Lei Rouanet",
+      "nome": "Festival Sonora Brasil – Edição Itinerante",
+      "descricao": "O Festival Sonora Brasil é um evento musical itinerante que percorrerá 5 cidades do interior...",
+      "justificativa": "A Constituição Federal de 1988, em seu artigo 215, assegura o pleno exercício dos direitos culturais...",
+      "objetivos": "Objetivo geral: Democratizar o acesso à música popular brasileira...\nObjetivos específicos: Realizar 15 apresentações...",
+      "publico_alvo": "Jovens e adultos entre 15 e 45 anos, estudantes da rede pública, comunidades periféricas...",
+      "acessibilidade": "Todos os locais contarão com rampas de acesso, intérpretes de Libras, banheiros adaptados...",
+      "contrapartida": "Serão oferecidas 10 oficinas gratuitas de formação musical para jovens da rede pública...",
+      "democratizacao": "100% das apresentações serão gratuitas, com reserva de 20% dos ingressos para idosos...",
+      "orcamento": [
+        { "descricao": "Cachês artísticos", "categoria": "cache", "valor": 80000, "quantidade": 15, "justificativa": "Contratação de artistas regionais e nacionais" },
+        { "descricao": "Infraestrutura de palco", "categoria": "infraestrutura", "valor": 45000, "quantidade": 1, "justificativa": "Montagem de palco, som e iluminação" },
+        { "descricao": "Coordenação administrativa", "categoria": "administracao", "valor": 18000, "quantidade": 1, "justificativa": "Gestão do projeto conforme teto de 15% da Rouanet" },
+        { "descricao": "Divulgação e mídia", "categoria": "divulgacao", "valor": 12000, "quantidade": 1, "justificativa": "Campanha de divulgação regional" },
+        { "descricao": "Transporte e logística", "categoria": "logistica", "valor": 25000, "quantidade": 1, "justificativa": "Deslocamento de equipe e equipamentos entre cidades" }
+      ]
+    }
+    // ⚠️ COLE OS DEMAIS 23 PROJETOS ABAIXO, SEGUINDO O MESMO FORMATO
+  ]
