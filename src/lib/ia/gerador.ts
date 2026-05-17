@@ -1,6 +1,6 @@
 // src/lib/ia/gerador.ts
 //
-// MOTOR DE GERAÇÃO DO POSEIDON v1.0
+// MOTOR DE GERAÇÃO DO POSEIDON v1.1
 // Sistema especialista baseado em regras + seeds de alta qualidade.
 // Zero dependência de APIs externas de IA.
 //
@@ -19,20 +19,29 @@ import {
     ItemOrcamentarioGerado,
     ProjetoSeed,
     SegmentoCultural,
+    TetoOrcamentario,
   } from "./tipos";
   
-  // ─── SEEDS (import estático) ────────────────────────────────────
-  import seedsData from "./seeds.json";
-  const seeds: ProjetoSeed[] = seedsData as ProjetoSeed[];
+  // ─── SEEDS (carregamento dinâmico) ──────────────────────────────
+  let seeds: ProjetoSeed[] = [];
+  
+  async function carregarSeeds(): Promise<ProjetoSeed[]> {
+    if (seeds.length > 0) return seeds;
+    try {
+      const modulo = await import("./seeds.json");
+      seeds = modulo.default || modulo || [];
+    } catch {
+      console.warn("⚠️ seeds.json não encontrado. Usando apenas templates internos.");
+      seeds = [];
+    }
+    return seeds;
+  }
   
   // ─── BANCO DE TEMPLATES INTERNOS ─────────────────────────────────
-  // Cada seção tem múltiplas variantes. O motor escolhe uma aleatoriamente.
-  // Quanto mais variantes, menor a chance de repetição.
-  
   interface TemplateVariante {
     id: string;
     texto: string;
-    score: number; // Ajustado com feedback de aprovações (versão 2.0)
+    score: number;
   }
   
   interface BancoTemplates {
@@ -163,12 +172,10 @@ import {
   
   // ─── FUNÇÕES AUXILIARES ─────────────────────────────────────────
   
-  /** Sorteia um elemento aleatório de um array */
   function aleatorio<T>(lista: T[]): T {
     return lista[Math.floor(Math.random() * lista.length)];
   }
   
-  /** Sorteia uma variante ponderada pelo score (maior score = mais chance) */
   function variantePonderada(variantes: TemplateVariante[]): TemplateVariante {
     const totalScore = variantes.reduce((soma, v) => soma + v.score, 0);
     let random = Math.random() * totalScore;
@@ -179,7 +186,6 @@ import {
     return variantes[variantes.length - 1];
   }
   
-  /** Substitui placeholders {{CHAVE}} no texto */
   function preencherTemplate(texto: string, variaveis: Record<string, string | number>): string {
     let resultado = texto;
     for (const [chave, valor] of Object.entries(variaveis)) {
@@ -188,13 +194,12 @@ import {
     return resultado;
   }
   
-  /** Busca seeds do segmento correspondente */
   function buscarSeeds(segmento?: SegmentoCultural): ProjetoSeed[] {
     if (!segmento) return [];
+    // Acesso síncrono ao array carregado
     return seeds.filter((s) => s.segmento === segmento);
   }
   
-  /** Gera uma seção usando seed (modo 1) */
   function gerarSecaoPorSeed(
     seed: ProjetoSeed,
     secao: string,
@@ -210,8 +215,6 @@ import {
     };
     const textoBase = mapa[secao];
     if (!textoBase) return null;
-  
-    // Substitui dados do seed pelos dados reais do usuário
     return preencherTemplate(textoBase, {
       NOME_PROJETO: variaveis.NOME_PROJETO || seed.nome,
       DESCRICAO_CURTA: variaveis.DESCRICAO_CURTA || seed.descricao.slice(0, 150),
@@ -227,19 +230,16 @@ import {
     });
   }
   
-  /** Gera uma seção usando templates internos (modo 2) */
   function gerarSecaoPorTemplate(
     secao: string,
     variaveis: Record<string, string | number>
   ): string {
     const variantes = bancoTemplates[secao];
     if (!variantes || variantes.length === 0) return "";
-  
     const escolhida = variantePonderada(variantes);
     return preencherTemplate(escolhida.texto, variaveis);
   }
   
-  /** Distribui o orçamento conforme os tetos da lei */
   function distribuirOrcamento(
     valorTotal: number,
     tetos: TetoOrcamentario[]
@@ -274,7 +274,6 @@ import {
       saldo -= valor;
     }
   
-    // Se sobrar saldo, distribui no maior item
     if (saldo > 0 && itens.length > 0) {
       itens[0].valor += saldo;
     }
@@ -282,7 +281,6 @@ import {
     return itens;
   }
   
-  /** Detecta o segmento cultural a partir do nome e descrição do projeto */
   function detectarSegmento(nome: string, descricao: string): SegmentoCultural {
     const texto = (nome + " " + descricao).toLowerCase();
     const palavrasChave: Record<SegmentoCultural, string[]> = {
@@ -308,18 +306,21 @@ import {
   
   // ─── FUNÇÃO PRINCIPAL ───────────────────────────────────────────
   
-  export function gerarConteudoProjeto(
+  export async function gerarConteudoProjeto(
     projeto: ProjetoBase,
     respostas: RespostasEntrevista,
     regras: RegrasMecanismo
-  ): {
+  ): Promise<{
     conteudo_escrita: ConteudoGerado;
     itens_orcamentarios: ItemOrcamentarioGerado[];
-  } {
+  }> {
+    // Garantir que as seeds estejam carregadas
+    if (seeds.length === 0) {
+      await carregarSeeds();
+    }
+  
     const segmento = projeto.segmento || detectarSegmento(projeto.nome_projeto, respostas.descricao);
     const seedsDoSegmento = buscarSeeds(segmento);
-  
-    // Escolhe seed aleatório se houver
     const seedEscolhido = seedsDoSegmento.length > 0 ? aleatorio(seedsDoSegmento) : null;
   
     const variaveis = {
@@ -340,12 +341,10 @@ import {
     const conteudo: Record<string, string> = {};
   
     for (const secao of secoes) {
-      // Tenta gerar por seed primeiro
       const porSeed = seedEscolhido ? gerarSecaoPorSeed(seedEscolhido, secao, variaveis) : null;
       conteudo[secao] = porSeed || gerarSecaoPorTemplate(secao, variaveis);
     }
   
-    // Adiciona a descrição original do usuário como base
     conteudo["descricao_projeto"] = respostas.descricao;
   
     const itens = distribuirOrcamento(respostas.orcamento, regras.tetos);
@@ -356,5 +355,4 @@ import {
     };
   }
   
-  // ─── EXPORTAÇÃO DE UTILITÁRIOS (para uso futuro) ─────────────────
   export { bancoTemplates, buscarSeeds, detectarSegmento, distribuirOrcamento };
