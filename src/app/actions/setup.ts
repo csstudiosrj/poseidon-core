@@ -4,6 +4,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+interface FontePayload {
+  tipo: "incentivo_fiscal" | "edital" | "patrocinio_direto";
+  mecanismo_id?: string | null;
+  nome_fonte?: string | null;
+  valor_captacao: number;
+}
+
 export async function criarProjetoAction(
   _prevState: { error?: string; success?: boolean } | null,
   formData: FormData
@@ -16,20 +23,38 @@ export async function criarProjetoAction(
   }
 
   const nome_projeto = formData.get("nome_projeto") as string;
-  const mecanismo_id = formData.get("mecanismo_id") as string;
-  const orcamentoStr = formData.get("orcamento_valor") as string;
-  const orcamento_pretendido = parseFloat(orcamentoStr || "0");
+  const orcamentoTotalStr = formData.get("orcamento_total") as string;
+  const fontesRaw = formData.get("fontes") as string;
 
   if (!nome_projeto || nome_projeto.trim().length < 3) {
     return { error: "Nome do projeto deve ter pelo menos 3 caracteres." };
   }
-  if (!mecanismo_id) {
-    return { error: "Selecione um mecanismo." };
-  }
-  if (orcamento_pretendido <= 0) {
-    return { error: "Informe um orçamento válido." };
+
+  const orcamentoTotal = parseFloat(orcamentoTotalStr || "0");
+  if (orcamentoTotal <= 0) {
+    return { error: "Informe um orçamento total válido." };
   }
 
+  let fontes: FontePayload[] = [];
+  try {
+    fontes = JSON.parse(fontesRaw);
+  } catch {
+    return { error: "Dados das fontes inválidos." };
+  }
+
+  if (!fontes.length) {
+    return { error: "Adicione pelo menos uma fonte de captação." };
+  }
+
+  const somaFontes = fontes.reduce((s, f) => s + f.valor_captacao, 0);
+  if (somaFontes <= 0) {
+    return { error: "A soma dos valores das fontes deve ser maior que zero." };
+  }
+  if (somaFontes > orcamentoTotal) {
+    return { error: "A soma das fontes não pode ultrapassar o orçamento total." };
+  }
+
+  // Buscar proponente
   const { data: proponente, error: propError } = await supabase
     .from("proponentes")
     .select("id")
@@ -37,39 +62,56 @@ export async function criarProjetoAction(
     .single();
 
   if (propError || !proponente) {
-    return { error: "Perfil de proponente não encontrado. Complete seu cadastro primeiro." };
+    return { error: "Perfil de proponente não encontrado." };
   }
 
-  // Carrega a configuração de regras do mecanismo
-  const { data: mecanismo, error: mecanismoError } = await supabase
-    .from("biblioteca_regras")
-    .select("configuracao_regras")
-    .eq("id", mecanismo_id)
+  // 1. Criar o projeto
+  const { data: projetoCriado, error: insertError } = await supabase
+    .from("projetos")
+    .insert({
+      nome_projeto: nome_projeto.trim(),
+      proponente_id: proponente.id,
+      status: "rascunho",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
     .single();
 
-  const configuracao = mecanismo?.configuracao_regras ?? null;
-  if (mecanismoError) {
-    console.warn("Não foi possível carregar as regras do mecanismo.");
+  if (insertError || !projetoCriado) {
+    return { error: "Erro ao criar o projeto." };
   }
 
-  const conteudoInicial = {
-    orcamento_pretendido,
-  };
+  // 2. Criar as fontes
+  for (const fonte of fontes) {
+    let configuracao_regras = null;
 
-  const { error: insertError } = await supabase.from("projetos").insert({
-    nome_projeto: nome_projeto.trim(),
-    mecanismo_id,
-    proponente_id: proponente.id,
-    status: "rascunho",
-    conteudo_escrita: conteudoInicial,
-    configuracao_regras: configuracao,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
+    // Se for incentivo fiscal e tiver mecanismo, carrega as regras
+    if (fonte.tipo === "incentivo_fiscal" && fonte.mecanismo_id) {
+      const { data: mecanismo } = await supabase
+        .from("biblioteca_regras")
+        .select("configuracao_regras")
+        .eq("id", fonte.mecanismo_id)
+        .single();
+      configuracao_regras = mecanismo?.configuracao_regras ?? null;
+    }
 
-  if (insertError) {
-    console.error("Erro ao criar projeto:", insertError);
-    return { error: "Erro ao salvar o projeto. Tente novamente." };
+    const { error: fonteError } = await supabase
+      .from("projeto_fontes")
+      .insert({
+        projeto_id: projetoCriado.id,
+        tipo: fonte.tipo,
+        mecanismo_id: fonte.tipo === "incentivo_fiscal" ? fonte.mecanismo_id : null,
+        nome_fonte: fonte.tipo !== "incentivo_fiscal" ? fonte.nome_fonte : null,
+        valor_captacao: fonte.valor_captacao,
+        status: "rascunho",
+        configuracao_regras,
+      });
+
+    if (fonteError) {
+      console.error("Erro ao inserir fonte:", fonteError);
+      return { error: "Erro ao salvar as fontes de captação." };
+    }
   }
 
   redirect("/hub");

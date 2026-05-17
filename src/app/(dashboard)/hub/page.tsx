@@ -6,7 +6,6 @@ import {
   Plus,
   FolderKanban,
   Calendar,
-  Sparkles,
   Layers,
   PlayCircle,
   FilePenLine,
@@ -23,16 +22,20 @@ type ProjetoStatus =
   | "finalizado"
   | "prestacao_contas";
 
+interface FonteResumo {
+  tipo: string;
+  nome: string;
+  valor: number;
+}
+
 interface ProjetoHub {
   id: string;
   nome_projeto: string;
   status: ProjetoStatus | string;
   created_at: string;
   updated_at: string;
-  biblioteca_regras: {
-    mecanismo_nome: string;
-    esfera: string;
-  } | null;
+  fontes: FonteResumo[];
+  orcamento_total: number;
 }
 
 interface ResumoProjetos {
@@ -62,7 +65,6 @@ export default async function HubPage() {
   return (
     <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans">
       <main className="px-6 md:px-10 py-8">
-        {/* HEADER */}
         <header className="flex items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">
@@ -81,7 +83,6 @@ export default async function HubPage() {
           </Link>
         </header>
 
-        {/* ERRO (não-autenticação já redireciona) */}
         {error && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400 mb-6 flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
@@ -89,33 +90,15 @@ export default async function HubPage() {
           </div>
         )}
 
-        {/* KPI CARDS – replicando estilo dos 3 cards do dashboard */}
         {resumo && !error && (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <ResumoCard
-              label="Total de Projetos"
-              valor={resumo.total}
-              icon={Layers}
-            />
-            <ResumoCard
-              label="Ativos"
-              valor={resumo.ativos}
-              icon={PlayCircle}
-            />
-            <ResumoCard
-              label="Rascunhos"
-              valor={resumo.rascunhos}
-              icon={FilePenLine}
-            />
-            <ResumoCard
-              label="Pendentes"
-              valor={resumo.enviados}
-              icon={Clock}
-            />
+            <ResumoCard label="Total de Projetos" valor={resumo.total} icon={Layers} />
+            <ResumoCard label="Ativos" valor={resumo.ativos} icon={PlayCircle} />
+            <ResumoCard label="Rascunhos" valor={resumo.rascunhos} icon={FilePenLine} />
+            <ResumoCard label="Pendentes" valor={resumo.enviados} icon={Clock} />
           </section>
         )}
 
-        {/* GRID / EMPTY */}
         {!error && (
           <>
             {isEmpty ? (
@@ -133,8 +116,6 @@ export default async function HubPage() {
     </div>
   );
 }
-
-/* ─── Sub-componentes ───────────────────────────────────────────── */
 
 interface ResumoCardProps {
   label: string;
@@ -209,13 +190,16 @@ function getStatusConfig(statusRaw: string) {
 
 function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
   const statusCfg = getStatusConfig(projeto.status);
-  const mecanismoLabel = projeto.biblioteca_regras
-    ? `${projeto.biblioteca_regras.mecanismo_nome} · ${projeto.biblioteca_regras.esfera}`
-    : "Mecanismo não informado";
+  const dataCriacao = new Date(projeto.created_at).toLocaleDateString("pt-BR");
 
-  const dataCriacao = new Date(projeto.created_at).toLocaleDateString(
-    "pt-BR"
-  );
+  const fontesLabel =
+    projeto.fontes.length === 1
+      ? projeto.fontes[0].nome
+      : `${projeto.fontes.length} fontes`;
+
+  const fontesDetalhe = projeto.fontes
+    .map((f) => `${f.nome} (${((f.valor / projeto.orcamento_total) * 100).toFixed(0)}%)`)
+    .join(" + ");
 
   return (
     <article className="card p-4 flex flex-col justify-between min-h-[175px] hover:border-cyan-500/15 transition-all group">
@@ -226,7 +210,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
               {projeto.nome_projeto}
             </h2>
             <p className="text-xs text-white/40 mt-0.5 truncate font-medium">
-              {mecanismoLabel}
+              {fontesLabel}
             </p>
           </div>
           <div
@@ -236,7 +220,11 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-white/30 mt-4 mb-3">
+        <p className="text-[10px] text-white/30 mb-3 leading-relaxed" title={fontesDetalhe}>
+          {fontesDetalhe}
+        </p>
+
+        <div className="flex items-center justify-between text-[11px] text-white/30 mb-3">
           <div className="inline-flex items-center gap-1.5">
             <Calendar size={12} className="text-white/20" />
             <span>Criado em {dataCriacao}</span>

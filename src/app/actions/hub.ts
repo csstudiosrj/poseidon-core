@@ -1,6 +1,23 @@
+// src/app/actions/hub.ts
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+
+interface FonteResumo {
+  tipo: string;
+  nome: string;
+  valor: number;
+}
+
+interface ProjetoHub {
+  id: string;
+  nome_projeto: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  fontes: FonteResumo[];
+  orcamento_total: number;
+}
 
 interface ResumoProjetos {
   total: number;
@@ -12,30 +29,6 @@ interface ResumoProjetos {
   prestacao_contas: number;
 }
 
-interface ProjetoHub {
-  id: string;
-  nome_projeto: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  biblioteca_regras: {
-    mecanismo_nome: string;
-    esfera: string;
-  } | null;
-}
-
-type ProjetoRowRaw = {
-  id: string;
-  nome_projeto: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  biblioteca_regras: {
-    mecanismo_nome: string;
-    esfera: string;
-  }[] | null;
-};
-
 export async function getHubData(): Promise<
   { projetos: ProjetoHub[]; resumo: ResumoProjetos } | { error: string }
 > {
@@ -46,13 +39,7 @@ export async function getHubData(): Promise<
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (sessionError) {
-    console.error('Erro ao obter sessão:', sessionError);
-    return { error: 'Usuário não autenticado.' };
-  }
-
-  if (!session) {
-    console.error('Nenhuma sessão encontrada. Verifique se os cookies estão sendo enviados.');
+  if (sessionError || !session) {
     return { error: 'Usuário não autenticado.' };
   }
 
@@ -68,7 +55,7 @@ export async function getHubData(): Promise<
     return { error: 'Perfil de proponente não encontrado.' };
   }
 
-  const { data: rawProjetos, error: projetosError } = await supabase
+  const { data: projetosRaw, error: projetosError } = await supabase
     .from('projetos')
     .select(`
       id,
@@ -76,7 +63,7 @@ export async function getHubData(): Promise<
       status,
       created_at,
       updated_at,
-      biblioteca_regras ( mecanismo_nome, esfera )
+      projeto_fontes (tipo, nome_fonte, mecanismo_id, valor_captacao, biblioteca_regras (mecanismo_nome))
     `)
     .eq('proponente_id', proponente.id)
     .order('created_at', { ascending: false });
@@ -85,14 +72,31 @@ export async function getHubData(): Promise<
     return { error: 'Erro ao carregar projetos: ' + projetosError.message };
   }
 
-  const projetos: ProjetoHub[] = (rawProjetos as ProjetoRowRaw[]).map((item) => ({
-    id: item.id,
-    nome_projeto: item.nome_projeto,
-    status: item.status,
-    created_at: item.created_at,
-    updated_at: item.updated_at,
-    biblioteca_regras: item.biblioteca_regras?.[0] ?? null,
-  }));
+  const projetos: ProjetoHub[] = (projetosRaw as any[]).map((item) => {
+    const fontes = (item.projeto_fontes || []).map((f: any) => {
+      const nome =
+        f.tipo === 'incentivo_fiscal'
+          ? f.biblioteca_regras?.mecanismo_nome || 'Incentivo Fiscal'
+          : f.nome_fonte || f.tipo;
+      return {
+        tipo: f.tipo,
+        nome,
+        valor: f.valor_captacao || 0,
+      };
+    });
+
+    const orcamento_total = fontes.reduce((soma: number, f: FonteResumo) => soma + f.valor, 0);
+
+    return {
+      id: item.id,
+      nome_projeto: item.nome_projeto,
+      status: item.status,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      fontes,
+      orcamento_total,
+    };
+  });
 
   const resumo: ResumoProjetos = {
     total: projetos.length,
