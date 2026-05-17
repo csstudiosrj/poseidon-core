@@ -1,10 +1,9 @@
 // src/app/(dashboard)/setup/page.tsx
 import React from "react";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { SetupForm } from "./SetupForm";
 
-// Tipos para os dados que vêm do banco
 interface Mecanismo {
   id: string;
   mecanismo_nome: string;

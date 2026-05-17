@@ -64,7 +64,6 @@ export function SetupForm({ mecanismos }: { mecanismos: Mecanismo[] }) {
   function handleOrcamentoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value;
     setOrcamentoRaw(raw);
-    // O valor formatado é só visual; o valor real (número) vai no campo hidden
   }
 
   const valorNumerico = orcamentoRaw
@@ -184,7 +183,6 @@ export function SetupForm({ mecanismos }: { mecanismos: Mecanismo[] }) {
               onChange={handleOrcamentoChange}
               disabled={isPending}
             />
-            {/* Campo hidden com o valor numérico puro (centavos) */}
             <input
               type="hidden"
               name="orcamento_pretendido"
