@@ -1,8 +1,35 @@
 "use client";
 
-import React from "react";
+import React, { useActionState } from "react";
+import { Loader2 } from "lucide-react";
 import "../globals.css";
+import { login, signup } from "./actions";
 
+/* ─── Tipos ──────────────────────────────────────────────────────── */
+type ActionState = { error: string } | null;
+
+/* ─── Adaptadores ────────────────────────────────────────────────────
+   useActionState exige que a action receba (prevState, formData).
+   As server actions existentes recebem só (formData), então criamos
+   wrappers aqui no client que ignoram prevState e repassam formData.
+   redirect() dentro das server actions ainda funciona normalmente —
+   ele lança um erro especial que o React intercepta antes do retorno.
+─────────────────────────────────────────────────────────────────── */
+async function loginAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  return (await login(formData)) ?? null;
+}
+
+async function signupAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  return (await signup(formData)) ?? null;
+}
+
+/* ─── Página ─────────────────────────────────────────────────────── */
 export default function LoginPage() {
   return (
     <div className="app-shell">
@@ -88,25 +115,23 @@ export default function LoginPage() {
   );
 }
 
+/* ─── Formulário ─────────────────────────────────────────────────── */
 function LoginForm() {
-  const [mode, setMode] = React.useState<"login" | "signup">("login");
-  const [error, setError] = React.useState<string | null>(null);
-  const [doc, setDoc] = React.useState("");
+  const [mode, setMode]   = React.useState<"login" | "signup">("login");
+  const [doc,  setDoc]    = React.useState("");
 
-  const isLogin = mode === "login";
+  /* Um estado por action — o hook precisa ser chamado no topo,
+     não dentro de condicionais. Usamos o relevante para o modo ativo. */
+  const [loginState,  loginFormAction,  isLoginPending]  = useActionState(loginAction,  null);
+  const [signupState, signupFormAction, isSignupPending] = useActionState(signupAction, null);
+
+  const isLogin   = mode === "login";
+  const formAction = isLogin ? loginFormAction  : signupFormAction;
+  const state      = isLogin ? loginState       : signupState;
+  const isPending  = isLogin ? isLoginPending   : isSignupPending;
 
   function handleToggle() {
-    setError(null);
     setMode(isLogin ? "signup" : "login");
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(
-      isLogin
-        ? "Login ainda não conectado ao backend."
-        : "Cadastro ainda não conectado ao backend."
-    );
   }
 
   return (
@@ -144,10 +169,12 @@ function LoginForm() {
         </div>
       </header>
 
+      {/* ── Formulário conectado ao server action via useActionState ── */}
       <form
-        onSubmit={handleSubmit}
+        action={formAction}
         style={{ display: "flex", flexDirection: "column", gap: 12 }}
       >
+        {/* E-mail */}
         <div className="ds-field">
           <label htmlFor="email" className="ds-label">
             E-mail
@@ -155,39 +182,45 @@ function LoginForm() {
           <input
             type="email"
             id="email"
-            name="email"
+            name="email"           {/* ← bate com actions.ts */}
             className="ds-input"
             placeholder="voce@produtora.com"
             required
+            disabled={isPending}
           />
         </div>
 
+        {/* Campos exclusivos do cadastro */}
         {!isLogin && (
           <>
+            {/* Nome completo — name alinhado com actions.ts */}
             <div className="ds-field">
-              <label htmlFor="name" className="ds-label">
+              <label htmlFor="nome_completo" className="ds-label">
                 Nome completo
               </label>
               <input
                 type="text"
-                id="name"
-                name="name"
+                id="nome_completo"
+                name="nome_completo"   {/* ← era "name", corrigido */}
                 className="ds-input"
                 placeholder="Nome de quem responde pelo projeto"
+                disabled={isPending}
               />
             </div>
 
+            {/* CPF / CNPJ — name alinhado com actions.ts + máscara preservada */}
             <div className="ds-field">
-              <label htmlFor="doc" className="ds-label">
+              <label htmlFor="documento" className="ds-label">
                 CPF ou CNPJ
               </label>
               <input
                 type="text"
-                id="doc"
-                name="doc"
+                id="documento"
+                name="documento"       {/* ← era "doc", corrigido */}
                 className="ds-input num-tabular"
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 value={doc}
+                disabled={isPending}
                 onChange={(e) => {
                   const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
                   let formatted = digits;
@@ -221,6 +254,7 @@ function LoginForm() {
           </>
         )}
 
+        {/* Senha */}
         <div className="ds-field">
           <label htmlFor="password" className="ds-label">
             Senha
@@ -228,13 +262,15 @@ function LoginForm() {
           <input
             type="password"
             id="password"
-            name="password"
+            name="password"        {/* ← bate com actions.ts */}
             className="ds-input"
             placeholder="Use uma senha forte"
             required
+            disabled={isPending}
           />
         </div>
 
+        {/* Confirmar senha (apenas no cadastro) */}
         {!isLogin && (
           <div className="ds-field">
             <label htmlFor="password-confirm" className="ds-label">
@@ -246,10 +282,12 @@ function LoginForm() {
               name="password-confirm"
               className="ds-input"
               placeholder="Repita a senha"
+              disabled={isPending}
             />
           </div>
         )}
 
+        {/* Checkbox contextual */}
         <div className="ds-checkbox-row" style={{ marginTop: 4 }}>
           {isLogin ? (
             <>
@@ -258,6 +296,7 @@ function LoginForm() {
                 id="remember"
                 name="remember"
                 defaultChecked
+                disabled={isPending}
               />
               <label htmlFor="remember">
                 Manter conectado neste dispositivo
@@ -265,7 +304,12 @@ function LoginForm() {
             </>
           ) : (
             <>
-              <input type="checkbox" id="terms" name="terms" />
+              <input
+                type="checkbox"
+                id="terms"
+                name="terms"
+                disabled={isPending}
+              />
               <label htmlFor="terms">
                 Concordo com o uso de dados para análise de projetos culturais.
               </label>
@@ -273,14 +317,28 @@ function LoginForm() {
           )}
         </div>
 
+        {/* Botão de submit com loading state */}
         <button
           type="submit"
           className="ds-btn ds-btn-primary"
-          style={{ width: "100%", marginTop: 10 }}
+          style={{
+            width: "100%",
+            marginTop: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            opacity: isPending ? 0.7 : 1,
+          }}
+          disabled={isPending}
         >
-          {isLogin ? "Entrar" : "Criar conta"}
+          {isPending && <Loader2 size={14} className="animate-spin" />}
+          {isPending
+            ? isLogin ? "Entrando…" : "Criando conta…"
+            : isLogin ? "Entrar"    : "Criar conta"}
         </button>
 
+        {/* Link de alternância login ↔ signup */}
         <p
           className="ds-link-muted"
           style={{ marginTop: 10, textAlign: "center" }}
@@ -291,11 +349,12 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={handleToggle}
+                disabled={isPending}
                 style={{
                   background: "none",
                   border: "none",
                   padding: 0,
-                  cursor: "pointer",
+                  cursor: isPending ? "default" : "pointer",
                   fontSize: 12,
                   color: "#22d3ee",
                 }}
@@ -309,11 +368,12 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={handleToggle}
+                disabled={isPending}
                 style={{
                   background: "none",
                   border: "none",
                   padding: 0,
-                  cursor: "pointer",
+                  cursor: isPending ? "default" : "pointer",
                   fontSize: 12,
                   color: "#22d3ee",
                 }}
@@ -324,9 +384,10 @@ function LoginForm() {
           )}
         </p>
 
-        {error && (
+        {/* Erros vindos do server action */}
+        {state?.error && (
           <p className="form-error" style={{ textAlign: "center" }}>
-            {error}
+            {state.error}
           </p>
         )}
       </form>
