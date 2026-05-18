@@ -3,7 +3,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { enviarEmailConfirmacao, enviarEmailRecuperacao } from "@/lib/email";
 
 function cleanDocument(doc: string): string {
   return doc.replace(/\D/g, "");
@@ -72,14 +71,7 @@ export async function signup(formData: FormData) {
     return { error: "Erro ao criar proponente: " + proponenteError.message };
   }
 
-  try {
-    const token = authData.session?.access_token || "";
-    await enviarEmailConfirmacao(email, nomeCompleto, token);
-  } catch (e) {
-    console.error("Erro ao enviar email de confirmação:", e);
-  }
-
-  redirect("/hub");
+  return { success: true, message: "Conta criada! Verifique seu e-mail para confirmar." };
 }
 
 export async function login(formData: FormData) {
@@ -99,6 +91,9 @@ export async function login(formData: FormData) {
 
   if (error) {
     console.error("Erro no login:", error.message);
+    if (error.message === "Email not confirmed") {
+      return { error: "E-mail não confirmado. Verifique sua caixa de entrada e confirme seu e-mail antes de fazer login." };
+    }
     return { error: error.message };
   }
 
@@ -117,9 +112,7 @@ export async function recuperarAcesso(formData: FormData) {
   }
 
   let emailEncontrado = email;
-  let nomeEncontrado = "";
 
-  // Se informou documento, busca o e-mail associado
   if (documento && !email) {
     const cleanDoc = cleanDocument(documento);
     const { data: proponente } = await supabase
@@ -133,27 +126,17 @@ export async function recuperarAcesso(formData: FormData) {
     }
 
     emailEncontrado = proponente.email;
-    nomeEncontrado = proponente.nome_razao_social;
 
     return {
       sucesso: true,
       emailMascarado: mascaraEmail(emailEncontrado),
       emailEncontrado,
-      nome: nomeEncontrado,
+      nome: proponente.nome_razao_social,
       etapa: "confirmar_envio",
     };
   }
 
-  // Se informou e-mail diretamente ou confirmou o envio
   if (emailEncontrado) {
-    const { data: proponente } = await supabase
-      .from("proponentes")
-      .select("nome_razao_social")
-      .eq("email", emailEncontrado)
-      .single();
-
-    nomeEncontrado = proponente?.nome_razao_social || "Produtor";
-
     const { error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
     });
@@ -162,10 +145,6 @@ export async function recuperarAcesso(formData: FormData) {
       console.error("Erro ao enviar recuperação:", error.message);
       return { error: "Erro ao enviar link de recuperação." };
     }
-
-    // Envia e-mail bonito via Resend
-    const urlRecuperacao = `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`;
-    await enviarEmailRecuperacao(emailEncontrado, nomeEncontrado, urlRecuperacao);
 
     return { success: true, email: emailEncontrado };
   }
@@ -180,14 +159,6 @@ export async function confirmarEnvioRecuperacao(formData: FormData) {
 
   if (!email) return { error: "E-mail não informado." };
 
-  const { data: proponente } = await supabase
-    .from("proponentes")
-    .select("nome_razao_social")
-    .eq("email", email)
-    .single();
-
-  const nome = proponente?.nome_razao_social || "Produtor";
-
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
   });
@@ -195,9 +166,6 @@ export async function confirmarEnvioRecuperacao(formData: FormData) {
   if (error) {
     return { error: "Erro ao enviar link de recuperação." };
   }
-
-  const urlRecuperacao = `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`;
-  await enviarEmailRecuperacao(email, nome, urlRecuperacao);
 
   return { success: true };
 }
