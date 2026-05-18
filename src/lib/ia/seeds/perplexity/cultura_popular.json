@@ -1,0 +1,65 @@
+{
+    "segmento": "cultura_popular",
+    "esfera": "Federal",
+    "mecanismo": "Lei Rouanet",
+    "nome": "Raízes Vivas: Circuito de Saberes e Celebrações da Cultura Popular Brasileira",
+    "descricao": "O projeto \"Raízes Vivas: Circuito de Saberes e Celebrações da Cultura Popular Brasileira\" propõe a realização de um circuito itinerante de valorização, salvaguarda e difusão de manifestações da cultura popular tradicional em quatro cidades brasileiras: Recife (PE), Salvador (BA), Belo Horizonte (MG) e Belém (PA). A iniciativa contempla expressões como maracatu, coco de roda, congada, carimbó, bumba meu boi e samba de roda, articulando mestres e mestras da cultura popular, grupos tradicionais e comunidades locais.\n\nO projeto está estruturado em três eixos: (1) Apresentações e Celebrações, (2) Formação e Transmissão de Saberes e (3) Registro e Memória.\n\nNo Eixo Apresentações, serão realizados 16 eventos públicos (4 por cidade), com apresentações de grupos tradicionais, cortejos, rodas e celebrações em espaços abertos e equipamentos culturais públicos. Cada evento contará com ao menos 3 grupos locais e participação de mestres convidados, promovendo intercâmbio cultural entre regiões.\n\nNo Eixo Formação, serão realizadas 12 oficinas gratuitas (3 por cidade), com carga horária de 12 horas cada, abordando práticas como percussão tradicional, dança popular, confecção de indumentárias e transmissão oral de histórias e cantos. Cada oficina atenderá 25 participantes, totalizando 300 beneficiários diretos.\n\nNo Eixo Registro, será produzido um documentário de 30 minutos e um acervo digital com registros audiovisuais, depoimentos de mestres e fichas técnicas das manifestações, disponibilizado gratuitamente online.\n\nO cronograma prevê 14 meses de execução: 3 meses de planejamento, 7 meses de execução do circuito e 4 meses de finalização e difusão dos conteúdos.\n\nO projeto visa fortalecer a continuidade das tradições populares, promover o reconhecimento dos mestres como detentores de saberes e ampliar o acesso da população a essas manifestações culturais.",
+    "justificativa": "A cultura popular brasileira constitui um dos pilares da identidade nacional, expressando saberes, práticas, celebrações e modos de vida transmitidos de geração em geração. No entanto, muitas dessas manifestações encontram-se em situação de vulnerabilidade, devido à falta de políticas continuadas de salvaguarda, à desvalorização social e à ausência de mecanismos estruturados de transmissão de saberes.\n\nA Constituição Federal de 1988, em seu artigo 215, determina que o Estado deve garantir o pleno exercício dos direitos culturais e apoiar a valorização e difusão das manifestações culturais, com especial atenção às culturas populares. Complementarmente, a Convenção para a Salvaguarda do Patrimônio Cultural Imaterial da UNESCO (2003), ratificada pelo Brasil, reconhece a importância de proteger práticas culturais vivas, incluindo tradições orais, artes do espetáculo, rituais e conhecimentos tradicionais.\n\nSegundo o IPHAN (2022), diversas manifestações culturais brasileiras estão registradas como patrimônio imaterial, mas enfrentam dificuldades na continuidade de seus ciclos de transmissão. A ausência de incentivo à participação de jovens e a precarização das condições de vida dos mestres são fatores críticos.\n\nDados do IBGE (2023) indicam que trabalhadores da cultura popular frequentemente atuam na informalidade, com baixa renda e pouca visibilidade. O projeto responde a esse cenário ao promover remuneração digna, formação e visibilidade.\n\nAlém disso, a urbanização e a padronização cultural global ameaçam a diversidade cultural. A realização de circuitos itinerantes fortalece a circulação dessas manifestações e promove intercâmbio entre diferentes regiões.\n\nO projeto também contribui para a economia criativa local, gerando trabalho e renda para artistas, artesãos e produtores culturais, além de fomentar o turismo cultural.\n\nAssim, a proposta se alinha às diretrizes nacionais e internacionais de salvaguarda do patrimônio cultural imaterial, promovendo sua valorização, transmissão e difusão de forma estruturada e acessível.",
+    "objetivos": "OBJETIVO GERAL:\nPromover a valorização, salvaguarda e difusão das manifestações da cultura popular brasileira por meio de um circuito itinerante de apresentações, formação e registro em quatro cidades brasileiras.\n\nOBJETIVOS ESPECÍFICOS:\n1. Realizar 16 eventos culturais com apresentações de grupos tradicionais, atingindo público estimado de 12.000 pessoas.\n2. Contratar e remunerar ao menos 40 mestres, mestras e integrantes de grupos culturais.\n3. Oferecer 12 oficinas gratuitas de formação, atendendo 300 participantes.\n4. Produzir um documentário de 30 minutos sobre o projeto.\n5. Criar acervo digital com registros das manifestações.\n6. Garantir participação de jovens e mulheres nas atividades.\n7. Estabelecer parcerias com instituições culturais locais.\n8. Ampliar a visibilidade das manifestações em mídias digitais.",
+    "publico_alvo": "O público-alvo inclui moradores das cidades participantes, especialmente comunidades periféricas, jovens entre 12 e 35 anos, estudantes da rede pública, integrantes de grupos culturais, educadores e público geral interessado em cultura popular.\n\nEstimativa de público direto: 12.000 pessoas nas apresentações e 300 nas oficinas.\n\nA mobilização será realizada por meio de escolas, associações comunitárias, redes sociais e rádios comunitárias.",
+    "acessibilidade": "O projeto assegura acessibilidade física, comunicacional e atitudinal. Os espaços serão acessíveis conforme NBR 9050.\n\nAs apresentações contarão com intérprete de Libras e materiais com fonte ampliada.\n\nO documentário terá legendas, Libras e audiodescrição.\n\nA equipe será capacitada para atendimento inclusivo.",
+    "contrapartida": "Serão realizadas apresentações gratuitas em espaços públicos.\n\nOficinas gratuitas para jovens.\n\nDistribuição de conteúdos digitais.\n\nExibições do documentário em escolas.\n\nParcerias com instituições locais.",
+    "democratizacao": "Todas as atividades serão gratuitas.\n\nO projeto prioriza periferias e espaços públicos.\n\nA comunicação será inclusiva e comunitária.\n\nHaverá ampla distribuição digital.\n\nPromoção da diversidade cultural.",
+    "orcamento": [
+      {
+        "descricao": "Cachês de mestres e grupos culturais",
+        "categoria": "cache",
+        "valor": 80000,
+        "quantidade": 40,
+        "justificativa": "Remuneração justa dos detentores de saberes"
+      },
+      {
+        "descricao": "Infraestrutura de palco, som e iluminação",
+        "categoria": "infraestrutura",
+        "valor": 60000,
+        "quantidade": 16,
+        "justificativa": "Garantia de qualidade técnica"
+      },
+      {
+        "descricao": "Divulgação e comunicação",
+        "categoria": "divulgacao",
+        "valor": 30000,
+        "quantidade": 1,
+        "justificativa": "Alcance de público"
+      },
+      {
+        "descricao": "Oficinas formativas",
+        "categoria": "formacao",
+        "valor": 25000,
+        "quantidade": 12,
+        "justificativa": "Transmissão de saberes"
+      },
+      {
+        "descricao": "Logística",
+        "categoria": "logistica",
+        "valor": 20000,
+        "quantidade": 1,
+        "justificativa": "Deslocamento e operação"
+      },
+      {
+        "descricao": "Administração",
+        "categoria": "administracao",
+        "valor": 25000,
+        "quantidade": 1,
+        "justificativa": "Gestão do projeto"
+      },
+      {
+        "descricao": "Captação",
+        "categoria": "captacao",
+        "valor": 10000,
+        "quantidade": 1,
+        "justificativa": "Viabilização financeira"
+      }
+    ]
+  }
+  
