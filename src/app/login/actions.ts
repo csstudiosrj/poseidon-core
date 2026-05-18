@@ -9,6 +9,12 @@ function cleanDocument(doc: string): string {
   return doc.replace(/\D/g, "");
 }
 
+function mascaraEmail(email: string): string {
+  const [nome, dominio] = email.split("@");
+  const nomeMascarado = nome.length > 2 ? nome[0] + "***" + nome.slice(-1) : "***";
+  return `${nomeMascarado}@${dominio}`;
+}
+
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
@@ -17,7 +23,6 @@ export async function signup(formData: FormData) {
   const nomeCompleto = formData.get("nome_completo") as string;
   const documento = formData.get("documento") as string;
   const nomeEmpresa = (formData.get("nome_empresa") as string) || null;
-  const whatsapp = (formData.get("whatsapp") as string) || null;
 
   if (!email || !password || !nomeCompleto || !documento) {
     return { error: "Todos os campos são obrigatórios." };
@@ -39,7 +44,6 @@ export async function signup(formData: FormData) {
         nome_empresa: nomeEmpresa,
         tipo,
         documento: cleanDoc,
-        whatsapp: whatsapp,
       },
     },
   });
@@ -60,7 +64,6 @@ export async function signup(formData: FormData) {
     nome_razao_social: nomeEmpresa || nomeCompleto,
     cpf_cnpj: cleanDoc,
     email: email,
-    whatsapp: whatsapp,
   });
 
   if (proponenteError) {
@@ -114,7 +117,9 @@ export async function recuperarAcesso(formData: FormData) {
   }
 
   let emailEncontrado = email;
+  let nomeEncontrado = "";
 
+  // Se informou documento, busca o e-mail associado
   if (documento && !email) {
     const cleanDoc = cleanDocument(documento);
     const { data: proponente } = await supabase
@@ -128,20 +133,73 @@ export async function recuperarAcesso(formData: FormData) {
     }
 
     emailEncontrado = proponente.email;
+    nomeEncontrado = proponente.nome_razao_social;
+
+    return {
+      sucesso: true,
+      emailMascarado: mascaraEmail(emailEncontrado),
+      emailEncontrado,
+      nome: nomeEncontrado,
+      etapa: "confirmar_envio",
+    };
   }
 
-  if (!emailEncontrado) {
-    return { error: "Não foi possível identificar seu e-mail. Tente informar seu CPF/CNPJ." };
+  // Se informou e-mail diretamente ou confirmou o envio
+  if (emailEncontrado) {
+    const { data: proponente } = await supabase
+      .from("proponentes")
+      .select("nome_razao_social")
+      .eq("email", emailEncontrado)
+      .single();
+
+    nomeEncontrado = proponente?.nome_razao_social || "Produtor";
+
+    const { data: resetData, error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
+    });
+
+    if (error) {
+      console.error("Erro ao enviar recuperação:", error.message);
+      return { error: "Erro ao enviar link de recuperação." };
+    }
+
+    // Envia e-mail bonito via Resend
+    if (resetData?.user) {
+      const urlRecuperacao = `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha?token=${resetData.user.confirmation_sent_at || ""}`;
+      await enviarEmailRecuperacao(emailEncontrado, nomeEncontrado, urlRecuperacao);
+    }
+
+    return { success: true, email: emailEncontrado };
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
+  return { error: "Não foi possível identificar seu acesso. Tente informar seu CPF/CNPJ." };
+}
+
+export async function confirmarEnvioRecuperacao(formData: FormData) {
+  const supabase = await createClient();
+
+  const email = formData.get("email") as string;
+
+  if (!email) return { error: "E-mail não informado." };
+
+  const { data: proponente } = await supabase
+    .from("proponentes")
+    .select("nome_razao_social")
+    .eq("email", email)
+    .single();
+
+  const nome = proponente?.nome_razao_social || "Produtor";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
   });
 
   if (error) {
-    console.error("Erro ao enviar recuperação:", error.message);
     return { error: "Erro ao enviar link de recuperação." };
   }
 
-  return { success: true, email: emailEncontrado };
+  const urlRecuperacao = `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`;
+  await enviarEmailRecuperacao(email, nome, urlRecuperacao);
+
+  return { success: true };
 }

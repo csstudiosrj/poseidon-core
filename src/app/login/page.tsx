@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import "../globals.css";
-import { login, signup, recuperarAcesso } from "./actions";
+import { login, signup, recuperarAcesso, confirmarEnvioRecuperacao } from "./actions";
 
 export default function LoginPage() {
   return (
@@ -58,6 +58,10 @@ export default function LoginPage() {
 
 function LoginForm() {
   const [mode, setMode] = useState<"login" | "signup" | "recuperar">("login");
+  const [etapaRecuperacao, setEtapaRecuperacao] = useState<"inicio" | "confirmar">("inicio");
+  const [emailMascarado, setEmailMascarado] = useState("");
+  const [emailEncontrado, setEmailEncontrado] = useState("");
+  const [nomeEncontrado, setNomeEncontrado] = useState("");
   const [tipoPessoa, setTipoPessoa] = useState<"PF" | "PJ">("PF");
   const [doc, setDoc] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -77,7 +81,7 @@ function LoginForm() {
     return formatted;
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleRecuperarAcesso(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEnviando(true);
     setErro("");
@@ -85,13 +89,38 @@ function LoginForm() {
 
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "recuperar") {
-      const result = await recuperarAcesso(formData);
+    if (etapaRecuperacao === "confirmar") {
+      // Usuário confirmou que quer enviar para o e-mail mascarado
+      const result = await confirmarEnvioRecuperacao(formData);
       if (result?.error) setErro(result.error);
-      else setSucesso("Se o e-mail ou documento estiver cadastrado, você receberá um link de recuperação.");
+      else setSucesso("Link de recuperação enviado! Verifique sua caixa de entrada.");
       setEnviando(false);
       return;
     }
+
+    const result = await recuperarAcesso(formData);
+
+    if (result?.error) {
+      setErro(result.error);
+    } else if (result?.sucesso && result?.etapa === "confirmar_envio") {
+      setEmailMascarado(result.emailMascarado);
+      setEmailEncontrado(result.emailEncontrado || "");
+      setNomeEncontrado(result.nome || "");
+      setEtapaRecuperacao("confirmar");
+      setSucesso(`Encontramos o e-mail ${result.emailMascarado}. Confirme para enviar o link de recuperação.`);
+    } else if (result?.success) {
+      setSucesso("Link de recuperação enviado! Verifique sua caixa de entrada.");
+    }
+    setEnviando(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setEnviando(true);
+    setErro("");
+    setSucesso("");
+
+    const formData = new FormData(e.currentTarget);
 
     if (mode === "signup") {
       const password = formData.get("password") as string;
@@ -112,6 +141,15 @@ function LoginForm() {
     setEnviando(false);
   }
 
+  function voltarParaInicio() {
+    setMode("login");
+    setEtapaRecuperacao("inicio");
+    setEmailMascarado("");
+    setEmailEncontrado("");
+    setErro("");
+    setSucesso("");
+  }
+
   return (
     <section className="card p-6 md:p-8">
       <header className="mb-6">
@@ -123,138 +161,157 @@ function LoginForm() {
             ? "Acompanhe seus projetos culturais com o mesmo cuidado que o fiscal do edital."
             : mode === "signup"
             ? "Comece a criar projetos com a IA proprietária do Poseidon."
-            : "Informe seu e-mail ou CPF/CNPJ para receber o link de recuperação."}
+            : etapaRecuperacao === "confirmar"
+            ? `Confirme o envio do link para ${emailMascarado}.`
+            : "Informe seu e-mail ou CPF/CNPJ para recuperar o acesso."}
         </p>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
-            {mode === "recuperar" ? "E-mail ou CPF/CNPJ" : "E-mail"}
-          </label>
-          <input
-            type={mode === "recuperar" ? "text" : "email"}
-            id="email"
-            name={mode === "recuperar" ? "email" : "email"}
-            className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
-            placeholder={mode === "recuperar" ? "E-mail ou 000.000.000-00" : "voce@produtora.com"}
-            required
-            disabled={enviando}
-          />
-        </div>
-
-        {mode === "recuperar" && (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">CPF/CNPJ (se não souber o e-mail)</label>
-            <input
-              type="text"
-              id="documento"
-              name="documento"
-              className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums"
-              placeholder="000.000.000-00 ou 00.000.000/0000-00"
-              disabled={enviando}
-            />
-          </div>
-        )}
-
-        {mode === "signup" && (
-          <>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Tipo de pessoa</label>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setTipoPessoa("PF")} className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PF" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}>Pessoa Física</button>
-                <button type="button" onClick={() => setTipoPessoa("PJ")} className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PJ" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}>Pessoa Jurídica</button>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="nome_completo" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">{tipoPessoa === "PF" ? "Nome completo" : "Nome do responsável"}</label>
-              <input type="text" id="nome_completo" name="nome_completo" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder={tipoPessoa === "PF" ? "Seu nome completo" : "Nome de quem responde pelo projeto"} required disabled={enviando} />
-            </div>
-            {tipoPessoa === "PJ" && (
+      {mode === "recuperar" ? (
+        <form onSubmit={handleRecuperarAcesso} className="flex flex-col gap-4">
+          {etapaRecuperacao === "inicio" ? (
+            <>
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="nome_empresa" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Nome da empresa</label>
-                <input type="text" id="nome_empresa" name="nome_empresa" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Razão social da empresa" required disabled={enviando} />
+                <label htmlFor="email" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">E-mail</label>
+                <input type="email" id="email" name="email" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="voce@produtora.com" disabled={enviando} />
               </div>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">{tipoPessoa === "PF" ? "CPF" : "CNPJ"}</label>
-              <input type="text" id="documento" name="documento" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums" placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"} value={doc} disabled={enviando} onChange={(e) => setDoc(formatDocument(e.target.value))} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="whatsapp" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">WhatsApp (opcional, para recuperação de acesso)</label>
-              <input type="text" id="whatsapp" name="whatsapp" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono" placeholder="(21) 99999-9999" disabled={enviando} />
-            </div>
-          </>
-        )}
 
-        {mode !== "recuperar" && (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Senha</label>
-            <div className="relative">
-              <input type={showPassword ? "text" : "password"} id="password" name="password" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 pr-10 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Use uma senha forte" required disabled={enviando} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer">
-                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
-        )}
+              <div className="flex items-center gap-3 my-1">
+                <div className="flex-1 h-px bg-white/5" />
+                <span className="text-[10px] text-white/20 uppercase tracking-wider">ou</span>
+                <div className="flex-1 h-px bg-white/5" />
+              </div>
 
-        {mode === "signup" && (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="password-confirm" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Confirmar senha</label>
-            <div className="relative">
-              <input type={showConfirmPassword ? "text" : "password"} id="password-confirm" name="password-confirm" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 pr-10 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Repita a senha" required disabled={enviando} />
-              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer">
-                {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {mode === "signup" && (
-          <div className="flex items-start gap-2.5 mt-1">
-            <input type="checkbox" id="terms" name="terms" className="mt-0.5 rounded border-white/10 bg-sea-950 text-cyan-500 focus:ring-cyan-500/30 h-3.5 w-3.5 transition-all" required disabled={enviando} />
-            <label htmlFor="terms" className="text-[11px] text-white/40 leading-tight font-medium cursor-pointer select-none">
-              Concordo com o uso de dados para análise de projetos culturais.
-            </label>
-          </div>
-        )}
-
-        <button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)] disabled:opacity-50 disabled:cursor-not-allowed" disabled={enviando}>
-          {enviando && <Loader2 size={14} className="animate-spin" />}
-          <span>{enviando ? (mode === "login" ? "Entrando…" : mode === "signup" ? "Criando conta…" : "Enviando…") : mode === "login" ? "Entrar" : mode === "signup" ? "Criar conta" : "Enviar link"}</span>
-        </button>
-
-        <div className="text-center mt-2 space-y-1">
-          <p className="text-[11px] text-white/30 font-medium">
-            {mode === "login" ? (
-              <>Ainda não tem acesso?{" "}<button type="button" onClick={() => setMode("signup")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Criar conta</button></>
-            ) : mode === "signup" ? (
-              <>Já tem conta?{" "}<button type="button" onClick={() => setMode("login")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Voltar para login</button></>
-            ) : (
-              <button type="button" onClick={() => setMode("login")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Voltar para login</button>
-            )}
-          </p>
-          {mode === "login" && (
-            <p className="text-[11px] text-white/30 font-medium">
-              <button type="button" onClick={() => setMode("recuperar")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Esqueceu seu acesso?</button>
-            </p>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">CPF/CNPJ</label>
+                <input type="text" id="documento" name="documento" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums" placeholder="000.000.000-00 ou 00.000.000/0000-00" disabled={enviando} />
+              </div>
+            </>
+          ) : (
+            <input type="hidden" name="email" value={emailEncontrado} />
           )}
-        </div>
 
-        {erro && (
-          <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-[11px] text-red-400 flex items-center justify-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-red-500 shrink-0" />
-            <span>{erro}</span>
+          <button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)] disabled:opacity-50 disabled:cursor-not-allowed" disabled={enviando}>
+            {enviando && <Loader2 size={14} className="animate-spin" />}
+            <span>{enviando ? "Enviando…" : etapaRecuperacao === "confirmar" ? "Sim, enviar link" : "Enviar link"}</span>
+          </button>
+
+          <button type="button" onClick={voltarParaInicio} className="text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer bg-transparent border-none p-0 text-center">
+            Voltar para login
+          </button>
+
+          {erro && (
+            <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-[11px] text-red-400 flex items-center justify-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-red-500 shrink-0" />
+              <span>{erro}</span>
+            </div>
+          )}
+          {sucesso && (
+            <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-[11px] text-emerald-400">
+              {sucesso}
+            </div>
+          )}
+        </form>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">E-mail</label>
+            <input type="email" id="email" name="email" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="voce@produtora.com" required disabled={enviando} />
           </div>
-        )}
-        {sucesso && (
-          <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-[11px] text-emerald-400 flex items-center justify-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
-            <span>{sucesso}</span>
+
+          {mode === "signup" && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Tipo de pessoa</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setTipoPessoa("PF")} className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PF" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}>Pessoa Física</button>
+                  <button type="button" onClick={() => setTipoPessoa("PJ")} className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PJ" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}>Pessoa Jurídica</button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="nome_completo" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">{tipoPessoa === "PF" ? "Nome completo" : "Nome do responsável"}</label>
+                <input type="text" id="nome_completo" name="nome_completo" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder={tipoPessoa === "PF" ? "Seu nome completo" : "Nome de quem responde pelo projeto"} required disabled={enviando} />
+              </div>
+              {tipoPessoa === "PJ" && (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="nome_empresa" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Nome da empresa</label>
+                  <input type="text" id="nome_empresa" name="nome_empresa" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Razão social da empresa" required disabled={enviando} />
+                </div>
+              )}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">{tipoPessoa === "PF" ? "CPF" : "CNPJ"}</label>
+                <input type="text" id="documento" name="documento" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums" placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"} value={doc} disabled={enviando} onChange={(e) => setDoc(formatDocument(e.target.value))} />
+              </div>
+            </>
+          )}
+
+          {mode !== "recuperar" && (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="password" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Senha</label>
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} id="password" name="password" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 pr-10 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Use uma senha forte" required disabled={enviando} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer">
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {mode === "signup" && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="password-confirm" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Confirmar senha</label>
+                <div className="relative">
+                  <input type={showConfirmPassword ? "text" : "password"} id="password-confirm" name="password-confirm" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 pr-10 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Repita a senha" required disabled={enviando} />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer">
+                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 mt-1">
+                <input type="checkbox" id="terms" name="terms" className="mt-0.5 rounded border-white/10 bg-sea-950 text-cyan-500 focus:ring-cyan-500/30 h-3.5 w-3.5 transition-all" required disabled={enviando} />
+                <label htmlFor="terms" className="text-[11px] text-white/40 leading-tight font-medium cursor-pointer select-none">
+                  Concordo com o uso de dados para análise de projetos culturais.
+                </label>
+              </div>
+            </>
+          )}
+
+          <button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)] disabled:opacity-50 disabled:cursor-not-allowed" disabled={enviando}>
+            {enviando && <Loader2 size={14} className="animate-spin" />}
+            <span>{enviando ? (mode === "login" ? "Entrando…" : "Criando conta…") : mode === "login" ? "Entrar" : "Criar conta"}</span>
+          </button>
+
+          <div className="text-center mt-2 space-y-1">
+            <p className="text-[11px] text-white/30 font-medium">
+              {mode === "login" ? (
+                <>Ainda não tem acesso?{" "}<button type="button" onClick={() => setMode("signup")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Criar conta</button></>
+              ) : (
+                <>Já tem conta?{" "}<button type="button" onClick={() => setMode("login")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Voltar para login</button></>
+              )}
+            </p>
+            {mode === "login" && (
+              <p className="text-[11px] text-white/30 font-medium">
+                <button type="button" onClick={() => { setMode("recuperar"); setEtapaRecuperacao("inicio"); }} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Esqueceu seu acesso?</button>
+              </p>
+            )}
           </div>
-        )}
-      </form>
+
+          {erro && (
+            <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-[11px] text-red-400 flex items-center justify-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-red-500 shrink-0" />
+              <span>{erro}</span>
+            </div>
+          )}
+          {sucesso && (
+            <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-[11px] text-emerald-400 flex items-center justify-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
+              <span>{sucesso}</span>
+            </div>
+          )}
+        </form>
+      )}
     </section>
   );
 }
