@@ -154,7 +154,7 @@ export async function recuperarAcesso(formData: FormData) {
 
     nomeEncontrado = proponente?.nome_razao_social || "Produtor";
 
-    const { data: resetData, error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
+    const { error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
     });
 
@@ -164,10 +164,8 @@ export async function recuperarAcesso(formData: FormData) {
     }
 
     // Envia e-mail bonito via Resend
-    if (resetData?.user) {
-      const urlRecuperacao = `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha?token=${resetData.user.confirmation_sent_at || ""}`;
-      await enviarEmailRecuperacao(emailEncontrado, nomeEncontrado, urlRecuperacao);
-    }
+    const urlRecuperacao = `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`;
+    await enviarEmailRecuperacao(emailEncontrado, nomeEncontrado, urlRecuperacao);
 
     return { success: true, email: emailEncontrado };
   }
