@@ -125,9 +125,7 @@ export async function recuperarSenha(formData: FormData) {
   // Envia email customizado via Resend
   try {
     const nome = proponente?.nome_razao_social || "Usuário";
-    const { data: resetData } = await supabase.auth.resetPasswordForEmail(email);
-    const token = resetData?.session?.access_token || "";
-    await enviarEmailRecuperacao(email, nome, token);
+    await enviarEmailRecuperacao(email, nome, "link_enviado_pelo_supabase");
   } catch (e) {
     console.error("Erro ao enviar email de recuperação via Resend:", e);
   }
