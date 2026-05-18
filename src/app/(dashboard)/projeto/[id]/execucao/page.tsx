@@ -14,27 +14,36 @@ import {
   Zap,
   Plus,
   Building2,
+  Upload,
 } from "lucide-react";
+import {
+  getResumoFinanceiro,
+  criarNotaFiscalAction,
+  listarNotasFiscais,
+} from "@/app/actions/notas";
 import { listarFornecedoresProjeto, cadastrarFornecedorAction } from "@/app/actions/fornecedores";
 import { useActionState } from "react";
+import { UploadDropzone } from "@uploadthing/react";
+import type { OurFileRouter } from "@/lib/uploadthing";
 import "../../../../globals.css";
 
 /* ─── TIPOS ─────────────────────────────────────────────────── */
 interface Rubrica {
-  nome: string;
   categoria: string;
   orcado: number;
   executado: number;
   tetoLegal: number;
   glosa: number;
-  refLegal: string;
 }
 
-interface EventoAuditoria {
-  tipo: "success" | "warning" | "critical" | "info";
-  codigo: string;
-  mensagem: string;
-  timestamp: Date;
+interface NotaFiscal {
+  id: string;
+  descricao: string;
+  categoria: string;
+  valor: number;
+  data_emissao: string;
+  status: string;
+  glosa_motivo?: string;
 }
 
 interface Fornecedor {
@@ -48,12 +57,12 @@ interface Fornecedor {
   data_cadastro: string;
 }
 
-/* ─── DADOS MOCK DE RUBRICAS (FUTURO: DADOS REAIS) ─────────── */
-const rubricasMock: Rubrica[] = [
-  { nome: "Verba de Marketing", categoria: "Desp. Operacionais", orcado: 500000, executado: 320000, tetoLegal: 750000, glosa: 12000, refLegal: "Art. 23, Lei 12.345" },
-  { nome: "Cachês Artísticos", categoria: "Pagamento Artistas", orcado: 800000, executado: 780000, tetoLegal: 1200000, glosa: 0, refLegal: "Art. 5º, IN 01/2020" },
-  { nome: "Infraestrutura", categoria: "Logística", orcado: 450000, executado: 430000, tetoLegal: 600000, glosa: 5000, refLegal: "Art. 17, §4º" },
-];
+interface EventoAuditoria {
+  tipo: "success" | "warning" | "critical" | "info";
+  codigo: string;
+  mensagem: string;
+  timestamp: Date;
+}
 
 /* ─── COMPONENTES ───────────────────────────────────────────── */
 
@@ -90,8 +99,8 @@ function KpiCard({ label, valor, meta, icone: Icon, children }: { label: string;
 }
 
 function RubricaCard({ rubrica }: { rubrica: Rubrica }) {
-  const percentExecutado = (rubrica.executado / rubrica.orcado) * 100;
-  const percentTeto = (rubrica.executado / rubrica.tetoLegal) * 100;
+  const percentExecutado = rubrica.orcado > 0 ? (rubrica.executado / rubrica.orcado) * 100 : 0;
+  const percentTeto = rubrica.tetoLegal > 0 ? (rubrica.executado / rubrica.tetoLegal) * 100 : 0;
   const status = percentTeto <= 80 ? "ok" : percentTeto <= 95 ? "warn" : "crit";
   const badgeClass = status === "ok" ? "badge badge-ok" : status === "warn" ? "badge badge-warning" : "badge bg-red-500/10 text-red-400 border border-red-500/15";
   const statusLabel = status === "ok" ? "OK" : status === "warn" ? "ATENÇÃO" : "CRÍTICO";
@@ -99,15 +108,14 @@ function RubricaCard({ rubrica }: { rubrica: Rubrica }) {
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-white">{rubrica.nome}</p>
-          <p className="text-[11px] text-white/40">{rubrica.categoria}</p>
-        </div>
+        <p className="text-sm font-medium text-white">{rubrica.categoria}</p>
         <span className={`badge text-[9px] ${badgeClass}`}>{statusLabel}</span>
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div><span className="text-white/40">Orçado</span><p className="font-mono text-white/80">{rubrica.orcado.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 })}</p></div>
-        <div><span className="text-white/40">Executado</span><p className="font-mono text-white/80">{rubrica.executado.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 })}</p></div>
+        <div><span className="text-white/40">Orçado</span><p className="font-mono text-white/80">{rubrica.orcado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></div>
+        <div><span className="text-white/40">Executado</span><p className="font-mono text-white/80">{rubrica.executado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></div>
+        <div><span className="text-white/40">Saldo</span><p className="font-mono text-emerald-400">{(rubrica.orcado - rubrica.executado).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></div>
+        <div><span className="text-white/40">Glosa</span><p className="font-mono text-red-400">{rubrica.glosa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p></div>
       </div>
       <div>
         <div className="flex justify-between text-[10px] text-white/40 mb-1"><span>Execução</span><span>{percentExecutado.toFixed(0)}%</span></div>
@@ -153,10 +161,9 @@ export default function ExecucaoPage() {
   const params = useParams();
   const projetoId = params.id as string;
 
-  const [eventos, setEventos] = useState<EventoAuditoria[]>([
-    { tipo: "info", codigo: "SYS-01", mensagem: "Sincronização com SALIC concluída", timestamp: new Date(Date.now() - 900000) },
-  ]);
-  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>("10s");
+  const [rubricas, setRubricas] = useState<Rubrica[]>([]);
+  const [eventos, setEventos] = useState<EventoAuditoria[]>([]);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>("--");
   const [modoAuditoria] = useState(true);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [mostrarFormFornecedor, setMostrarFormFornecedor] = useState(false);
@@ -164,32 +171,47 @@ export default function ExecucaoPage() {
   const [valorInput, setValorInput] = useState("");
   const [servicoInput, setServicoInput] = useState("");
   const [enviandoFornecedor, setEnviandoFornecedor] = useState(false);
+  const [notas, setNotas] = useState<NotaFiscal[]>([]);
+  const [mostrarFormNota, setMostrarFormNota] = useState(false);
+  const [notaDescricao, setNotaDescricao] = useState("");
+  const [notaCategoria, setNotaCategoria] = useState("cache");
+  const [notaValor, setNotaValor] = useState("");
+  const [notaArquivoUrl, setNotaArquivoUrl] = useState("");
+  const [enviandoNota, setEnviandoNota] = useState(false);
+  const [totalCaptado, setTotalCaptado] = useState(0);
+  const [totalExecutado, setTotalExecutado] = useState(0);
+  const [totalGlosado, setTotalGlosado] = useState(0);
 
-  // Carrega fornecedores
+  // Carrega dados reais
   useEffect(() => {
-    async function carregar() {
-      const resultado = await listarFornecedoresProjeto(projetoId);
-      if ("fornecedores" in resultado) {
-        setFornecedores(resultado.fornecedores);
+    async function carregarDados() {
+      const resumo = await getResumoFinanceiro(projetoId);
+      if ("rubricas" in resumo) {
+        setRubricas(resumo.rubricas as Rubrica[]);
+        setTotalCaptado(resumo.totalCaptado);
+        setTotalExecutado(resumo.totalExecutado);
+        setTotalGlosado(resumo.totalGlosado);
       }
+      const resultadoFornecedores = await listarFornecedoresProjeto(projetoId);
+      if ("fornecedores" in resultadoFornecedores) {
+        setFornecedores(resultadoFornecedores.fornecedores);
+      }
+      const resultadoNotas = await listarNotasFiscais(projetoId);
+      if ("notas" in resultadoNotas) {
+        setNotas(resultadoNotas.notas);
+        // Gera eventos do feed baseados nas notas
+        const eventosFeed: EventoAuditoria[] = resultadoNotas.notas.map((nota) => ({
+          tipo: nota.status === "glosada" ? "critical" : nota.status === "pendente" ? "warning" : "success",
+          codigo: `NF-${nota.id.slice(0, 5)}`,
+          mensagem: `Nota fiscal: ${nota.descricao} (R$ ${nota.valor.toFixed(2)}) - ${nota.status}` + (nota.glosa_motivo ? ` - ${nota.glosa_motivo}` : ""),
+          timestamp: new Date(nota.data_emissao),
+        }));
+        setEventos(eventosFeed.reverse());
+      }
+      setUltimaAtualizacao("agora");
     }
-    carregar();
+    carregarDados();
   }, [projetoId]);
-
-  // Feed em tempo real
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const novosEventos: EventoAuditoria[] = [
-        { tipo: "info", codigo: "SYS-" + Math.floor(Math.random() * 1000), mensagem: "Verificação de rotina concluída", timestamp: new Date() },
-      ];
-      if (Math.random() > 0.6) {
-        novosEventos.push({ tipo: "warning", codigo: "GL-" + Math.floor(Math.random() * 100), mensagem: "Alerta de proximidade do teto em rubrica", timestamp: new Date() });
-      }
-      setEventos((prev) => [...novosEventos, ...prev].slice(0, 20));
-      setUltimaAtualizacao(`${Math.floor(Math.random() * 20) + 1}s`);
-    }, 12000);
-    return () => clearInterval(interval);
-  }, []);
 
   async function handleCadastrarFornecedor() {
     if (!cnpjInput || !valorInput) return;
@@ -217,7 +239,6 @@ export default function ExecucaoPage() {
       setValorInput("");
       setServicoInput("");
       setMostrarFormFornecedor(false);
-      // Recarrega lista
       const resultado = await listarFornecedoresProjeto(projetoId);
       if ("fornecedores" in resultado) {
         setFornecedores(resultado.fornecedores);
@@ -226,10 +247,44 @@ export default function ExecucaoPage() {
     setEnviandoFornecedor(false);
   }
 
-  const totalCaptado = rubricasMock.reduce((acc, r) => acc + r.orcado, 0);
-  const saldoConta = totalCaptado - rubricasMock.reduce((acc, r) => acc + r.executado, 0);
-  const glosaTotal = rubricasMock.reduce((acc, r) => acc + r.glosa, 0);
-  const riscoMedio = rubricasMock.reduce((acc, r) => acc + (r.executado / r.tetoLegal) * 100, 0) / rubricasMock.length;
+  async function handleLancarNota() {
+    if (!notaDescricao || !notaValor) return;
+    setEnviandoNota(true);
+
+    const formData = new FormData();
+    formData.append("projeto_id", projetoId);
+    formData.append("descricao", notaDescricao);
+    formData.append("categoria", notaCategoria);
+    formData.append("valor", notaValor);
+    if (notaArquivoUrl) formData.append("arquivo_url", notaArquivoUrl);
+
+    const result = await criarNotaFiscalAction(null, formData);
+
+    if (result?.success) {
+      setNotaDescricao("");
+      setNotaValor("");
+      setNotaArquivoUrl("");
+      setMostrarFormNota(false);
+      // Recarrega dados
+      const resumo = await getResumoFinanceiro(projetoId);
+      if ("rubricas" in resumo) {
+        setRubricas(resumo.rubricas as Rubrica[]);
+        setTotalCaptado(resumo.totalCaptado);
+        setTotalExecutado(resumo.totalExecutado);
+        setTotalGlosado(resumo.totalGlosado);
+      }
+      const resultadoNotas = await listarNotasFiscais(projetoId);
+      if ("notas" in resultadoNotas) {
+        setNotas(resultadoNotas.notas);
+      }
+    }
+    setEnviandoNota(false);
+  }
+
+  const saldoConta = totalCaptado - totalExecutado;
+  const riscoMedio = rubricas.length > 0
+    ? rubricas.reduce((acc, r) => acc + (r.tetoLegal > 0 ? (r.executado / r.tetoLegal) * 100 : 0), 0) / rubricas.length
+    : 0;
 
   return (
     <div className="min-h-screen bg-sea-950 p-6 md:p-8 space-y-6">
@@ -259,18 +314,101 @@ export default function ExecucaoPage() {
 
       {/* GRID PRINCIPAL */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_360px] gap-6">
-        {/* COLUNA ESQUERDA: RUBRICAS + FORNECEDORES */}
+        {/* COLUNA ESQUERDA: RUBRICAS + FORNECEDORES + NOTAS */}
         <div className="space-y-6">
           {/* Rubricas */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-white/80">Rubricas</h2>
-              <span className="text-[10px] text-white/30 font-mono">{rubricasMock.length} itens</span>
+              <span className="text-[10px] text-white/30 font-mono">{rubricas.length} itens</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {rubricasMock.map((rubrica, idx) => (
+              {rubricas.map((rubrica, idx) => (
                 <RubricaCard key={idx} rubrica={rubrica} />
               ))}
+            </div>
+          </div>
+
+          {/* Notas Fiscais */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-white/80">Notas Fiscais</h2>
+              <button
+                onClick={() => setMostrarFormNota(!mostrarFormNota)}
+                className="inline-flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer bg-transparent border-none"
+              >
+                <Plus size={14} />
+                Lançar Nota
+              </button>
+            </div>
+
+            {mostrarFormNota && (
+              <div className="card p-4 mb-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Descrição da despesa"
+                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                  value={notaDescricao}
+                  onChange={(e) => setNotaDescricao(e.target.value)}
+                />
+                <select
+                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all appearance-none cursor-pointer"
+                  value={notaCategoria}
+                  onChange={(e) => setNotaCategoria(e.target.value)}
+                >
+                  <option value="cache" className="bg-sea-950">Cachês Artísticos</option>
+                  <option value="infraestrutura" className="bg-sea-950">Infraestrutura</option>
+                  <option value="divulgacao" className="bg-sea-950">Divulgação</option>
+                  <option value="administracao" className="bg-sea-950">Administração</option>
+                  <option value="formacao" className="bg-sea-950">Formação</option>
+                  <option value="logistica" className="bg-sea-950">Logística</option>
+                  <option value="captacao" className="bg-sea-950">Captação</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Valor (R$)"
+                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono"
+                  value={notaValor}
+                  onChange={(e) => setNotaValor(e.target.value)}
+                />
+                <UploadDropzone<OurFileRouter, "portfolioPhotos">
+                  endpoint="portfolioPhotos"
+                  onClientUploadComplete={(res) => {
+                    if (res?.[0]) setNotaArquivoUrl(res[0].url);
+                  }}
+                  onUploadError={() => {}}
+                  className="border border-dashed border-white/10 rounded-lg p-4 text-xs text-white/40 ut-label:text-white/60 ut-button:bg-cyan-500 ut-button:text-sea-950 ut-button:text-xs ut-button:h-8 ut-button:rounded-lg ut-button:cursor-pointer"
+                />
+                <button
+                  onClick={handleLancarNota}
+                  disabled={enviandoNota || !notaDescricao || !notaValor}
+                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 rounded-lg transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {enviandoNota ? "Lançando..." : "Lançar Nota Fiscal"}
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {notas.length === 0 ? (
+                <p className="text-white/30 text-xs">Nenhuma nota fiscal lançada.</p>
+              ) : (
+                notas.map((nota) => (
+                  <div key={nota.id} className="flex items-center justify-between bg-sea-950 border border-white/5 rounded-xl p-3 text-xs">
+                    <div>
+                      <p className="text-white font-medium">{nota.descricao}</p>
+                      <p className="text-white/30 text-[10px]">{nota.categoria} · {new Date(nota.data_emissao).toLocaleDateString("pt-BR")}</p>
+                      {nota.glosa_motivo && <p className="text-red-400 text-[10px] mt-0.5">{nota.glosa_motivo}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-mono text-white/80">R$ {nota.valor.toFixed(2)}</p>
+                      <span className={`badge text-[9px] ${nota.status === "validada" ? "badge badge-ok" : nota.status === "glosada" ? "badge bg-red-500/10 text-red-400 border border-red-500/15" : "badge badge-warning"}`}>
+                        {nota.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -289,34 +427,10 @@ export default function ExecucaoPage() {
 
             {mostrarFormFornecedor && (
               <div className="card p-4 mb-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="CNPJ (14 dígitos)"
-                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono"
-                  value={cnpjInput}
-                  onChange={(e) => setCnpjInput(e.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="Valor (R$)"
-                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono"
-                  value={valorInput}
-                  onChange={(e) => setValorInput(e.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="Descrição do serviço"
-                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
-                  value={servicoInput}
-                  onChange={(e) => setServicoInput(e.target.value)}
-                />
-                <button
-                  onClick={handleCadastrarFornecedor}
-                  disabled={enviandoFornecedor || !cnpjInput || !valorInput}
-                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 rounded-lg transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {enviandoFornecedor ? "Validando..." : "Validar e Cadastrar"}
-                </button>
+                <input type="text" placeholder="CNPJ (14 dígitos)" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono" value={cnpjInput} onChange={(e) => setCnpjInput(e.target.value)} />
+                <input type="text" placeholder="Valor (R$)" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono" value={valorInput} onChange={(e) => setValorInput(e.target.value)} />
+                <input type="text" placeholder="Descrição do serviço" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all" value={servicoInput} onChange={(e) => setServicoInput(e.target.value)} />
+                <button onClick={handleCadastrarFornecedor} disabled={enviandoFornecedor || !cnpjInput || !valorInput} className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 rounded-lg transition-all cursor-pointer disabled:opacity-50">{enviandoFornecedor ? "Validando..." : "Validar e Cadastrar"}</button>
               </div>
             )}
 
@@ -332,12 +446,8 @@ export default function ExecucaoPage() {
                       {f.glosa_motivo && <p className="text-red-400 text-[10px] mt-0.5">{f.glosa_motivo}</p>}
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-white/80">
-                        {f.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                      </p>
-                      <span className={`badge text-[9px] ${f.status === "validado" ? "badge badge-ok" : f.status === "bloqueado" ? "badge bg-red-500/10 text-red-400 border border-red-500/15" : "badge badge-warning"}`}>
-                        {f.status}
-                      </span>
+                      <p className="font-mono text-white/80">{f.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                      <span className={`badge text-[9px] ${f.status === "validado" ? "badge badge-ok" : f.status === "bloqueado" ? "badge bg-red-500/10 text-red-400 border border-red-500/15" : "badge badge-warning"}`}>{f.status}</span>
                     </div>
                   </div>
                 ))
@@ -355,14 +465,11 @@ export default function ExecucaoPage() {
           <div className="card p-4">
             <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-3">Resumo Executivo</h3>
             <div className="space-y-2 text-xs text-white/50">
-              <div className="flex justify-between"><span>Total de rubricas:</span><span className="font-mono text-white/70">{rubricasMock.length}</span></div>
-              <div className="flex justify-between"><span>Glosas acumuladas:</span><span className="font-mono text-red-400">{glosaTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>
+              <div className="flex justify-between"><span>Total de rubricas:</span><span className="font-mono text-white/70">{rubricas.length}</span></div>
+              <div className="flex justify-between"><span>Glosas acumuladas:</span><span className="font-mono text-red-400">{totalGlosado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>
               <div className="flex justify-between"><span>Risco médio:</span><span className="font-mono text-amber-400">{riscoMedio.toFixed(1)}%</span></div>
               <div className="flex justify-between"><span>Última auditoria:</span><span className="font-mono text-white/40">{ultimaAtualizacao}</span></div>
-              <div className="flex justify-between">
-                <span>Fornecedores bloqueados:</span>
-                <span className="font-mono text-red-400">{fornecedores.filter((f) => f.status === "bloqueado").length}</span>
-              </div>
+              <div className="flex justify-between"><span>Fornecedores bloqueados:</span><span className="font-mono text-red-400">{fornecedores.filter((f) => f.status === "bloqueado").length}</span></div>
             </div>
           </div>
         </div>
