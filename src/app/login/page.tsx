@@ -90,7 +90,6 @@ function LoginForm() {
     const formData = new FormData(e.currentTarget);
 
     if (etapaRecuperacao === "confirmar") {
-      // Usuário confirmou que quer enviar para o e-mail mascarado
       const result = await confirmarEnvioRecuperacao(formData);
       if (result?.error) setErro(result.error);
       else setSucesso("Link de recuperação enviado! Verifique sua caixa de entrada.");
@@ -245,17 +244,15 @@ function LoginForm() {
             </>
           )}
 
-          {mode !== "recuperar" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Senha</label>
-              <div className="relative">
-                <input type={showPassword ? "text" : "password"} id="password" name="password" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 pr-10 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Use uma senha forte" required disabled={enviando} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer">
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="password" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Senha</label>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} id="password" name="password" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 pr-10 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Use uma senha forte" required disabled={enviando} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer">
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
             </div>
-          )}
+          </div>
 
           {mode === "signup" && (
             <>
