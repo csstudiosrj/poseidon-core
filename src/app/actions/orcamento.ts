@@ -4,9 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   processarComando,
-  extrairPromessas,
   validarContraTetos,
-  sugerirDistribuicao,
   ContextoOrcamento,
   MensagemChat,
 } from "@/lib/ia/orcamentista";
@@ -36,17 +34,21 @@ export async function enviarMensagemAction(
   } else {
     const { data: fonte } = await supabase
       .from("projeto_fontes")
-      .select("valor_captacao, configuracao_regras, biblioteca_regras (configuracao_regras)")
+      .select("valor_captacao, configuracao_regras, biblioteca_regras (configuracao_regras, mecanismo_nome, esfera)")
       .eq("id", fonteId)
       .single();
 
     if (!fonte) return { historico: [], erro: "Fonte não encontrada." };
 
+    const biblioteca = Array.isArray(fonte.biblioteca_regras)
+      ? fonte.biblioteca_regras[0]
+      : fonte.biblioteca_regras;
+
     const regras: RegrasMecanismo =
       (fonte.configuracao_regras as RegrasMecanismo) ||
-      (fonte.biblioteca_regras?.configuracao_regras as RegrasMecanismo) || {
-        mecanismo_nome: "Desconhecido",
-        esfera: "Federal",
+      (biblioteca?.configuracao_regras as RegrasMecanismo) || {
+        mecanismo_nome: biblioteca?.mecanismo_nome || "Desconhecido",
+        esfera: (biblioteca?.esfera as "Federal" | "Estadual" | "Municipal") || "Federal",
         secoes_obrigatorias: [],
         tetos: [],
         campos_formulario: [],
@@ -55,7 +57,7 @@ export async function enviarMensagemAction(
 
     const { data: itensExistentes } = await supabase
       .from("itens_orcamentarios")
-      .select("descricao, categoria, valor, quantidade")
+      .select("descricao, categoria, valor, quantidade, justificativa")
       .eq("projeto_id", projetoId);
 
     contexto = {

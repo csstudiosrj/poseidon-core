@@ -90,6 +90,13 @@ export default function ProjetoContent({ projeto }: { projeto: any }) {
                       Editar Escrita
                     </Link>
                     <Link
+                      href={`/orcamento?projeto=${projeto.id}&fonte=${fonte.id}`}
+                      className="inline-flex items-center gap-2 bg-sea-800 border border-white/10 hover:border-cyan-500/30 text-cyan-400 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer"
+                    >
+                      <DollarSign size={14} />
+                      Orçamento
+                    </Link>
+                    <Link
                       href={`/projeto/${projeto.id}/execucao`}
                       className="inline-flex items-center gap-2 bg-sea-800 border border-white/10 hover:border-cyan-500/30 text-cyan-400 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer"
                     >
