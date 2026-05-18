@@ -271,6 +271,13 @@ export default function ExecucaoPage() {
       const resultadoNotas = await listarNotasFiscais(projetoId);
       if ("notas" in resultadoNotas) {
         setNotas(resultadoNotas.notas);
+        const eventosFeed: EventoAuditoria[] = resultadoNotas.notas.map((nota) => ({
+          tipo: nota.status === "glosada" ? "critical" : nota.status === "pendente" ? "warning" : "success",
+          codigo: `NF-${nota.id.slice(0, 5)}`,
+          mensagem: `Nota fiscal: ${nota.descricao} (R$ ${nota.valor.toFixed(2)}) - ${nota.status}` + (nota.glosa_motivo ? ` - ${nota.glosa_motivo}` : ""),
+          timestamp: new Date(nota.data_emissao),
+        }));
+        setEventos(eventosFeed.reverse());
       }
     }
     setEnviandoNota(false);

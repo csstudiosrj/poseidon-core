@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, ArrowLeft, Edit3, DollarSign, Layers, ShieldCheck } from "lucide-react";
+import { FileText, ArrowLeft, Edit3, DollarSign, Layers, ShieldCheck, Download } from "lucide-react";
 import Link from "next/link";
 
 function CollapsibleSection({ titulo, conteudo }: { titulo: string; conteudo: string }) {
@@ -103,6 +103,34 @@ export default function ProjetoContent({ projeto }: { projeto: any }) {
                       <ShieldCheck size={14} />
                       Auditoria
                     </Link>
+                    <button
+                      onClick={async () => {
+                        const { createClient } = await import("@/lib/supabase/client");
+                        const supabase = createClient();
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) return;
+
+                        const { data: projetoCompleto } = await supabase
+                          .from("projetos")
+                          .select("*, projeto_fontes(*), itens_orcamentarios(*)")
+                          .eq("id", projeto.id)
+                          .single();
+
+                        if (projetoCompleto) {
+                          const blob = new Blob([JSON.stringify(projetoCompleto, null, 2)], { type: "application/json" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${projeto.nome_projeto.replace(/\s/g, "_")}_export.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 bg-sea-800 border border-white/10 hover:border-cyan-500/30 text-cyan-400 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer"
+                    >
+                      <Download size={14} />
+                      Exportar
+                    </button>
                   </div>
                 </div>
               );

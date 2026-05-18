@@ -59,7 +59,7 @@ const mainNav: NavItem[] = [
   { label: "Novo Projeto", href: "/setup", icon: FileText },
   { label: "Escrita", href: "/escrita", icon: Sparkles },
   { label: "Portfólio", href: "/configuracoes", icon: FolderKanban },
-  { label: "Compliance", href: "#", icon: ShieldCheck, badge: "Em breve" },
+  { label: "Auditoria", href: "/auditoria", icon: ShieldCheck },
 ];
 
 const bottomNav: NavItem[] = [
@@ -102,6 +102,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ? "console://orcamento"
       : pathname === "/configuracoes"
       ? "console://portfolio"
+      : pathname === "/auditoria"
+      ? "console://auditoria"
       : pathname.startsWith("/projeto/")
       ? `console://projeto/${pathname.split("/")[2]}`
       : "console://poseidon";

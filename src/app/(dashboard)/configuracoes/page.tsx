@@ -3,11 +3,54 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, FileText, Link, Camera, ArrowLeft } from "lucide-react";
+import { Loader2, Save, FileText, Link, Camera, ArrowLeft, Download } from "lucide-react";
 import { uploadPortfolioAction, getPortfolioData } from "@/app/actions/portfolio";
 import { UploadDropzone } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing";
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import "../../globals.css";
+
+const styles = StyleSheet.create({
+  page: { padding: 40, backgroundColor: "#fff", fontFamily: "Helvetica" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, color: "#020b18" },
+  subtitle: { fontSize: 14, fontWeight: "bold", marginTop: 20, marginBottom: 10, color: "#06b6d4" },
+  body: { fontSize: 11, lineHeight: 1.6, color: "#333", marginBottom: 10 },
+  link: { fontSize: 10, color: "#06b6d4", marginBottom: 4 },
+  image: { width: 150, height: 100, objectFit: "cover", margin: 5, borderRadius: 4 },
+  row: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
+  footer: { fontSize: 8, color: "#999", textAlign: "center", marginTop: 30 },
+});
+
+function PortfolioPDF({ dados }: { dados: any }) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>PORTFÓLIO PROFISSIONAL</Text>
+        <Text style={styles.subtitle}>{dados.nome || "Proponente"}</Text>
+        <Text style={styles.body}>{dados.curriculo || "Nenhum currículo cadastrado."}</Text>
+        {dados.links?.length > 0 && (
+          <>
+            <Text style={styles.subtitle}>Links e Referências</Text>
+            {dados.links.map((l: string, i: number) => (
+              <Text key={i} style={styles.link}>{i + 1}. {l}</Text>
+            ))}
+          </>
+        )}
+        {dados.fotos?.length > 0 && (
+          <>
+            <Text style={styles.subtitle}>Registro de Projetos</Text>
+            <View style={styles.row}>
+              {dados.fotos.map((url: string, i: number) => (
+                <Image key={i} src={url} style={styles.image} />
+              ))}
+            </View>
+          </>
+        )}
+        <Text style={styles.footer}>Gerado por Poseidon — Tecnologia de Gestão Cultural</Text>
+      </Page>
+    </Document>
+  );
+}
 
 export default function ConfiguracoesPage() {
   const router = useRouter();
@@ -20,6 +63,7 @@ export default function ConfiguracoesPage() {
   const [sucesso, setSucesso] = useState(false);
   const [nome, setNome] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [pdfDados, setPdfDados] = useState<any>(null);
 
   useEffect(() => {
     async function carregar() {
@@ -29,6 +73,7 @@ export default function ConfiguracoesPage() {
         if (data.portfolio?.curriculo) setCurriculo(data.portfolio.curriculo);
         if (data.portfolio?.links) setLinks(data.portfolio.links.join("\n"));
         if (data.portfolio?.fotos) setFotosUrls(data.portfolio.fotos);
+        setPdfDados({ nome: data.nome, curriculo: data.portfolio?.curriculo, links: data.portfolio?.links, fotos: data.portfolio?.fotos });
       }
       setCarregando(false);
     }
@@ -43,7 +88,7 @@ export default function ConfiguracoesPage() {
     const formData = new FormData();
     formData.append("curriculo", curriculo);
     formData.append("links", links);
-    formData.append("fotosUrls", JSON.stringify(fotosUrls)); // envia as URLs já salvas
+    formData.append("fotosUrls", JSON.stringify(fotosUrls));
 
     const result = await uploadPortfolioAction(null, formData);
 
@@ -51,6 +96,7 @@ export default function ConfiguracoesPage() {
       setErro(result.error);
     } else if (result?.success) {
       setSucesso(true);
+      setPdfDados({ nome, curriculo, links: links.split("\n").filter(l => l.trim()), fotos: fotosUrls });
     }
     setEnviando(false);
   }
@@ -71,7 +117,7 @@ export default function ConfiguracoesPage() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Configurações</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight">Portfólio</h1>
             <p className="text-white/40 text-xs mt-1">Gerencie seu portfólio profissional</p>
           </div>
         </div>
@@ -145,14 +191,31 @@ export default function ConfiguracoesPage() {
           <p className="text-[10px] text-white/30">Máximo 10 fotos, até 8MB cada.</p>
         </div>
 
-        <button
-          onClick={handleSalvar}
-          disabled={enviando || !curriculo.trim()}
-          className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {enviando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          <span>{enviando ? "Salvando..." : "Salvar Portfólio"}</span>
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSalvar}
+            disabled={enviando || !curriculo.trim()}
+            className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {enviando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            <span>{enviando ? "Salvando..." : "Salvar Portfólio"}</span>
+          </button>
+
+          {pdfDados?.curriculo && (
+            <PDFDownloadLink
+              document={<PortfolioPDF dados={pdfDados} />}
+              fileName={`portfolio_${nome?.replace(/\s/g, "_") || "proponente"}.pdf`}
+              className="bg-emerald-500 hover:bg-emerald-400 text-sea-950 text-xs font-bold h-10 px-4 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {({ loading }) => (
+                <>
+                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span>{loading ? "Gerando..." : "Baixar PDF"}</span>
+                </>
+              )}
+            </PDFDownloadLink>
+          )}
+        </div>
       </div>
     </div>
   );
