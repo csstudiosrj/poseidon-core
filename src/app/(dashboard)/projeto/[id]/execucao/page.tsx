@@ -1,7 +1,7 @@
 // src/app/(dashboard)/projeto/[id]/execucao/page.tsx
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import {
   TrendingUp,
@@ -13,8 +13,6 @@ import {
   Clock,
   Zap,
   Plus,
-  Building2,
-  Upload,
 } from "lucide-react";
 import {
   getResumoFinanceiro,
@@ -22,7 +20,6 @@ import {
   listarNotasFiscais,
 } from "@/app/actions/notas";
 import { listarFornecedoresProjeto, cadastrarFornecedorAction } from "@/app/actions/fornecedores";
-import { useActionState } from "react";
 import { UploadDropzone } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing";
 import "../../../../globals.css";
@@ -178,9 +175,9 @@ export default function ExecucaoPage() {
   const [notaValor, setNotaValor] = useState("");
   const [notaArquivoUrl, setNotaArquivoUrl] = useState("");
   const [enviandoNota, setEnviandoNota] = useState(false);
-  const [totalCaptado, setTotalCaptado] = useState(0);
-  const [totalExecutado, setTotalExecutado] = useState(0);
-  const [totalGlosado, setTotalGlosado] = useState(0);
+  const [totalCaptado, setTotalCaptado] = useState<number>(0);
+  const [totalExecutado, setTotalExecutado] = useState<number>(0);
+  const [totalGlosado, setTotalGlosado] = useState<number>(0);
 
   // Carrega dados reais
   useEffect(() => {
@@ -188,9 +185,9 @@ export default function ExecucaoPage() {
       const resumo = await getResumoFinanceiro(projetoId);
       if ("rubricas" in resumo) {
         setRubricas(resumo.rubricas as Rubrica[]);
-        setTotalCaptado(resumo.totalCaptado);
-        setTotalExecutado(resumo.totalExecutado);
-        setTotalGlosado(resumo.totalGlosado);
+        setTotalCaptado(resumo.totalCaptado ?? 0);
+        setTotalExecutado(resumo.totalExecutado ?? 0);
+        setTotalGlosado(resumo.totalGlosado ?? 0);
       }
       const resultadoFornecedores = await listarFornecedoresProjeto(projetoId);
       if ("fornecedores" in resultadoFornecedores) {
@@ -199,7 +196,6 @@ export default function ExecucaoPage() {
       const resultadoNotas = await listarNotasFiscais(projetoId);
       if ("notas" in resultadoNotas) {
         setNotas(resultadoNotas.notas);
-        // Gera eventos do feed baseados nas notas
         const eventosFeed: EventoAuditoria[] = resultadoNotas.notas.map((nota) => ({
           tipo: nota.status === "glosada" ? "critical" : nota.status === "pendente" ? "warning" : "success",
           codigo: `NF-${nota.id.slice(0, 5)}`,
@@ -265,13 +261,12 @@ export default function ExecucaoPage() {
       setNotaValor("");
       setNotaArquivoUrl("");
       setMostrarFormNota(false);
-      // Recarrega dados
       const resumo = await getResumoFinanceiro(projetoId);
       if ("rubricas" in resumo) {
         setRubricas(resumo.rubricas as Rubrica[]);
-        setTotalCaptado(resumo.totalCaptado);
-        setTotalExecutado(resumo.totalExecutado);
-        setTotalGlosado(resumo.totalGlosado);
+        setTotalCaptado(resumo.totalCaptado ?? 0);
+        setTotalExecutado(resumo.totalExecutado ?? 0);
+        setTotalGlosado(resumo.totalGlosado ?? 0);
       }
       const resultadoNotas = await listarNotasFiscais(projetoId);
       if ("notas" in resultadoNotas) {
@@ -344,18 +339,8 @@ export default function ExecucaoPage() {
 
             {mostrarFormNota && (
               <div className="card p-4 mb-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Descrição da despesa"
-                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
-                  value={notaDescricao}
-                  onChange={(e) => setNotaDescricao(e.target.value)}
-                />
-                <select
-                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all appearance-none cursor-pointer"
-                  value={notaCategoria}
-                  onChange={(e) => setNotaCategoria(e.target.value)}
-                >
+                <input type="text" placeholder="Descrição da despesa" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all" value={notaDescricao} onChange={(e) => setNotaDescricao(e.target.value)} />
+                <select className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all appearance-none cursor-pointer" value={notaCategoria} onChange={(e) => setNotaCategoria(e.target.value)}>
                   <option value="cache" className="bg-sea-950">Cachês Artísticos</option>
                   <option value="infraestrutura" className="bg-sea-950">Infraestrutura</option>
                   <option value="divulgacao" className="bg-sea-950">Divulgação</option>
@@ -364,13 +349,7 @@ export default function ExecucaoPage() {
                   <option value="logistica" className="bg-sea-950">Logística</option>
                   <option value="captacao" className="bg-sea-950">Captação</option>
                 </select>
-                <input
-                  type="text"
-                  placeholder="Valor (R$)"
-                  className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono"
-                  value={notaValor}
-                  onChange={(e) => setNotaValor(e.target.value)}
-                />
+                <input type="text" placeholder="Valor (R$)" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all font-mono" value={notaValor} onChange={(e) => setNotaValor(e.target.value)} />
                 <UploadDropzone<OurFileRouter, "portfolioPhotos">
                   endpoint="portfolioPhotos"
                   onClientUploadComplete={(res) => {
@@ -379,13 +358,7 @@ export default function ExecucaoPage() {
                   onUploadError={() => {}}
                   className="border border-dashed border-white/10 rounded-lg p-4 text-xs text-white/40 ut-label:text-white/60 ut-button:bg-cyan-500 ut-button:text-sea-950 ut-button:text-xs ut-button:h-8 ut-button:rounded-lg ut-button:cursor-pointer"
                 />
-                <button
-                  onClick={handleLancarNota}
-                  disabled={enviandoNota || !notaDescricao || !notaValor}
-                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 rounded-lg transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {enviandoNota ? "Lançando..." : "Lançar Nota Fiscal"}
-                </button>
+                <button onClick={handleLancarNota} disabled={enviandoNota || !notaDescricao || !notaValor} className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 rounded-lg transition-all cursor-pointer disabled:opacity-50">{enviandoNota ? "Lançando..." : "Lançar Nota Fiscal"}</button>
               </div>
             )}
 
@@ -402,9 +375,7 @@ export default function ExecucaoPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-mono text-white/80">R$ {nota.valor.toFixed(2)}</p>
-                      <span className={`badge text-[9px] ${nota.status === "validada" ? "badge badge-ok" : nota.status === "glosada" ? "badge bg-red-500/10 text-red-400 border border-red-500/15" : "badge badge-warning"}`}>
-                        {nota.status}
-                      </span>
+                      <span className={`badge text-[9px] ${nota.status === "validada" ? "badge badge-ok" : nota.status === "glosada" ? "badge bg-red-500/10 text-red-400 border border-red-500/15" : "badge badge-warning"}`}>{nota.status}</span>
                     </div>
                   </div>
                 ))
@@ -416,10 +387,7 @@ export default function ExecucaoPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-white/80">Fornecedores</h2>
-              <button
-                onClick={() => setMostrarFormFornecedor(!mostrarFormFornecedor)}
-                className="inline-flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer bg-transparent border-none"
-              >
+              <button onClick={() => setMostrarFormFornecedor(!mostrarFormFornecedor)} className="inline-flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer bg-transparent border-none">
                 <Plus size={14} />
                 Cadastrar Fornecedor
               </button>
