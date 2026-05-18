@@ -2,6 +2,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/lib/uploadthing";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -17,7 +20,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Poseidon | Console de Gestão Cultural",
-  description: "Plataforma Poseidon para gestão cultural, compliance e operação financeira.",
+  description:
+    "Plataforma Poseidon para gestão cultural, compliance e operação financeira.",
 };
 
 export default function RootLayout({
@@ -27,7 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+        {children}
+      </body>
     </html>
   );
 }

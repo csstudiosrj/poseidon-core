@@ -65,7 +65,7 @@ const mainNav: NavItem[] = [
 ];
 
 const bottomNav: NavItem[] = [
-  { label: "Configurações", href: "#", icon: Settings },
+  { label: "Configurações", href: "/configuracoes", icon: Settings },
   { label: "Pagamentos", href: "#", icon: CreditCard },
 ];
 
@@ -100,6 +100,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ? "console://setup"
       : pathname === "/escrita"
       ? "console://escrita"
+      : pathname === "/orcamento"
+      ? "console://orcamento"
+      : pathname === "/configuracoes"
+      ? "console://configuracoes"
+      : pathname.startsWith("/projeto/")
+      ? `console://projeto/${pathname.split("/")[2]}`
       : "console://poseidon";
 
   return (
@@ -256,10 +262,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <User size={16} />
                     <span>Perfil</span>
                   </button>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
+                  <Link href="/configuracoes" className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
                     <Settings size={16} />
                     <span>Configurações</span>
-                  </button>
+                  </Link>
                   <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
                     <CreditCard size={16} />
                     <span>Pagamentos</span>
