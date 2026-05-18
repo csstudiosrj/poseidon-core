@@ -1,0 +1,64 @@
+{
+    "segmento": "cultura_popular",
+    "esfera": "Federal",
+    "mecanismo": "Lei Rouanet",
+    "nome": "Raízes Vivas – Preservação e Difusão da Cultura Popular Brasileira",
+    "descricao": "O projeto “Raízes Vivas – Preservação e Difusão da Cultura Popular Brasileira” propõe a valorização e difusão de manifestações culturais populares de diferentes regiões do país, com foco em tradições orais, dança, música, festividades e artesanato. O objetivo central é registrar, documentar e promover a circulação dessas práticas culturais, garantindo sua transmissão às novas gerações e fortalecendo identidades locais.\n\nA execução se dará em três fases: (1) Pesquisa e documentação: realização de levantamento etnográfico em comunidades de cinco estados, entrevistas com mestres e praticantes, registro audiovisual e fotográfico das manifestações culturais; (2) Produção de material cultural e educativo: elaboração de documentário de 60 minutos, minidocumentários regionais, material didático e kit de divulgação para escolas e centros culturais; (3) Difusão e formação: realização de 8 oficinas de vivência cultural, apresentações públicas itinerantes em 6 cidades, exposições temporárias de artesanato e oficinas para jovens e adultos.\n\nO projeto envolverá equipe multidisciplinar composta por produtores culturais, pesquisadores, cinegrafistas, fotógrafos, tradutores de Libras, instrutores de oficinas, equipe de logística e comunicação. As ações serão integradas a campanhas de sensibilização e divulgação em plataformas digitais, rádios comunitárias e mídias sociais para engajar o público e fortalecer o acesso à cultura popular de forma inclusiva e educativa.",
+    "justificativa": "A Constituição Federal, em seu Artigo 215, assegura que o Estado garantirá a todos o pleno exercício dos direitos culturais e acesso às fontes da cultura nacional, incluindo a proteção das manifestações culturais populares. Além disso, a Convenção da UNESCO sobre o Patrimônio Cultural Imaterial (2003) reforça a importância da salvaguarda e transmissão das práticas culturais para as gerações futuras.\n\nNo Brasil, muitas tradições populares enfrentam risco de desaparecimento devido à urbanização acelerada, migração e ausência de políticas estruturadas de preservação. O projeto Raízes Vivas atende a uma lacuna significativa na proteção, difusão e ensino de expressões culturais populares, promovendo o reconhecimento de mestres e comunidades como agentes culturais, estimulando o intercâmbio cultural e fomentando a economia criativa local. O projeto ainda contribui para a educação patrimonial, inclusão social e fortalecimento da identidade cultural, ao mesmo tempo em que promove a formação de público e profissionais especializados em cultura popular.",
+    "objetivos": "Objetivo Geral:\n\nPreservar, documentar, difundir e valorizar as manifestações da cultura popular brasileira, promovendo acesso, formação de público e fortalecimento da identidade cultural.\n\nObjetivos Específicos:\n\n1. Realizar levantamento e registro etnográfico de manifestações culturais em cinco estados brasileiros, atingindo 10 comunidades e registrando 50 mestres/artistas.\n2. Produzir 1 documentário de 60 minutos e 5 minidocumentários regionais sobre práticas culturais populares.\n3. Desenvolver 8 oficinas de vivência cultural, atendendo diretamente 200 participantes entre jovens e adultos.\n4. Promover apresentações itinerantes em 6 cidades, alcançando diretamente 1.500 espectadores.\n5. Criar e distribuir material educativo (cartilhas, vídeos e kits) em 20 escolas e 5 centros culturais, atingindo 2.000 estudantes.\n6. Garantir a inclusão e acessibilidade plena em todas as ações, incluindo intérpretes de Libras, legendagem e recursos táteis.",
+    "publico_alvo": "O público-alvo abrange jovens e adultos de 12 a 60 anos, professores, estudantes, pesquisadores, agentes culturais e comunidades locais. O público direto estimado é de 1.900 participantes em oficinas e apresentações, enquanto o público indireto deve alcançar aproximadamente 10.000 pessoas através de exibições públicas, distribuição de materiais e difusão digital. Estratégias de mobilização incluem parcerias com secretarias municipais de cultura, escolas, universidades, ONGs, rádios comunitárias e redes sociais.",
+    "acessibilidade": "O projeto adotará medidas completas de acessibilidade: intérpretes de Libras em todas as oficinas e apresentações, legendagem de vídeos e documentários, materiais didáticos em braile e fonte ampliada, além de sinalização tátil nos locais de apresentação. A equipe receberá treinamento em atendimento inclusivo, garantindo acessibilidade atitudinal. Todos os conteúdos digitais e audiovisuais serão compatíveis com leitores de tela e softwares de acessibilidade, assegurando participação plena de pessoas com deficiência, conforme diretrizes da NBR 9050 e Lei 10.098/2000.",
+    "contrapartida": "Como contrapartida social, o projeto realizará 8 oficinas gratuitas de vivência cultural em comunidades e escolas públicas, beneficiando 200 participantes. Serão promovidas 6 apresentações públicas itinerantes, alcançando diretamente 1.500 pessoas. O documentário e minidocumentários serão disponibilizados gratuitamente em plataformas digitais e bibliotecas públicas, atingindo cerca de 10.000 espectadores indiretos. Além disso, o material educativo será distribuído a 20 escolas e 5 centros culturais, fomentando educação patrimonial, formação de público e valorização de tradições culturais.",
+    "democratizacao": "Todas as ações do projeto são gratuitas, incluindo oficinas, apresentações itinerantes e distribuição de materiais digitais e físicos. A seleção de comunidades e escolas será realizada com base em critérios de vulnerabilidade social, garantindo descentralização geográfica e acesso equitativo. O projeto promove ampla divulgação por redes sociais, rádios comunitárias, plataformas digitais e parcerias institucionais, assegurando acesso irrestrito às manifestações culturais populares e formação de público diversificado.",
+    "orcamento": [
+      {
+        "descricao": "Remuneração de mestres, artistas, pesquisadores e instrutores para oficinas e apresentações culturais.",
+        "categoria": "cache",
+        "valor": 60000,
+        "quantidade": 20,
+        "justificativa": "Os cachês remuneram profissionais essenciais para a execução das oficinas, apresentações e registro das práticas culturais."
+      },
+      {
+        "descricao": "Coordenação geral, gestão administrativa, planejamento estratégico e prestação de contas do projeto.",
+        "categoria": "administracao",
+        "valor": 30000,
+        "quantidade": 1,
+        "justificativa": "A administração garante a execução eficiente, cumprimento das exigências legais e acompanhamento técnico-financeiro."
+      },
+      {
+        "descricao": "Infraestrutura para gravação audiovisual, edição de documentários, equipamentos técnicos e materiais didáticos.",
+        "categoria": "infraestrutura",
+        "valor": 70000,
+        "quantidade": 1,
+        "justificativa": "A infraestrutura é necessária para produção de conteúdo audiovisual de qualidade e materiais educativos acessíveis."
+      },
+      {
+        "descricao": "Divulgação em mídias digitais, assessoria de imprensa, produção de materiais gráficos e campanhas de mobilização do público.",
+        "categoria": "divulgacao",
+        "valor": 40000,
+        "quantidade": 1,
+        "justificativa": "A divulgação amplia o alcance do projeto, mobiliza comunidades e assegura visibilidade das manifestações culturais populares."
+      },
+      {
+        "descricao": "Realização de 8 oficinas culturais em comunidades e escolas, incluindo transporte, alimentação e materiais pedagógicos.",
+        "categoria": "formacao",
+        "valor": 25000,
+        "quantidade": 8,
+        "justificativa": "As oficinas promovem formação cultural, engajamento de jovens e transmissão de saberes tradicionais."
+      },
+      {
+        "descricao": "Logística de transporte, hospedagem e alimentação da equipe e artistas durante apresentações itinerantes em 6 cidades.",
+        "categoria": "logistica",
+        "valor": 25000,
+        "quantidade": 1,
+        "justificativa": "A logística garante deslocamento seguro e organização eficiente das apresentações culturais em diferentes regiões."
+      },
+      {
+        "descricao": "Serviços de captação de recursos e acompanhamento comercial para viabilização do projeto.",
+        "categoria": "captacao",
+        "valor": 15000,
+        "quantidade": 1,
+        "justificativa": "A captação assegura sustentabilidade financeira, viabilidade do projeto e fortalecimento de parcerias estratégicas."
+      }
+    ]
+  }

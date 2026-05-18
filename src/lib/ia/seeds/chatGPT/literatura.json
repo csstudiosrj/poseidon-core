@@ -1,0 +1,71 @@
+{
+    "segmento": "literatura",
+    "esfera": "Federal",
+    "mecanismo": "Lei Rouanet",
+    "nome": "Palavras que Transformam – Literatura Brasileira em Todas as Formas",
+    "descricao": "O projeto “Palavras que Transformam – Literatura Brasileira em Todas as Formas” tem como propósito a produção, publicação e difusão de uma coletânea literária inédita, composta por contos, crônicas e poesias de autores contemporâneos de diferentes regiões do Brasil. A iniciativa prevê também a realização de oficinas literárias, lançamento itinerante da obra, encontros com autores e produção de versões acessíveis para pessoas com deficiência visual e auditiva. \n\nA execução do projeto compreende três fases principais: (1) pré-produção: seleção de autores, curadoria dos textos, revisão editorial e planejamento das oficinas e eventos; (2) produção: impressão da coletânea, gravação de audiolivro, produção de versão em braile e fonte ampliada, além da organização logística de eventos de lançamento; (3) pós-produção: distribuição da obra em escolas públicas, bibliotecas, centros culturais e disponibilização em plataformas digitais, promovendo a difusão nacional e acessível da literatura.\n\nO projeto inclui 6 oficinas literárias presenciais e online, voltadas à produção textual, leitura crítica e técnicas de mediação de leitura, atendendo diretamente 150 participantes. O lançamento itinerante ocorrerá em 5 capitais brasileiras, com sessões de leitura pública, debates com autores e distribuição gratuita de exemplares para escolas e bibliotecas. Serão produzidas versões digitais com audiolivro, braile e fonte ampliada, garantindo plena acessibilidade e inclusão.",
+    "justificativa": "A literatura é expressão fundamental da cultura nacional, conforme previsto no Artigo 215 da Constituição Federal de 1988, que assegura a valorização e promoção de todas as formas de manifestação cultural. Apesar do aumento da produção literária contemporânea, o acesso à leitura ainda é desigual, especialmente em regiões periféricas, escolas públicas e comunidades tradicionais, o que limita a democratização cultural e a formação de novos leitores.\n\nO projeto visa atender a essa lacuna, promovendo acesso à literatura brasileira contemporânea, incentivando o hábito de leitura e a produção cultural local. A iniciativa fortalece o setor editorial nacional, fomenta novos talentos literários, valoriza a diversidade cultural e estimula o debate crítico. As ações de acessibilidade, incluindo audiolivro, versão em braile e fonte ampliada, garantem participação plena de pessoas com deficiência, ampliando o alcance do projeto e respeitando os princípios de inclusão cultural.",
+    "objetivos": "Objetivo Geral:\n\nPromover a produção, difusão e acesso à literatura brasileira contemporânea, incentivando leitura, formação de público e inclusão cultural.\n\nObjetivos Específicos:\n\n1. Publicar uma coletânea literária inédita com textos de autores de diferentes regiões do Brasil, distribuindo 2.000 exemplares entre escolas, bibliotecas e centros culturais.\n\n2. Produzir versões acessíveis da coletânea, incluindo audiolivro, braile e fonte ampliada, atendendo diretamente 500 pessoas com deficiência.\n\n3. Realizar 6 oficinas literárias presenciais e online, atendendo 150 participantes, abordando produção textual, leitura crítica e mediação de leitura.\n\n4. Promover 5 eventos de lançamento itinerantes em diferentes capitais brasileiras, alcançando diretamente 1.000 participantes.\n\n5. Disponibilizar a coletânea em plataformas digitais gratuitas, ampliando o acesso e atingindo estimativa de 10.000 leitores indiretos.\n\n6. Avaliar o impacto do projeto por meio de indicadores de participação, engajamento e formação de público leitor.",
+    "publico_alvo": "O público-alvo inclui estudantes de escolas públicas e privadas, professores, bibliotecários, jovens escritores, leitores adultos e pessoas com deficiência visual ou auditiva. Espera-se atender diretamente 1.650 participantes entre oficinas e eventos presenciais, e alcançar indiretamente 10.000 leitores por meio de plataformas digitais e distribuição gratuita da coletânea. A mobilização ocorrerá por meio de parcerias com secretarias de educação e cultura, bibliotecas, ONGs, escolas, universidades, redes sociais, rádios comunitárias e campanhas digitais.",
+    "acessibilidade": "O projeto adota medidas completas de acessibilidade: (1) versão em braile da coletânea para pessoas com deficiência visual; (2) audiolivro narrado com interpretação em Libras; (3) versão impressa com fonte ampliada para baixa visão; (4) materiais digitais compatíveis com softwares de leitura de tela; (5) equipe treinada em acessibilidade atitudinal para atendimento inclusivo em eventos e oficinas; (6) sinalização visual clara em espaços de lançamento, garantindo autonomia e participação plena do público. Essas ações garantem respeito à Lei 10.098/2000 e normas de acessibilidade.",
+    "contrapartida": "Como contrapartida, o projeto realizará 6 oficinas literárias gratuitas, atendendo 150 participantes, com duração de 4 horas cada, abordando técnicas de escrita, leitura crítica e mediação literária. Serão promovidos 5 eventos de lançamento gratuitos, com leitura de trechos, debates com autores e distribuição de 500 exemplares da coletânea para escolas públicas e bibliotecas. As versões acessíveis serão disponibilizadas gratuitamente em escolas e plataformas digitais, beneficiando diretamente 500 pessoas com deficiência e indiretamente milhares de leitores em todo o país, fortalecendo a democratização da leitura e inclusão cultural.",
+    "democratizacao": "O projeto adota política de gratuidade integral em todas as oficinas, eventos de lançamento e acesso às versões digitais. As obras físicas serão distribuídas gratuitamente em escolas públicas, bibliotecas comunitárias e centros culturais. A divulgação ocorrerá em redes sociais, plataformas digitais, rádios comunitárias e parcerias institucionais, garantindo participação ampla, descentralização geográfica e inclusão social. O público prioritário inclui estudantes de escolas públicas, comunidades periféricas e pessoas com deficiência, assegurando acesso equitativo à literatura e formação de novos leitores.",
+    "orcamento": [
+      {
+        "descricao": "Contratação de autores, editores, revisores, instrutores de oficinas e equipe técnica para eventos e lançamentos.",
+        "categoria": "cache",
+        "valor": 50000,
+        "quantidade": 1,
+        "justificativa": "Os cachês remuneram profissionais especializados, garantindo qualidade editorial, pedagógica e técnica."
+      },
+      {
+        "descricao": "Coordenação geral, produção executiva, gestão administrativa e prestação de contas do projeto.",
+        "categoria": "administracao",
+        "valor": 20000,
+        "quantidade": 1,
+        "justificativa": "A administração assegura planejamento estratégico, execução eficiente e cumprimento das exigências legais."
+      },
+      {
+        "descricao": "Impressão da coletânea em 2.000 exemplares, incluindo versão braile e fonte ampliada.",
+        "categoria": "infraestrutura",
+        "valor": 30000,
+        "quantidade": 1,
+        "justificativa": "A infraestrutura garante material impresso de qualidade e acessível a todos os públicos."
+      },
+      {
+        "descricao": "Divulgação em mídias digitais, assessoria de imprensa, produção de materiais gráficos e campanhas de mobilização.",
+        "categoria": "divulgacao",
+        "valor": 25000,
+        "quantidade": 1,
+        "justificativa": "A divulgação amplia o alcance do projeto, mobiliza o público e garante visibilidade das ações literárias."
+      },
+      {
+        "descricao": "Produção de audiolivro, gravação de narração e interpretação em Libras.",
+        "categoria": "infraestrutura",
+        "valor": 20000,
+        "quantidade": 1,
+        "justificativa": "A produção garante acessibilidade plena, permitindo que pessoas com deficiência visual ou auditiva tenham acesso ao conteúdo."
+      },
+      {
+        "descricao": "Realização de 6 oficinas literárias presenciais e online, incluindo materiais pedagógicos e remuneração de instrutores.",
+        "categoria": "formacao",
+        "valor": 15000,
+        "quantidade": 6,
+        "justificativa": "As oficinas promovem formação de leitores, desenvolvimento de competências literárias e inclusão cultural."
+      },
+      {
+        "descricao": "Transporte, alimentação e logística para eventos de lançamento em 5 cidades.",
+        "categoria": "logistica",
+        "valor": 10000,
+        "quantidade": 1,
+        "justificativa": "A logística garante deslocamento seguro e organização eficiente dos eventos de lançamento."
+      },
+      {
+        "descricao": "Serviços de captação de recursos e acompanhamento comercial para viabilização do projeto.",
+        "categoria": "captacao",
+        "valor": 10000,
+        "quantidade": 1,
+        "justificativa": "A captação assegura sustentabilidade financeira, viabilidade do projeto e fortalecimento de parcerias estratégicas."
+      }
+    ]
+  }
