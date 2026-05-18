@@ -101,7 +101,7 @@ export default function ProjetoContent({ projeto }: { projeto: any }) {
                       className="inline-flex items-center gap-2 bg-sea-800 border border-white/10 hover:border-cyan-500/30 text-cyan-400 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer"
                     >
                       <ShieldCheck size={14} />
-                      Torre de Controle
+                      Auditoria
                     </Link>
                   </div>
                 </div>

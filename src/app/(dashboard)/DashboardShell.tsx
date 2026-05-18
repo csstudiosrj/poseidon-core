@@ -18,6 +18,7 @@ import {
   Sparkles,
   ShieldCheck,
   Menu,
+  FolderKanban,
 } from "lucide-react";
 import "../globals.css";
 
@@ -34,14 +35,10 @@ function TridentIcon({ size = 20 }: { size?: number }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {/* Haste central */}
       <line x1="12" y1="4" x2="12" y2="22" />
-      {/* Pontas do tridente */}
       <line x1="6" y1="4" x2="12" y2="10" />
       <line x1="12" y1="10" x2="18" y2="4" />
-      {/* Arco inferior (onda) */}
       <path d="M8 20 Q12 16 16 20" />
-      {/* Traços laterais decorativos */}
       <line x1="8" y1="14" x2="8" y2="18" />
       <line x1="16" y1="14" x2="16" y2="18" />
     </svg>
@@ -61,7 +58,8 @@ const mainNav: NavItem[] = [
   { label: "Hub", href: "/hub", icon: Layers },
   { label: "Novo Projeto", href: "/setup", icon: FileText },
   { label: "Escrita", href: "/escrita", icon: Sparkles },
-  { label: "Auditoria", href: "#", icon: ShieldCheck, badge: "Em breve" },
+  { label: "Portfólio", href: "/configuracoes", icon: FolderKanban },
+  { label: "Compliance", href: "#", icon: ShieldCheck, badge: "Em breve" },
 ];
 
 const bottomNav: NavItem[] = [
@@ -103,7 +101,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       : pathname === "/orcamento"
       ? "console://orcamento"
       : pathname === "/configuracoes"
-      ? "console://configuracoes"
+      ? "console://portfolio"
       : pathname.startsWith("/projeto/")
       ? `console://projeto/${pathname.split("/")[2]}`
       : "console://poseidon";
@@ -211,7 +209,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Sininho de Notificações */}
             <div ref={notifRef} className="relative">
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setUserMenuOpen(false); }}
@@ -241,7 +238,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Avatar / User Menu */}
             <div ref={userMenuRef} className="relative">
               <button
                 onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}

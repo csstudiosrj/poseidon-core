@@ -32,7 +32,6 @@ export async function uploadPortfolioAction(
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // Busca dados do proponente
   const { data: proponente, error: propError } = await supabase
     .from("proponentes")
     .select("nome_razao_social")
@@ -41,15 +40,13 @@ export async function uploadPortfolioAction(
 
   if (propError || !proponente) return { error: "Proponente não encontrado." };
 
-  // Gera conteúdo textual (a geração do PDF físico pode ser feita depois)
-  analisarPortfolio({
+  const conteudoPDF = analisarPortfolio({
     fotos: fotosUrls,
     links: linksArray,
     curriculo,
     nome: proponente.nome_razao_social,
   });
 
-  // Salva no banco
   const { error: updateError } = await supabase
     .from("proponentes")
     .update({
@@ -57,6 +54,7 @@ export async function uploadPortfolioAction(
         curriculo,
         fotos: fotosUrls,
         links: linksArray,
+        conteudo_pdf: conteudoPDF,
         pdf_gerado_em: new Date().toISOString(),
       },
     })
@@ -85,4 +83,32 @@ export async function getPortfolioData() {
     nome: proponente.nome_razao_social,
     portfolio: proponente.portfolio_data || {},
   };
+}
+
+export async function gerarPDFPortfolioAction(): Promise<{ pdfBase64?: string; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Sessão expirada." };
+
+  const { data: proponente, error: propError } = await supabase
+    .from("proponentes")
+    .select("portfolio_data, nome_razao_social")
+    .eq("user_id", user.id)
+    .single();
+
+  if (propError || !proponente || !proponente.portfolio_data?.curriculo) {
+    return { error: "Portfólio não encontrado. Cadastre seu currículo primeiro." };
+  }
+
+  // Gera o PDF usando o módulo de IA (que retorna o conteúdo textual)
+  const conteudo = analisarPortfolio({
+    fotos: proponente.portfolio_data.fotos || [],
+    links: proponente.portfolio_data.links || [],
+    curriculo: proponente.portfolio_data.curriculo,
+    nome: proponente.nome_razao_social,
+  });
+
+  // Retorna o conteúdo para renderização no frontend com @react-pdf/renderer
+  return { pdfBase64: Buffer.from(conteudo).toString("base64") };
 }
