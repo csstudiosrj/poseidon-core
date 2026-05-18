@@ -4,14 +4,14 @@
 import React, { useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import "../globals.css";
-import { login, signup, recuperarSenha } from "./actions";
+import { login, signup, recuperarAcesso } from "./actions";
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans flex items-center justify-center p-4 sm:p-6 md:p-10">
-      <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
+      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 items-center">
         {/* HERO SECTION */}
-        <section className="md:col-span-5 flex flex-col items-start text-left space-y-5">
+        <section className="md:col-span-5 md:pr-10 flex flex-col items-start text-left space-y-5">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
               <svg aria-label="Poseidon" viewBox="0 0 32 32" width="26" height="26" fill="none">
@@ -28,7 +28,7 @@ export default function LoginPage() {
           </div>
 
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-amber-500/10 text-amber-400 border border-amber-500/15">
-            Vive de cultura
+            Pra quem vive de cultura
           </span>
 
           <p className="text-xs text-white/50 leading-relaxed max-w-sm">
@@ -48,7 +48,7 @@ export default function LoginPage() {
         </section>
 
         {/* FORM CONTAINER */}
-        <div className="md:col-span-7 w-full max-w-md mx-auto">
+        <div className="md:col-span-7 w-full max-w-md md:max-w-none mx-auto md:ml-6">
           <LoginForm />
         </div>
       </div>
@@ -86,9 +86,9 @@ function LoginForm() {
     const formData = new FormData(e.currentTarget);
 
     if (mode === "recuperar") {
-      const result = await recuperarSenha(formData);
+      const result = await recuperarAcesso(formData);
       if (result?.error) setErro(result.error);
-      else setSucesso("Se o e-mail existir, você receberá um link de recuperação.");
+      else setSucesso("Se o e-mail ou documento estiver cadastrado, você receberá um link de recuperação.");
       setEnviando(false);
       return;
     }
@@ -116,74 +116,73 @@ function LoginForm() {
     <section className="card p-6 md:p-8">
       <header className="mb-6">
         <h1 className="text-base font-bold text-white tracking-tight">
-          {mode === "login" ? "Entrar no Poseidon" : mode === "signup" ? "Criar acesso ao Poseidon" : "Recuperar senha"}
+          {mode === "login" ? "Entrar no Poseidon" : mode === "signup" ? "Criar acesso ao Poseidon" : "Recuperar acesso"}
         </h1>
         <p className="text-xs text-white/40 mt-1.5 leading-relaxed font-medium">
           {mode === "login"
             ? "Acompanhe seus projetos culturais com o mesmo cuidado que o fiscal do edital."
             : mode === "signup"
             ? "Comece a criar projetos com a IA proprietária do Poseidon."
-            : "Informe seu e-mail para receber o link de recuperação."}
+            : "Informe seu e-mail ou CPF/CNPJ para receber o link de recuperação."}
         </p>
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">E-mail</label>
-          <input type="email" id="email" name="email" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="voce@produtora.com" required disabled={enviando} />
+          <label htmlFor="email" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
+            {mode === "recuperar" ? "E-mail ou CPF/CNPJ" : "E-mail"}
+          </label>
+          <input
+            type={mode === "recuperar" ? "text" : "email"}
+            id="email"
+            name={mode === "recuperar" ? "email" : "email"}
+            className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+            placeholder={mode === "recuperar" ? "E-mail ou 000.000.000-00" : "voce@produtora.com"}
+            required
+            disabled={enviando}
+          />
         </div>
+
+        {mode === "recuperar" && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">CPF/CNPJ (se não souber o e-mail)</label>
+            <input
+              type="text"
+              id="documento"
+              name="documento"
+              className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums"
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              disabled={enviando}
+            />
+          </div>
+        )}
 
         {mode === "signup" && (
           <>
-            {/* Tipo de Pessoa */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Tipo de pessoa</label>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTipoPessoa("PF")}
-                  className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PF" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}
-                >
-                  Pessoa Física
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTipoPessoa("PJ")}
-                  className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PJ" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}
-                >
-                  Pessoa Jurídica
-                </button>
+                <button type="button" onClick={() => setTipoPessoa("PF")} className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PF" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}>Pessoa Física</button>
+                <button type="button" onClick={() => setTipoPessoa("PJ")} className={`flex-1 h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${tipoPessoa === "PJ" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-sea-950 border-white/10 text-white/40 hover:text-white/70"}`}>Pessoa Jurídica</button>
               </div>
             </div>
-
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="nome_completo" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
-                {tipoPessoa === "PF" ? "Nome completo" : "Nome do responsável"}
-              </label>
+              <label htmlFor="nome_completo" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">{tipoPessoa === "PF" ? "Nome completo" : "Nome do responsável"}</label>
               <input type="text" id="nome_completo" name="nome_completo" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder={tipoPessoa === "PF" ? "Seu nome completo" : "Nome de quem responde pelo projeto"} required disabled={enviando} />
             </div>
-
             {tipoPessoa === "PJ" && (
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="nome_empresa" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Nome da empresa</label>
                 <input type="text" id="nome_empresa" name="nome_empresa" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="Razão social da empresa" required disabled={enviando} />
               </div>
             )}
-
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
-                {tipoPessoa === "PF" ? "CPF" : "CNPJ"}
-              </label>
-              <input
-                type="text"
-                id="documento"
-                name="documento"
-                className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums"
-                placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
-                value={doc}
-                disabled={enviando}
-                onChange={(e) => setDoc(formatDocument(e.target.value))}
-              />
+              <label htmlFor="documento" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">{tipoPessoa === "PF" ? "CPF" : "CNPJ"}</label>
+              <input type="text" id="documento" name="documento" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono tabular-nums" placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"} value={doc} disabled={enviando} onChange={(e) => setDoc(formatDocument(e.target.value))} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="whatsapp" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">WhatsApp (opcional, para recuperação de acesso)</label>
+              <input type="text" id="whatsapp" name="whatsapp" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50 font-mono" placeholder="(21) 99999-9999" disabled={enviando} />
             </div>
           </>
         )}
@@ -238,7 +237,7 @@ function LoginForm() {
           </p>
           {mode === "login" && (
             <p className="text-[11px] text-white/30 font-medium">
-              <button type="button" onClick={() => setMode("recuperar")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Esqueci a senha</button>
+              <button type="button" onClick={() => setMode("recuperar")} disabled={enviando} className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 bg-transparent border-none p-0 inline text-[11px]">Esqueceu seu acesso?</button>
             </p>
           )}
         </div>

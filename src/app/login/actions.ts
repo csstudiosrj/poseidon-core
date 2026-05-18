@@ -17,6 +17,7 @@ export async function signup(formData: FormData) {
   const nomeCompleto = formData.get("nome_completo") as string;
   const documento = formData.get("documento") as string;
   const nomeEmpresa = (formData.get("nome_empresa") as string) || null;
+  const whatsapp = (formData.get("whatsapp") as string) || null;
 
   if (!email || !password || !nomeCompleto || !documento) {
     return { error: "Todos os campos são obrigatórios." };
@@ -38,6 +39,7 @@ export async function signup(formData: FormData) {
         nome_empresa: nomeEmpresa,
         tipo,
         documento: cleanDoc,
+        whatsapp: whatsapp,
       },
     },
   });
@@ -58,6 +60,7 @@ export async function signup(formData: FormData) {
     nome_razao_social: nomeEmpresa || nomeCompleto,
     cpf_cnpj: cleanDoc,
     email: email,
+    whatsapp: whatsapp,
   });
 
   if (proponenteError) {
@@ -66,7 +69,6 @@ export async function signup(formData: FormData) {
     return { error: "Erro ao criar proponente: " + proponenteError.message };
   }
 
-  // Envia email de confirmação via Resend
   try {
     const token = authData.session?.access_token || "";
     await enviarEmailConfirmacao(email, nomeCompleto, token);
@@ -101,34 +103,45 @@ export async function login(formData: FormData) {
   redirect("/hub");
 }
 
-export async function recuperarSenha(formData: FormData) {
+export async function recuperarAcesso(formData: FormData) {
   const supabase = await createClient();
+
   const email = formData.get("email") as string;
+  const documento = formData.get("documento") as string;
 
-  if (!email) return { error: "Informe seu e-mail." };
+  if (!email && !documento) {
+    return { error: "Informe seu e-mail ou CPF/CNPJ para recuperar o acesso." };
+  }
 
-  const { data: proponente } = await supabase
-    .from("proponentes")
-    .select("nome_razao_social")
-    .eq("email", email)
-    .single();
+  let emailEncontrado = email;
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  if (documento && !email) {
+    const cleanDoc = cleanDocument(documento);
+    const { data: proponente } = await supabase
+      .from("proponentes")
+      .select("email, nome_razao_social")
+      .eq("cpf_cnpj", cleanDoc)
+      .single();
+
+    if (!proponente) {
+      return { error: "Documento não encontrado. Verifique e tente novamente." };
+    }
+
+    emailEncontrado = proponente.email;
+  }
+
+  if (!emailEncontrado) {
+    return { error: "Não foi possível identificar seu e-mail. Tente informar seu CPF/CNPJ." };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
   });
 
   if (error) {
     console.error("Erro ao enviar recuperação:", error.message);
-    return { error: "Erro ao enviar e-mail de recuperação." };
+    return { error: "Erro ao enviar link de recuperação." };
   }
 
-  // Envia email customizado via Resend
-  try {
-    const nome = proponente?.nome_razao_social || "Usuário";
-    await enviarEmailRecuperacao(email, nome, "link_enviado_pelo_supabase");
-  } catch (e) {
-    console.error("Erro ao enviar email de recuperação via Resend:", e);
-  }
-
-  return { success: true };
+  return { success: true, email: emailEncontrado };
 }
