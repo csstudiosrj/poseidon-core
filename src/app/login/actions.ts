@@ -14,6 +14,23 @@ function mascaraEmail(email: string): string {
   return `${nomeMascarado}@${dominio}`;
 }
 
+// Mapeamento de erros do Supabase para mensagens em português
+function traduzirErro(mensagem: string): string {
+  const mapa: Record<string, string> = {
+    "Invalid login credentials": "E-mail ou senha incorretos. Verifique e tente novamente.",
+    "Email not confirmed": "E-mail não confirmado. Verifique sua caixa de entrada e confirme seu cadastro antes de fazer login.",
+    "User already registered": "Este e-mail já está cadastrado. Tente fazer login ou recuperar seu acesso.",
+    "Password should be at least 6 characters": "A senha deve ter pelo menos 6 caracteres.",
+    "Unable to validate email address: invalid format": "Formato de e-mail inválido. Verifique e tente novamente.",
+    "Signup requires a valid password": "A senha é obrigatória para criar a conta.",
+    "For security purposes, you can only request this once every 60 seconds": "Por segurança, aguarde 60 segundos antes de solicitar novamente.",
+    "A user with this email address has already been registered": "Este e-mail já está cadastrado. Tente fazer login ou recuperar seu acesso.",
+    "User not found": "Usuário não encontrado. Verifique o e-mail informado.",
+  };
+
+  return mapa[mensagem] || mensagem;
+}
+
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
@@ -49,12 +66,12 @@ export async function signup(formData: FormData) {
 
   if (authError) {
     console.error("Erro no signup:", authError.message);
-    return { error: authError.message };
+    return { error: traduzirErro(authError.message) };
   }
 
   const userId = authData.user?.id;
   if (!userId) {
-    return { error: "Falha ao obter ID do usuário." };
+    return { error: "Falha ao obter ID do usuário. Tente novamente." };
   }
 
   const { error: proponenteError } = await supabase.from("proponentes").insert({
@@ -68,10 +85,10 @@ export async function signup(formData: FormData) {
   if (proponenteError) {
     console.error("Erro ao criar proponente:", proponenteError.message);
     await supabase.auth.admin.deleteUser(userId);
-    return { error: "Erro ao criar proponente: " + proponenteError.message };
+    return { error: "Erro ao criar cadastro. Tente novamente." };
   }
 
-  return { success: true, message: "Conta criada! Verifique seu e-mail para confirmar." };
+  return { success: true, message: "Conta criada! Verifique seu e-mail para confirmar o cadastro." };
 }
 
 export async function login(formData: FormData) {
@@ -81,7 +98,7 @@ export async function login(formData: FormData) {
   const password = formData.get("password") as string;
 
   if (!email || !password) {
-    return { error: "Email e senha são obrigatórios." };
+    return { error: "E-mail e senha são obrigatórios." };
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -91,10 +108,7 @@ export async function login(formData: FormData) {
 
   if (error) {
     console.error("Erro no login:", error.message);
-    if (error.message === "Email not confirmed") {
-      return { error: "E-mail não confirmado. Verifique sua caixa de entrada e confirme seu e-mail antes de fazer login." };
-    }
-    return { error: error.message };
+    return { error: traduzirErro(error.message) };
   }
 
   console.log("Login bem-sucedido para:", data.user?.email);
@@ -143,7 +157,7 @@ export async function recuperarAcesso(formData: FormData) {
 
     if (error) {
       console.error("Erro ao enviar recuperação:", error.message);
-      return { error: "Erro ao enviar link de recuperação." };
+      return { error: traduzirErro(error.message) };
     }
 
     return { success: true, email: emailEncontrado };
@@ -164,7 +178,7 @@ export async function confirmarEnvioRecuperacao(formData: FormData) {
   });
 
   if (error) {
-    return { error: "Erro ao enviar link de recuperação." };
+    return { error: traduzirErro(error.message) };
   }
 
   return { success: true };
