@@ -7,7 +7,6 @@ import "../globals.css";
 import { login, signup, recuperarAcesso, confirmarEnvioRecuperacao } from "./actions";
 import { useSearchParams } from "next/navigation";
 
-// Componente principal da página (sem hooks que precisam de Suspense)
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans flex items-center justify-center p-4 sm:p-6 md:p-10">
@@ -22,23 +21,9 @@ export default function LoginPage() {
             fontWeight: 500,
             boxShadow: "0 0 20px rgba(0,0,0,0.5)",
           },
-          success: {
-            iconTheme: {
-              primary: "#22d3ee",
-              secondary: "#020b18",
-            },
-            style: {
-              borderLeft: "3px solid #22d3ee",
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: "#f43f5e",
-              secondary: "#020b18",
-            },
-            style: {
-              borderLeft: "3px solid #f43f5e",
-            },
+          classNames: {
+            success: "!border-l-[3px] !border-l-[#22d3ee]",
+            error: "!border-l-[3px] !border-l-[#f43f5e]",
           },
         }}
       />
@@ -91,7 +76,6 @@ export default function LoginPage() {
   );
 }
 
-// Componente de fallback enquanto Suspense está ativo (raramente visto, mas necessário)
 function LoginFormSkeleton() {
   return (
     <div className="card p-6 md:p-8 animate-pulse">
@@ -107,7 +91,6 @@ function LoginFormSkeleton() {
   );
 }
 
-// Componente do formulário que usa useSearchParams
 function LoginForm() {
   const searchParams = useSearchParams();
   const confirmed = searchParams.get("confirmed");
@@ -193,7 +176,6 @@ function LoginForm() {
     if (result?.error) {
       toast.error(result.error);
     } else if (result?.success) {
-      // Sucesso no cadastro
       setSignupSuccess(true);
       toast.success(result.message || "Conta criada com sucesso!");
       e.currentTarget.reset();
@@ -210,7 +192,6 @@ function LoginForm() {
     setSignupSuccess(false);
   }
 
-  // Tela de sucesso pós-cadastro
   if (signupSuccess) {
     return (
       <section className="card p-6 md:p-8 text-center">
