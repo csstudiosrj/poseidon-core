@@ -48,6 +48,11 @@ function traduzirErro(mensagem: string): string {
   return mapa[mensagem] || mensagem;
 }
 
+// Garante a URL base, mesmo sem variável de ambiente
+function getBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "https://poseidon.vercel.app";
+}
+
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
@@ -133,6 +138,7 @@ export async function login(formData: FormData) {
 
 export async function recuperarAcesso(formData: FormData) {
   const supabase = await createClient();
+  const baseUrl = getBaseUrl();
 
   const email = formData.get("email") as string;
   const documento = formData.get("documento") as string;
@@ -141,7 +147,6 @@ export async function recuperarAcesso(formData: FormData) {
     return { error: "Informe seu e-mail ou CPF/CNPJ para recuperar o acesso." };
   }
 
-  // Busca por documento
   if (documento && !email) {
     const cleanDoc = cleanDocument(documento);
     const { data: proponente, error: proponenteError } = await supabase
@@ -164,11 +169,13 @@ export async function recuperarAcesso(formData: FormData) {
     };
   }
 
-  // Busca por e-mail
   const emailNormalizado = normalizarEmail(email);
 
+  const redirectTo = `${baseUrl}/recuperar-senha`;
+  console.log("Enviando e-mail de recuperação para:", emailNormalizado, "com redirectTo:", redirectTo);
+
   const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
+    redirectTo,
   });
 
   if (error) {
@@ -181,13 +188,17 @@ export async function recuperarAcesso(formData: FormData) {
 
 export async function confirmarEnvioRecuperacao(formData: FormData) {
   const supabase = await createClient();
+  const baseUrl = getBaseUrl();
 
   const email = normalizarEmail(formData.get("email") as string);
 
   if (!email) return { error: "E-mail não informado." };
 
+  const redirectTo = `${baseUrl}/recuperar-senha`;
+  console.log("Confirmando envio de recuperação para:", email, "com redirectTo:", redirectTo);
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
+    redirectTo,
   });
 
   if (error) {
