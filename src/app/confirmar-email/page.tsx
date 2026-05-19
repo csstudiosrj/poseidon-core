@@ -15,49 +15,29 @@ function ConfirmarEmailContent() {
     async function confirmar() {
       const supabase = createClient();
 
-      // Supabase v2 PKCE flow → chega como ?code=...
       const code = searchParams.get("code");
-
-      // Supabase token_hash flow (legado / e-mail customizado)
-      // type vem como "signup", "recovery", "email_change", etc.
       const token_hash = searchParams.get("token_hash");
       const type = searchParams.get("type");
 
       try {
         if (code) {
-          // ✅ Fluxo PKCE — o mais comum no Supabase JS v2
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
         } else if (token_hash && type) {
-          // ✅ Fluxo token_hash — usado em e-mails customizados
           const { error } = await supabase.auth.verifyOtp({
             token_hash,
-            // Supabase envia "signup" para confirmação de cadastro,
-            // "recovery" para reset de senha, "email_change" para troca de e-mail
-            type: type as
-              | "signup"
-              | "recovery"
-              | "email_change"
-              | "magiclink"
-              | "email",
+            type: type as "signup" | "recovery" | "email_change" | "magiclink" | "email",
           });
           if (error) throw error;
         } else {
-          throw new Error(
-            "Link inválido ou expirado. Nenhum código de confirmação encontrado na URL."
-          );
+          throw new Error("Link inválido ou expirado. Nenhum código de confirmação encontrado na URL.");
         }
 
         setStatus("success");
-
-        // Desloga a sessão recém-criada para forçar login explícito
-        // Remove essa linha se quiser logar automaticamente após confirmação
         await supabase.auth.signOut();
-
         setTimeout(() => router.push("/login?confirmed=true"), 2500);
       } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Erro desconhecido ao confirmar e-mail.";
+        const message = err instanceof Error ? err.message : "Erro desconhecido ao confirmar e-mail.";
         setStatus("error");
         setErrorMessage(message);
         console.error("[confirmar-email]", message);
@@ -71,7 +51,7 @@ function ConfirmarEmailContent() {
   return (
     <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* ── LOADING ── */}
+
         {status === "loading" && (
           <div className="card p-8 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
@@ -86,7 +66,6 @@ function ConfirmarEmailContent() {
           </div>
         )}
 
-        {/* ── SUCESSO ── */}
         {status === "success" && (
           <div className="card p-8 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
@@ -101,12 +80,14 @@ function ConfirmarEmailContent() {
               Redirecionando para o login…
             </p>
             <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden mt-2">
-              <div className="h-full bg-cyan-500 rounded-full animate-[grow_2.5s_ease-in-out_forwards]" />
+              <div
+                className="h-full bg-cyan-500 rounded-full"
+                style={{ animation: "grow 2.5s ease-in-out forwards" }}
+              />
             </div>
           </div>
         )}
 
-        {/* ── ERRO ── */}
         {status === "error" && (
           <div className="card p-8 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
@@ -130,12 +111,12 @@ function ConfirmarEmailContent() {
             </a>
           </div>
         )}
+
       </div>
     </div>
   );
 }
 
-// Suspense obrigatório por causa do useSearchParams() em Client Component
 export default function ConfirmarEmailPage() {
   return (
     <Suspense
