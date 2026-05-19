@@ -79,16 +79,23 @@ body {
 .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
 .badge-danger  { background: rgba(239, 68, 68, 0.15);  color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); }
 
+/* ── KEYFRAMES ── */
 @keyframes fade-slide {
-  0% { opacity: 0; transform: translateY(6px); }
+  0%   { opacity: 0; transform: translateY(6px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50%       { opacity: 0.3; }
 }
 
+@keyframes grow {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* ── FEED ── */
 .feed-item {
   display: flex;
   gap: 12px;
@@ -107,6 +114,7 @@ body {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+/* ── GAUGE ── */
 .gauge-svg circle.track { fill: none; stroke: rgba(255, 255, 255, 0.06); stroke-width: 10; }
 .gauge-svg circle.fill {
   fill: none;
@@ -119,7 +127,7 @@ body {
   transition: stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 4px; }
+/* ── CUSTOM SCROLLBAR ── */
+::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.2); border-radius: 99px; }
