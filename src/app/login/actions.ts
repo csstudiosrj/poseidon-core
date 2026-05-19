@@ -1,4 +1,3 @@
-// src/app/login/actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -14,38 +13,28 @@ function mascaraEmail(email: string): string {
   return `${nomeMascarado}@${dominio}`;
 }
 
-// Mapeamento COMPLETO de todos os erros de autenticação do Supabase
 function traduzirErro(mensagem: string): string {
   const mapa: Record<string, string> = {
-    // Login
     "Invalid login credentials": "E-mail ou senha incorretos. Verifique e tente novamente.",
     "Email not confirmed": "E-mail ainda não confirmado. Verifique sua caixa de entrada e clique no link de confirmação.",
     "Invalid email or password": "E-mail ou senha inválidos.",
     "User not found": "Usuário não encontrado. Verifique o e-mail informado.",
     "User already registered": "Este e-mail já está cadastrado. Tente fazer login ou recuperar seu acesso.",
     "A user with this email address has already been registered": "Este e-mail já está cadastrado. Faça login ou recupere seu acesso.",
-    
-    // Senha
     "Password should be at least 6 characters": "A senha deve ter pelo menos 6 caracteres.",
     "Password should be at least 8 characters": "A senha deve ter pelo menos 8 caracteres.",
     "Password is too weak": "A senha é muito fraca. Use letras, números e caracteres especiais.",
     "Signup requires a valid password": "É necessário informar uma senha válida.",
     "New password should be different from the old password": "A nova senha deve ser diferente da senha atual.",
-    
-    // E-mail
     "Unable to validate email address: invalid format": "Formato de e-mail inválido. Verifique e tente novamente.",
     "Email address is invalid": "Endereço de e-mail inválido.",
     "Email rate limit exceeded": "Você solicitou muitas vezes. Aguarde alguns minutos e tente novamente.",
     "For security purposes, you can only request this once every 60 seconds": "Por segurança, aguarde 60 segundos antes de solicitar novamente.",
-    
-    // Confirmação e recuperação
     "Error sending confirmation email": "Erro ao enviar o e-mail de confirmação. Tente novamente em instantes.",
     "Error sending recovery email": "Erro ao enviar o e-mail de recuperação. Tente novamente em instantes.",
     "Error sending magic link": "Erro ao enviar o link de acesso. Tente novamente.",
     "Token has expired or is invalid": "O link expirou ou é inválido. Solicite um novo link de acesso.",
     "Email link is invalid or has expired": "O link de confirmação expirou. Faça login para solicitar um novo.",
-    
-    // Genéricos
     "User is already signed in": "Você já está autenticado.",
     "Session expired": "Sua sessão expirou. Faça login novamente.",
     "Session not found": "Sessão não encontrada. Faça login novamente.",
@@ -75,7 +64,6 @@ export async function signup(formData: FormData) {
     return { error: "Documento inválido. Informe CPF (11 dígitos) ou CNPJ (14 dígitos)." };
   }
 
-  // Verifica se o e-mail já está registrado na tabela proponentes
   const { data: existente } = await supabase
     .from("proponentes")
     .select("id")
@@ -136,7 +124,6 @@ export async function login(formData: FormData) {
     return { error: "E-mail e senha são obrigatórios." };
   }
 
-  // Verifica se o e-mail existe na tabela proponentes
   const { data: proponente } = await supabase
     .from("proponentes")
     .select("id")
@@ -147,17 +134,13 @@ export async function login(formData: FormData) {
     return { error: "E-mail não cadastrado no sistema. Verifique ou crie uma nova conta." };
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     console.error("Erro no login:", error.message);
     return { error: traduzirErro(error.message) };
   }
 
-  console.log("Login bem-sucedido para:", data.user?.email);
   redirect("/hub");
 }
 
@@ -197,7 +180,6 @@ export async function recuperarAcesso(formData: FormData) {
   }
 
   if (emailEncontrado) {
-    // Verifica se o e-mail existe
     const { data: proponente } = await supabase
       .from("proponentes")
       .select("id")

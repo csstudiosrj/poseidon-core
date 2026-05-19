@@ -1,14 +1,47 @@
-// src/app/login/page.tsx
 "use client";
 
-import React, { useState } from "react";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import React, { useState, useEffect, Suspense } from "react";
+import { Loader2, Eye, EyeOff, MailCheck } from "lucide-react";
+import { Toaster, toast } from "sonner";
 import "../globals.css";
 import { login, signup, recuperarAcesso, confirmarEnvioRecuperacao } from "./actions";
+import { useSearchParams } from "next/navigation";
 
+// Componente principal da página (sem hooks que precisam de Suspense)
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans flex items-center justify-center p-4 sm:p-6 md:p-10">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "#081c35",
+            border: "1px solid #0c2a4a",
+            color: "#e2e8f0",
+            fontSize: "13px",
+            fontWeight: 500,
+            boxShadow: "0 0 20px rgba(0,0,0,0.5)",
+          },
+          success: {
+            iconTheme: {
+              primary: "#22d3ee",
+              secondary: "#020b18",
+            },
+            style: {
+              borderLeft: "3px solid #22d3ee",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#f43f5e",
+              secondary: "#020b18",
+            },
+            style: {
+              borderLeft: "3px solid #f43f5e",
+            },
+          },
+        }}
+      />
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 items-center">
         {/* HERO SECTION */}
         <section className="md:col-span-5 md:pr-10 flex flex-col items-start text-left space-y-5">
@@ -47,16 +80,44 @@ export default function LoginPage() {
           </div>
         </section>
 
-        {/* FORM CONTAINER */}
+        {/* FORM CONTAINER with Suspense boundary */}
         <div className="md:col-span-7 w-full max-w-md md:max-w-none mx-auto md:ml-6">
-          <LoginForm />
+          <Suspense fallback={<LoginFormSkeleton />}>
+            <LoginForm />
+          </Suspense>
         </div>
       </div>
     </div>
   );
 }
 
+// Componente de fallback enquanto Suspense está ativo (raramente visto, mas necessário)
+function LoginFormSkeleton() {
+  return (
+    <div className="card p-6 md:p-8 animate-pulse">
+      <div className="h-4 w-32 bg-sea-700 rounded mb-4" />
+      <div className="h-3 w-64 bg-sea-700 rounded mb-6" />
+      <div className="space-y-4">
+        <div className="h-10 bg-sea-700 rounded" />
+        <div className="h-10 bg-sea-700 rounded" />
+        <div className="h-10 bg-sea-700 rounded" />
+        <div className="h-10 bg-cyan-500/20 rounded mt-2" />
+      </div>
+    </div>
+  );
+}
+
+// Componente do formulário que usa useSearchParams
 function LoginForm() {
+  const searchParams = useSearchParams();
+  const confirmed = searchParams.get("confirmed");
+
+  useEffect(() => {
+    if (confirmed === "true") {
+      toast.success("E-mail confirmado! Faça login para acessar sua conta.");
+    }
+  }, [confirmed]);
+
   const [mode, setMode] = useState<"login" | "signup" | "recuperar">("login");
   const [etapaRecuperacao, setEtapaRecuperacao] = useState<"inicio" | "confirmar">("inicio");
   const [emailMascarado, setEmailMascarado] = useState("");
@@ -67,8 +128,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState("");
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   function formatDocument(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 14);
@@ -84,15 +144,13 @@ function LoginForm() {
   async function handleRecuperarAcesso(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEnviando(true);
-    setErro("");
-    setSucesso("");
 
     const formData = new FormData(e.currentTarget);
 
     if (etapaRecuperacao === "confirmar") {
       const result = await confirmarEnvioRecuperacao(formData);
-      if (result?.error) setErro(result.error);
-      else setSucesso("Link de recuperação enviado! Verifique sua caixa de entrada.");
+      if (result?.error) toast.error(result.error);
+      else toast.success("Link de recuperação enviado! Verifique sua caixa de entrada.");
       setEnviando(false);
       return;
     }
@@ -100,15 +158,15 @@ function LoginForm() {
     const result = await recuperarAcesso(formData);
 
     if (result?.error) {
-      setErro(result.error);
+      toast.error(result.error);
     } else if (result?.sucesso && result?.etapa === "confirmar_envio") {
       setEmailMascarado(result.emailMascarado);
       setEmailEncontrado(result.emailEncontrado || "");
       setNomeEncontrado(result.nome || "");
       setEtapaRecuperacao("confirmar");
-      setSucesso(`Encontramos o e-mail ${result.emailMascarado}. Confirme para enviar o link de recuperação.`);
+      toast.success(`Encontramos o e-mail ${result.emailMascarado}. Confirme para enviar o link.`);
     } else if (result?.success) {
-      setSucesso("Link de recuperação enviado! Verifique sua caixa de entrada.");
+      toast.success("Link de recuperação enviado! Verifique sua caixa de entrada.");
     }
     setEnviando(false);
   }
@@ -116,8 +174,6 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEnviando(true);
-    setErro("");
-    setSucesso("");
 
     const formData = new FormData(e.currentTarget);
 
@@ -125,7 +181,7 @@ function LoginForm() {
       const password = formData.get("password") as string;
       const confirmPassword = formData.get("password-confirm") as string;
       if (password !== confirmPassword) {
-        setErro("As senhas não coincidem.");
+        toast.error("As senhas não coincidem.");
         setEnviando(false);
         return;
       }
@@ -135,7 +191,13 @@ function LoginForm() {
     const result = await action(formData);
 
     if (result?.error) {
-      setErro(result.error);
+      toast.error(result.error);
+    } else if (result?.success) {
+      // Sucesso no cadastro
+      setSignupSuccess(true);
+      toast.success(result.message || "Conta criada com sucesso!");
+      e.currentTarget.reset();
+      setDoc("");
     }
     setEnviando(false);
   }
@@ -145,8 +207,34 @@ function LoginForm() {
     setEtapaRecuperacao("inicio");
     setEmailMascarado("");
     setEmailEncontrado("");
-    setErro("");
-    setSucesso("");
+    setSignupSuccess(false);
+  }
+
+  // Tela de sucesso pós-cadastro
+  if (signupSuccess) {
+    return (
+      <section className="card p-6 md:p-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 bg-cyan-500/10 rounded-full flex items-center justify-center">
+            <MailCheck size={32} className="text-cyan-400" />
+          </div>
+          <h2 className="text-lg font-bold text-white">Conta criada!</h2>
+          <p className="text-sm text-white/60 max-w-sm">
+            Enviamos um e‑mail de confirmação para sua caixa de entrada. <strong>Verifique também a pasta de spam</strong> e clique no link para ativar seu acesso.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSignupSuccess(false);
+              setMode("login");
+            }}
+            className="mt-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 px-6 rounded-lg transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)]"
+          >
+            Ir para login
+          </button>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -198,18 +286,6 @@ function LoginForm() {
           <button type="button" onClick={voltarParaInicio} className="text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors font-semibold cursor-pointer bg-transparent border-none p-0 text-center">
             Voltar para login
           </button>
-
-          {erro && (
-            <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-[11px] text-red-400 flex items-center justify-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-red-500 shrink-0" />
-              <span>{erro}</span>
-            </div>
-          )}
-          {sucesso && (
-            <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-[11px] text-emerald-400">
-              {sucesso}
-            </div>
-          )}
         </form>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -294,19 +370,6 @@ function LoginForm() {
               </p>
             )}
           </div>
-
-          {erro && (
-            <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-[11px] text-red-400 flex items-center justify-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-red-500 shrink-0" />
-              <span>{erro}</span>
-            </div>
-          )}
-          {sucesso && (
-            <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-[11px] text-emerald-400 flex items-center justify-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
-              <span>{sucesso}</span>
-            </div>
-          )}
         </form>
       )}
     </section>
