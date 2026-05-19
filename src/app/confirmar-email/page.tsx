@@ -103,7 +103,7 @@ function ConfirmarEmailContent() {
               Tente fazer login normalmente — se o e-mail já estiver confirmado
               no banco, o acesso funcionará. Caso contrário, crie uma nova conta.
             </p>
-            
+            <a
               href="/login"
               className="mt-2 inline-flex items-center justify-center w-full h-10 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)]"
             >
