@@ -181,26 +181,17 @@ function LoginForm() {
       return;
     }
 
-    try {
-      const result = await signup(formData);
-      console.log("[handleSignup] resultado:", result);
+    const result = await signup(formData);
 
-      if (!result.success) {
-        console.log("[handleSignup] erro:", result.error);
-        toast.error(result.error || "Erro ao criar conta.");
-      } else {
-        console.log("[handleSignup] sucesso, mensagem:", result.message);
-        setSignupSuccess(true);
-        toast.success(result.message || "Conta criada com sucesso!");
-        (e.target as HTMLFormElement).reset();
-        setDoc("");
-      }
-    } catch (err) {
-      console.error("[handleSignup] exceção:", err);
-      toast.error("Erro inesperado. Tente novamente.");
-    } finally {
-      setEnviando(false);
+    if (!result.success) {
+      toast.error(result.error || "Erro ao criar conta.");
+    } else {
+      setSignupSuccess(true);
+      toast.success(result.message || "Conta criada com sucesso!");
+      (e.target as HTMLFormElement).reset();
+      setDoc("");
     }
+    setEnviando(false);
   }
 
   function voltarParaInicio() {
