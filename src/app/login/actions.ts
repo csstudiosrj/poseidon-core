@@ -68,15 +68,6 @@ export async function signup(formData: FormData) {
     return { success: false, error: "Documento inválido. Informe CPF (11 dígitos) ou CNPJ (14 dígitos)." };
   }
 
-  // Verifica se o e-mail já existe (apenas na tabela auth, pois proponentes pode não ter ainda)
-  // Usamos a API do Supabase para verificar existência no auth
-  const { data: existingUser, error: checkError } = await supabase
-    .auth
-    .signInWithOtp({ email, options: { shouldCreateUser: false } });
-  // O método acima apenas verifica, não cria usuário. Mas pode ser complexo; vamos usar uma abordagem mais direta:
-  // A verificação real será feita pelo signUp, que retorna erro se já existir.
-  // Portanto, removeremos a verificação prévia em proponentes e confiaremos no erro do signUp.
-
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -100,18 +91,16 @@ export async function signup(formData: FormData) {
     return { success: false, error: "Falha ao criar usuário. Tente novamente." };
   }
 
-  // Insere na tabela proponentes
   const { error: proponenteError } = await supabase.from("proponentes").insert({
     user_id: userId,
     tipo,
     nome_razao_social: nomeEmpresa || nomeCompleto,
     cpf_cnpj: cleanDoc,
-    email: email, // normalizado (minúsculas)
+    email: email,
   });
 
   if (proponenteError) {
     console.error("Erro ao criar proponente:", proponenteError.message);
-    // Rollback: remove o usuário auth
     await supabase.auth.admin.deleteUser(userId);
     return { success: false, error: "Erro ao criar cadastro. Tente novamente." };
   }
@@ -152,23 +141,20 @@ export async function recuperarAcesso(formData: FormData) {
     return { error: "Informe seu e-mail ou CPF/CNPJ para recuperar o acesso." };
   }
 
-  let emailEncontrado: string | undefined;
-
+  // Busca por documento
   if (documento && !email) {
     const cleanDoc = cleanDocument(documento);
-    // Esta consulta é permitida mesmo sem sessão? Depende da RLS, mas podemos precisar de uma função RPC.
-    // Como solução temporária, vamos tentar buscar via documento; se a RLS bloquear, precisaremos ajustar.
-    const { data: proponente } = await supabase
+    const { data: proponente, error: proponenteError } = await supabase
       .from("proponentes")
       .select("email, nome_razao_social")
       .eq("cpf_cnpj", cleanDoc)
       .single();
 
-    if (!proponente) {
+    if (proponenteError || !proponente) {
       return { error: "Documento não encontrado. Verifique e tente novamente." };
     }
 
-    emailEncontrado = proponente.email;
+    const emailEncontrado = proponente.email as string;
     return {
       sucesso: true,
       emailMascarado: mascaraEmail(emailEncontrado),
@@ -178,11 +164,10 @@ export async function recuperarAcesso(formData: FormData) {
     };
   }
 
-  emailEncontrado = normalizarEmail(email);
+  // Busca por e-mail
+  const emailNormalizado = normalizarEmail(email);
 
-  // A verificação de existência do e-mail pode ser feita via auth.resetPasswordForEmail,
-  // que retorna erro se não existir. Não precisamos checar proponentes.
-  const { error } = await supabase.auth.resetPasswordForEmail(emailEncontrado, {
+  const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recuperar-senha`,
   });
 
@@ -191,7 +176,7 @@ export async function recuperarAcesso(formData: FormData) {
     return { error: traduzirErro(error.message) };
   }
 
-  return { success: true, email: emailEncontrado };
+  return { success: true, email: emailNormalizado };
 }
 
 export async function confirmarEnvioRecuperacao(formData: FormData) {
