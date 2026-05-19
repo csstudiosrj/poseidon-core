@@ -8,11 +8,15 @@ export default async function ConfirmarEmailPage({
 }) {
   const { token_hash, type } = searchParams;
 
-  // Renderiza algo básico enquanto processa (será substituído pelo redirect)
   if (!token_hash || type !== "email_confirmation") {
     return (
       <div className="min-h-screen bg-sea-950 flex items-center justify-center">
-        <p className="text-white/60 text-sm">Link inválido ou expirado.</p>
+        <div className="text-center space-y-2">
+          <p className="text-red-400 text-sm font-medium">Link inválido ou expirado.</p>
+          <a href="/login" className="text-cyan-400 text-xs hover:underline">
+            Voltar para o login
+          </a>
+        </div>
       </div>
     );
   }
@@ -38,6 +42,6 @@ export default async function ConfirmarEmailPage({
     );
   }
 
-  // Redireciona para o login com flag de confirmação
+  // Confirmação bem-sucedida: redireciona para login com flag
   redirect("/login?confirmed=true");
 }

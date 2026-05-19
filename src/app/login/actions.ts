@@ -54,6 +54,7 @@ function getBaseUrl() {
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
+  const baseUrl = getBaseUrl();
 
   const email = normalizarEmail(formData.get("email") as string);
   const password = formData.get("password") as string;
@@ -76,6 +77,7 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
+      emailRedirectTo: `${baseUrl}/confirmar-email`,
       data: {
         nome_completo: nomeCompleto,
         nome_empresa: nomeEmpresa,
