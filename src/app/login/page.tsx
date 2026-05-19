@@ -154,31 +154,43 @@ function LoginForm() {
     setEnviando(false);
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEnviando(true);
 
     const formData = new FormData(e.currentTarget);
-
-    if (mode === "signup") {
-      const password = formData.get("password") as string;
-      const confirmPassword = formData.get("password-confirm") as string;
-      if (password !== confirmPassword) {
-        toast.error("As senhas não coincidem.");
-        setEnviando(false);
-        return;
-      }
-    }
-
-    const action = mode === "login" ? login : signup;
-    const result = await action(formData);
+    const result = await login(formData);
 
     if (result?.error) {
       toast.error(result.error);
-    } else if (result?.success) {
+    }
+    // se login bem-sucedido, a ação redireciona, então não precisamos de feedback
+    setEnviando(false);
+  }
+
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setEnviando(true);
+
+    const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("password-confirm") as string;
+
+    if (password !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      setEnviando(false);
+      return;
+    }
+
+    const result = await signup(formData);
+
+    if (!result.success) {
+      toast.error(result.error || "Erro ao criar conta.");
+    } else {
       setSignupSuccess(true);
       toast.success(result.message || "Conta criada com sucesso!");
-      e.currentTarget.reset();
+      // Limpa o formulário
+      (e.target as HTMLFormElement).reset();
       setDoc("");
     }
     setEnviando(false);
@@ -269,7 +281,7 @@ function LoginForm() {
           </button>
         </form>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">E-mail</label>
             <input type="email" id="email" name="email" className="w-full bg-sea-950 border border-white/10 rounded-lg h-10 px-3 text-xs text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50" placeholder="voce@produtora.com" required disabled={enviando} />
