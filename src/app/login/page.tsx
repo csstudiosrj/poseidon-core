@@ -164,7 +164,6 @@ function LoginForm() {
     if (result?.error) {
       toast.error(result.error);
     }
-    // se login bem-sucedido, a ação redireciona, então não precisamos de feedback
     setEnviando(false);
   }
 
@@ -182,18 +181,26 @@ function LoginForm() {
       return;
     }
 
-    const result = await signup(formData);
+    try {
+      const result = await signup(formData);
+      console.log("[handleSignup] resultado:", result);
 
-    if (!result.success) {
-      toast.error(result.error || "Erro ao criar conta.");
-    } else {
-      setSignupSuccess(true);
-      toast.success(result.message || "Conta criada com sucesso!");
-      // Limpa o formulário
-      (e.target as HTMLFormElement).reset();
-      setDoc("");
+      if (!result.success) {
+        console.log("[handleSignup] erro:", result.error);
+        toast.error(result.error || "Erro ao criar conta.");
+      } else {
+        console.log("[handleSignup] sucesso, mensagem:", result.message);
+        setSignupSuccess(true);
+        toast.success(result.message || "Conta criada com sucesso!");
+        (e.target as HTMLFormElement).reset();
+        setDoc("");
+      }
+    } catch (err) {
+      console.error("[handleSignup] exceção:", err);
+      toast.error("Erro inesperado. Tente novamente.");
+    } finally {
+      setEnviando(false);
     }
-    setEnviando(false);
   }
 
   function voltarParaInicio() {
