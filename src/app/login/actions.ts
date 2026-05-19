@@ -48,7 +48,6 @@ function traduzirErro(mensagem: string): string {
   return mapa[mensagem] || mensagem;
 }
 
-// Garante a URL base, mesmo sem variável de ambiente
 function getBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "https://poseidon.vercel.app";
 }
@@ -171,11 +170,8 @@ export async function recuperarAcesso(formData: FormData) {
 
   const emailNormalizado = normalizarEmail(email);
 
-  const redirectTo = `${baseUrl}/recuperar-senha`;
-  console.log("Enviando e-mail de recuperação para:", emailNormalizado, "com redirectTo:", redirectTo);
-
   const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
-    redirectTo,
+    redirectTo: `${baseUrl}/recuperar-senha`,
   });
 
   if (error) {
@@ -194,11 +190,8 @@ export async function confirmarEnvioRecuperacao(formData: FormData) {
 
   if (!email) return { error: "E-mail não informado." };
 
-  const redirectTo = `${baseUrl}/recuperar-senha`;
-  console.log("Confirmando envio de recuperação para:", email, "com redirectTo:", redirectTo);
-
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
+    redirectTo: `${baseUrl}/recuperar-senha`,
   });
 
   if (error) {
