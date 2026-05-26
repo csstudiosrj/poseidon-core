@@ -1,19 +1,10 @@
 // src/app/(dashboard)/hub/page.tsx
 import React from "react";
-import Link from "next/link";
 import "../../globals.css";
-import {
-  Plus,
-  FolderKanban,
-  Calendar,
-  Layers,
-  PlayCircle,
-  FilePenLine,
-  Clock,
-} from "lucide-react";
-import { getHubData } from "@/app/actions/hub";
-import { redirect } from "next/navigation";
+import { Plus, FolderKanban, Calendar, Sparkles } from "lucide-react";
+import { getHubData } from "@/app/actions/hub"; // ← import corrigido
 
+/* ─── Tipos (espelham exatamente o que a action retorna) ─────────── */
 type ProjetoStatus =
   | "rascunho"
   | "enviado"
@@ -22,20 +13,16 @@ type ProjetoStatus =
   | "finalizado"
   | "prestacao_contas";
 
-interface FonteResumo {
-  tipo: string;
-  nome: string;
-  valor: number;
-}
-
 interface ProjetoHub {
   id: string;
   nome_projeto: string;
   status: ProjetoStatus | string;
   created_at: string;
   updated_at: string;
-  fontes: FonteResumo[];
-  orcamento_total: number;
+  biblioteca_regras: {
+    mecanismo_nome: string;
+    esfera: string;
+  } | null;
 }
 
 interface ResumoProjetos {
@@ -48,205 +35,153 @@ interface ResumoProjetos {
   prestacao_contas: number;
 }
 
+/* ─── Página (Server Component) ──────────────────────────────────── */
 export default async function HubPage() {
+  // Busca de dados direta no servidor — sem useEffect, sem useState
   const data = await getHubData();
 
-  if ("error" in data && data.error.includes("não autenticado")) {
-    redirect("/login");
-  }
-
-  const error = "error" in data ? data.error : null;
-  const projetos =
-    "projetos" in data ? (data.projetos as ProjetoHub[]) : [];
-  const resumo =
-    "resumo" in data ? (data.resumo as ResumoProjetos) : null;
-  const isEmpty = !error && projetos.length === 0;
+  const error    = "error"   in data ? data.error    : null;
+  const projetos = "projetos" in data ? (data.projetos as ProjetoHub[]) : [];
+  const resumo   = "resumo"  in data ? (data.resumo  as ResumoProjetos) : null;
+  const isEmpty  = !error && projetos.length === 0;
 
   return (
-    <div className="min-h-screen bg-sea-950 text-slate-200 antialiased font-sans">
-      <main className="px-6 md:px-10 py-8">
-        <header className="flex items-center justify-between gap-4 mb-8">
+    <div
+      className="min-h-screen"
+      style={{ background: "#020b18", color: "#e2e8f0" }}
+    >
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+
+        {/* HEADER */}
+        <header className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              Meus Projetos
-            </h1>
-            <p className="text-xs text-white/40 mt-1">
-              Console para criar, monitorar e auditar seus projetos culturais.
+            <h1 className="text-xl font-semibold text-white">Meus Projetos</h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Seu painel para criar, acompanhar e finalizar projetos culturais.
             </p>
           </div>
-          <Link
-            href="/setup"
-            className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.2)]"
-          >
-            <Plus size={15} />
+          <button type="button" className="ds-btn ds-btn-primary">
+            <Plus size={16} />
             <span>Novo Projeto</span>
-          </Link>
+          </button>
         </header>
 
+        {/* ERRO */}
         {error && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400 mb-6 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-            <span>{error}</span>
-          </div>
+          <div className="text-xs text-red-400 mb-4">{error}</div>
         )}
 
+        {/* GRID RESUMO */}
         {resumo && !error && (
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <ResumoCard label="Total de Projetos" valor={resumo.total} icon={Layers} />
-            <ResumoCard label="Ativos" valor={resumo.ativos} icon={PlayCircle} />
-            <ResumoCard label="Rascunhos" valor={resumo.rascunhos} icon={FilePenLine} />
-            <ResumoCard label="Pendentes" valor={resumo.enviados} icon={Clock} />
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <ResumoCard label="Total de Projetos" valor={resumo.total}    cor="text-cyan-300"    />
+            <ResumoCard label="Ativos"             valor={resumo.ativos}   cor="text-emerald-300" />
+            <ResumoCard label="Rascunhos"          valor={resumo.rascunhos} cor="text-slate-200"  />
+            <ResumoCard label="Pendentes"          valor={resumo.enviados}  cor="text-sky-300"    />
           </section>
         )}
 
+        {/* LISTA / EMPTY STATE */}
         {!error && (
-          <>
-            {isEmpty ? (
-              <EmptyStateHub />
-            ) : (
-              <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {projetos.map((projeto) => (
-                  <ProjetoCard key={projeto.id} projeto={projeto} />
-                ))}
-              </section>
-            )}
-          </>
+          isEmpty ? (
+            <EmptyStateHub />
+          ) : (
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projetos.map((projeto) => (
+                <ProjetoCard key={projeto.id} projeto={projeto} />
+              ))}
+            </section>
+          )
         )}
+
       </main>
     </div>
   );
 }
 
-interface ResumoCardProps {
+/* ─── Sub-componentes (sem hooks — compatíveis com Server Component) */
+
+function ResumoCard({
+  label,
+  valor,
+  cor,
+}: {
   label: string;
   valor: number;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-}
-
-function ResumoCard({ label, valor, icon: Icon }: ResumoCardProps) {
+  cor: string;
+}) {
   return (
-    <div className="card p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.16em] font-medium">
-            {label}
-          </span>
-          <span className="text-2xl font-bold text-white font-mono tabular-nums">
-            {valor.toString().padStart(2, "0")}
-          </span>
-        </div>
-        <div className="text-cyan-400/70">
-          <Icon size={16} />
-        </div>
-      </div>
-      <div className="text-[10px] text-white/20 font-mono tracking-wide">
-        console://{label.toLowerCase().replace(/\s+/g, "_")}
-      </div>
+    <div
+      className="ds-card"
+      style={{ background: "#081121", padding: "14px 14px" }}
+    >
+      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 mb-1">
+        {label}
+      </p>
+      <p className={`text-xl font-semibold num-tabular ${cor}`}>
+        {valor.toString().padStart(2, "0")}
+      </p>
     </div>
   );
 }
 
 function getStatusConfig(statusRaw: string) {
   const status = statusRaw as ProjetoStatus;
-
   switch (status) {
     case "rascunho":
-      return {
-        label: "Rascunho",
-        className: "badge badge-warning",
-      };
+      return { label: "Rascunho",            className: "bg-slate-700/40 text-slate-200 border border-slate-500/60" };
     case "ativo":
-      return {
-        label: "Ativo",
-        className: "badge badge-ok",
-      };
+      return { label: "Ativo",               className: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/50" };
     case "enviado":
-      return {
-        label: "Enviado",
-        className: "badge bg-sky-500/10 text-sky-400 border border-sky-500/15",
-      };
+      return { label: "Enviado",             className: "bg-sky-500/15 text-sky-300 border border-sky-500/60" };
     case "finalizado":
-      return {
-        label: "Finalizado",
-        className: "badge bg-cyan-500/10 text-cyan-400 border border-cyan-500/15",
-      };
+      return { label: "Finalizado",          className: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/60" };
     case "inativo":
-      return {
-        label: "Inativo",
-        className: "badge bg-white/5 text-slate-400 border border-white/10",
-      };
+      return { label: "Inativo",             className: "bg-slate-800/60 text-slate-300 border border-slate-600/80" };
     case "prestacao_contas":
-      return {
-        label: "Prestação de Contas",
-        className: "badge bg-purple-500/10 text-purple-400 border border-purple-500/15",
-      };
+      return { label: "Prestação de contas", className: "bg-amber-500/15 text-amber-300 border border-amber-500/60" };
     default:
-      return {
-        label: statusRaw || "—",
-        className: "badge bg-white/5 text-slate-300 border border-white/10",
-      };
+      return { label: statusRaw || "—",      className: "bg-slate-800/60 text-slate-200 border border-slate-600/80" };
   }
 }
 
 function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
   const statusCfg = getStatusConfig(projeto.status);
+  const mecanismoLabel = projeto.biblioteca_regras
+    ? `${projeto.biblioteca_regras.mecanismo_nome} — ${projeto.biblioteca_regras.esfera}`
+    : "Mecanismo não informado";
   const dataCriacao = new Date(projeto.created_at).toLocaleDateString("pt-BR");
 
-  const fontesLabel =
-    projeto.fontes.length === 1
-      ? projeto.fontes[0].nome
-      : `${projeto.fontes.length} fontes`;
-
-  const fontesDetalhe = projeto.fontes
-    .map((f) => `${f.nome} (${((f.valor / projeto.orcamento_total) * 100).toFixed(0)}%)`)
-    .join(" + ");
-
   return (
-    <article className="card p-4 flex flex-col justify-between min-h-[175px] hover:border-cyan-500/15 transition-all group">
-      <div>
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-white truncate tracking-tight group-hover:text-cyan-400 transition-colors">
-              {projeto.nome_projeto}
-            </h2>
-            <p className="text-xs text-white/40 mt-0.5 truncate font-medium">
-              {fontesLabel}
-            </p>
-          </div>
-          <div
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap border ${statusCfg.className}`}
-          >
-            {statusCfg.label}
-          </div>
+    <article
+      className="ds-card flex flex-col justify-between"
+      style={{ background: "#081121", padding: "14px 14px" }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-white truncate">
+            {projeto.nome_projeto}
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 truncate">
+            {mecanismoLabel}
+          </p>
         </div>
-
-        <p className="text-[10px] text-white/30 mb-3 leading-relaxed" title={fontesDetalhe}>
-          {fontesDetalhe}
-        </p>
-
-        <div className="flex items-center justify-between text-[11px] text-white/30 mb-3">
-          <div className="inline-flex items-center gap-1.5">
-            <Calendar size={12} className="text-white/20" />
-            <span>Criado em {dataCriacao}</span>
-          </div>
-          <div className="inline-flex items-center gap-1.5 font-mono text-white/20">
-            <FolderKanban size={12} />
-            <span>ID {projeto.id.slice(0, 8)}</span>
-          </div>
+        <div
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${statusCfg.className}`}
+        >
+          {statusCfg.label}
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-white/[0.04] mt-auto">
-        <span className="text-[10px] text-white/20 font-mono">
-          Up: {new Date(projeto.updated_at).toLocaleDateString("pt-BR")}
-        </span>
-        <Link
-          href={`/projeto/${projeto.id}`}
-          className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <span>Acessar Console</span>
-          <span aria-hidden className="text-cyan-400 group-hover:translate-x-0.5 transition-transform">→</span>
-        </Link>
+      <div className="flex items-center justify-between text-[11px] text-slate-400">
+        <div className="inline-flex items-center gap-1">
+          <Calendar size={12} className="text-slate-500" />
+          <span>Criado em {dataCriacao}</span>
+        </div>
+        <div className="inline-flex items-center gap-1 text-slate-500">
+          <FolderKanban size={12} />
+          <span>ID {projeto.id.slice(0, 8)}</span>
+        </div>
       </div>
     </article>
   );
@@ -254,34 +189,31 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
 
 function EmptyStateHub() {
   return (
-    <section className="flex flex-col items-center justify-center text-center py-24 card border border-dashed border-white/10 bg-transparent">
-      <div className="relative mb-4">
+    <section className="flex flex-col items-center justify-center text-center py-16">
+      <div className="relative mb-6">
         <div
-          className="rounded-full flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(34,211,238,0.02)]"
+          className="rounded-full flex items-center justify-center"
           style={{
-            width: 72,
-            height: 72,
-            background:
-              "radial-gradient(circle at top, rgba(34,211,238,0.12), transparent 70%)",
+            width: 80,
+            height: 80,
+            background: "radial-gradient(circle at top, rgba(56,189,248,0.25), transparent 60%)",
+            border: "1px solid rgba(148,163,184,0.4)",
           }}
         >
-          <FolderKanban size={26} className="text-cyan-400" />
+          <Sparkles size={30} className="text-cyan-300" />
         </div>
       </div>
-      <h2 className="text-sm font-semibold text-white mb-1.5">
+      <h2 className="text-sm font-semibold text-white mb-2">
         Sua jornada cultural começa aqui
       </h2>
-      <p className="text-xs text-white/40 mb-6 max-w-xs leading-relaxed px-4">
+      <p className="text-xs text-slate-400 mb-5 max-w-xs">
         Crie seu primeiro projeto para acompanhar captação, execução e
-        prestação de contas em um console único.
+        prestação de contas em um painel único.
       </p>
-      <Link
-        href="/setup"
-        className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-semibold h-9 px-4 rounded-lg transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.2)]"
-      >
-        <Plus size={15} />
-        <span>Criar Primeiro Projeto</span>
-      </Link>
+      <button type="button" className="ds-btn ds-btn-primary">
+        <Plus size={16} />
+        <span>Criar primeiro projeto</span>
+      </button>
     </section>
   );
 }
