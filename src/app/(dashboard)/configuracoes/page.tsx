@@ -1,104 +1,90 @@
 // src/app/(dashboard)/configuracoes/page.tsx
+// SUBSTITUIR o arquivo atual — agora é a página de conta/configurações
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, FileText, Link, Camera, ArrowLeft, Download } from "lucide-react";
-import { uploadPortfolioAction, getPortfolioData } from "@/app/actions/portfolio";
-import { UploadDropzone } from "@uploadthing/react";
-import type { OurFileRouter } from "@/lib/uploadthing";
-import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import {
+  Loader2,
+  ArrowLeft,
+  Mail,
+  Lock,
+  User,
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  LogOut,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import "../../globals.css";
-
-const styles = StyleSheet.create({
-  page: { padding: 40, backgroundColor: "#fff", fontFamily: "Helvetica" },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, color: "#020b18" },
-  subtitle: { fontSize: 14, fontWeight: "bold", marginTop: 20, marginBottom: 10, color: "#06b6d4" },
-  body: { fontSize: 11, lineHeight: 1.6, color: "#333", marginBottom: 10 },
-  link: { fontSize: 10, color: "#06b6d4", marginBottom: 4 },
-  image: { width: 150, height: 100, objectFit: "cover", margin: 5, borderRadius: 4 },
-  row: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
-  footer: { fontSize: 8, color: "#999", textAlign: "center", marginTop: 30 },
-});
-
-function PortfolioPDF({ dados }: { dados: any }) {
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>PORTFÓLIO PROFISSIONAL</Text>
-        <Text style={styles.subtitle}>{dados.nome || "Proponente"}</Text>
-        <Text style={styles.body}>{dados.curriculo || "Nenhum currículo cadastrado."}</Text>
-        {dados.links?.length > 0 && (
-          <>
-            <Text style={styles.subtitle}>Links e Referências</Text>
-            {dados.links.map((l: string, i: number) => (
-              <Text key={i} style={styles.link}>{i + 1}. {l}</Text>
-            ))}
-          </>
-        )}
-        {dados.fotos?.length > 0 && (
-          <>
-            <Text style={styles.subtitle}>Registro de Projetos</Text>
-            <View style={styles.row}>
-              {dados.fotos.map((url: string, i: number) => (
-                <Image key={i} src={url} style={styles.image} />
-              ))}
-            </View>
-          </>
-        )}
-        <Text style={styles.footer}>Gerado por Poseidon — Tecnologia de Gestão Cultural</Text>
-      </Page>
-    </Document>
-  );
-}
 
 export default function ConfiguracoesPage() {
   const router = useRouter();
+  const supabase = createClient();
 
-  const [curriculo, setCurriculo] = useState("");
-  const [links, setLinks] = useState("");
-  const [fotosUrls, setFotosUrls] = useState<string[]>([]);
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState(false);
-  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
   const [carregando, setCarregando] = useState(true);
-  const [pdfDados, setPdfDados] = useState<any>(null);
+
+  // Alterar senha
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [salvandoSenha, setSalvandoSenha] = useState(false);
+  const [erroSenha, setErroSenha] = useState("");
+  const [sucessoSenha, setSucessoSenha] = useState(false);
+
+  // Excluir conta
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [textoConfirmacao, setTextoConfirmacao] = useState("");
 
   useEffect(() => {
     async function carregar() {
-      const data = await getPortfolioData();
-      if ("portfolio" in data) {
-        setNome(data.nome || "");
-        if (data.portfolio?.curriculo) setCurriculo(data.portfolio.curriculo);
-        if (data.portfolio?.links) setLinks(data.portfolio.links.join("\n"));
-        if (data.portfolio?.fotos) setFotosUrls(data.portfolio.fotos);
-        setPdfDados({ nome: data.nome, curriculo: data.portfolio?.curriculo, links: data.portfolio?.links, fotos: data.portfolio?.fotos });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
       }
+      setEmail(user.email || "");
       setCarregando(false);
     }
     carregar();
   }, []);
 
-  async function handleSalvar() {
-    setEnviando(true);
-    setErro("");
-    setSucesso(false);
+  async function handleAlterarSenha(e: React.FormEvent) {
+    e.preventDefault();
+    setErroSenha("");
+    setSucessoSenha(false);
 
-    const formData = new FormData();
-    formData.append("curriculo", curriculo);
-    formData.append("links", links);
-    formData.append("fotosUrls", JSON.stringify(fotosUrls));
-
-    const result = await uploadPortfolioAction(null, formData);
-
-    if (result?.error) {
-      setErro(result.error);
-    } else if (result?.success) {
-      setSucesso(true);
-      setPdfDados({ nome, curriculo, links: links.split("\n").filter(l => l.trim()), fotos: fotosUrls });
+    if (!novaSenha || novaSenha.length < 8) {
+      setErroSenha("A nova senha deve ter pelo menos 8 caracteres.");
+      return;
     }
-    setEnviando(false);
+    if (novaSenha !== confirmarSenha) {
+      setErroSenha("As senhas não coincidem.");
+      return;
+    }
+
+    setSalvandoSenha(true);
+
+    const { error } = await supabase.auth.updateUser({ password: novaSenha });
+
+    if (error) {
+      setErroSenha(error.message || "Erro ao alterar a senha.");
+    } else {
+      setSucessoSenha(true);
+      setNovaSenha("");
+      setConfirmarSenha("");
+      setSenhaAtual("");
+    }
+
+    setSalvandoSenha(false);
+  }
+
+  async function handleSair() {
+    await supabase.auth.signOut();
+    router.push("/login");
   }
 
   if (carregando) {
@@ -111,109 +97,163 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="min-h-screen bg-sea-950 p-6 md:p-10">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+
+        {/* Header */}
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/50 hover:text-white/70 cursor-pointer">
+          <button
+            onClick={() => router.back()}
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/50 hover:text-white/70 cursor-pointer"
+          >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Portfólio</h1>
-            <p className="text-white/40 text-xs mt-1">Gerencie seu portfólio profissional</p>
+            <h1 className="text-xl font-bold text-white tracking-tight">Configurações</h1>
+            <p className="text-white/40 text-xs mt-1">Gerencie sua conta e segurança</p>
           </div>
         </div>
 
-        {sucesso && (
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-400">
-            Portfólio salvo com sucesso!
-          </div>
-        )}
-
-        {erro && (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-            {erro}
-          </div>
-        )}
-
-        <div className="card p-6 space-y-4">
+        {/* Email */}
+        <div className="card p-6 space-y-3">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <FileText size={16} className="text-cyan-400" />
-            Currículo Profissional
+            <Mail size={16} className="text-cyan-400" />
+            Email da Conta
           </h2>
-          <textarea
-            className="w-full bg-sea-950 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all min-h-[200px] resize-y"
-            placeholder="Descreva sua trajetória profissional, principais projetos realizados, prêmios e reconhecimentos..."
-            value={curriculo}
-            onChange={(e) => setCurriculo(e.target.value)}
-          />
+          <div className="flex items-center gap-3 bg-sea-950 border border-white/10 rounded-lg px-4 py-3">
+            <Mail size={14} className="text-white/30 shrink-0" />
+            <span className="text-sm text-white/70">{email}</span>
+          </div>
+          <p className="text-[11px] text-white/30">
+            Para alterar o email, entre em contato com o suporte.
+          </p>
         </div>
 
+        {/* Alterar Senha */}
         <div className="card p-6 space-y-4">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Link size={16} className="text-cyan-400" />
-            Links e Referências
-          </h2>
-          <p className="text-white/40 text-xs">Cole links de matérias, vídeos, portfólios online (um por linha)</p>
-          <textarea
-            className="w-full bg-sea-950 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all min-h-[120px] resize-y"
-            placeholder="https://exemplo.com/materia-jornal&#10;https://youtube.com/video-projeto&#10;https://instagram.com/perfil"
-            value={links}
-            onChange={(e) => setLinks(e.target.value)}
-          />
-        </div>
-
-        <div className="card p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Camera size={16} className="text-cyan-400" />
-            Fotos de Projetos Anteriores
+            <Lock size={16} className="text-cyan-400" />
+            Alterar Senha
           </h2>
 
-          {fotosUrls.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {fotosUrls.map((url, i) => (
-                <img key={i} src={url} alt={`Foto ${i + 1}`} className="rounded-lg w-full h-24 object-cover" />
-              ))}
+          {sucessoSenha && (
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-400">
+              <CheckCircle2 size={14} className="shrink-0" />
+              Senha alterada com sucesso!
             </div>
           )}
 
-          <UploadDropzone<OurFileRouter, "portfolioPhotos">
-            endpoint="portfolioPhotos"
-            onClientUploadComplete={(res) => {
-              const novasUrls = res?.map((file) => file.url) || [];
-              setFotosUrls((prev) => [...prev, ...novasUrls]);
-            }}
-            onUploadError={(error) => {
-              console.error(error);
-              setErro("Erro ao enviar foto.");
-            }}
-            className="border border-dashed border-white/10 rounded-lg p-8 text-xs text-white/40 ut-label:text-white/60 ut-button:bg-cyan-500 ut-button:text-sea-950 ut-button:text-xs ut-button:h-9 ut-button:rounded-lg ut-button:cursor-pointer"
-          />
-          <p className="text-[10px] text-white/30">Máximo 10 fotos, até 8MB cada.</p>
+          {erroSenha && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400">
+              <AlertTriangle size={14} className="shrink-0" />
+              {erroSenha}
+            </div>
+          )}
+
+          <form onSubmit={handleAlterarSenha} className="space-y-3">
+            <div className="relative">
+              <input
+                type={mostrarSenha ? "text" : "password"}
+                placeholder="Nova senha (mín. 8 caracteres)"
+                value={novaSenha}
+                onChange={(e) => setNovaSenha(e.target.value)}
+                className="w-full bg-sea-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha(!mostrarSenha)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+              >
+                {mostrarSenha ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <input
+              type={mostrarSenha ? "text" : "password"}
+              placeholder="Confirmar nova senha"
+              value={confirmarSenha}
+              onChange={(e) => setConfirmarSenha(e.target.value)}
+              className="w-full bg-sea-950 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+            />
+            <button
+              type="submit"
+              disabled={salvandoSenha || !novaSenha || !confirmarSenha}
+              className="w-full bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {salvandoSenha ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+              <span>{salvandoSenha ? "Salvando..." : "Alterar Senha"}</span>
+            </button>
+          </form>
         </div>
 
-        <div className="flex gap-3">
+        {/* Sair */}
+        <div className="card p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <LogOut size={16} className="text-white/40" />
+            Sessão
+          </h2>
+          <p className="text-xs text-white/40">
+            Encerra sua sessão em todos os dispositivos.
+          </p>
           <button
-            onClick={handleSalvar}
-            disabled={enviando || !curriculo.trim()}
-            className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-sea-950 text-xs font-bold h-10 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSair}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 transition-all text-xs font-medium cursor-pointer"
           >
-            {enviando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            <span>{enviando ? "Salvando..." : "Salvar Portfólio"}</span>
+            <LogOut size={14} />
+            Sair da conta
           </button>
+        </div>
 
-          {pdfDados?.curriculo && (
-            <PDFDownloadLink
-              document={<PortfolioPDF dados={pdfDados} />}
-              fileName={`portfolio_${nome?.replace(/\s/g, "_") || "proponente"}.pdf`}
-              className="bg-emerald-500 hover:bg-emerald-400 text-sea-950 text-xs font-bold h-10 px-4 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {({ loading }) => (
-                <>
-                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  <span>{loading ? "Gerando..." : "Baixar PDF"}</span>
-                </>
-              )}
-            </PDFDownloadLink>
+        {/* Zona de perigo */}
+        <div className="card p-6 space-y-3 border border-red-500/10">
+          <h2 className="text-sm font-semibold text-red-400/80 flex items-center gap-2">
+            <AlertTriangle size={16} />
+            Zona de Perigo
+          </h2>
+
+          {!confirmandoExclusao ? (
+            <>
+              <p className="text-xs text-white/40">
+                Excluir sua conta remove permanentemente todos os seus dados, projetos e arquivos. Esta ação não pode ser desfeita.
+              </p>
+              <button
+                onClick={() => setConfirmandoExclusao(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all text-xs font-medium cursor-pointer"
+              >
+                <AlertTriangle size={14} />
+                Excluir minha conta
+              </button>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-red-400">
+                Digite <strong>EXCLUIR</strong> para confirmar a exclusão permanente da sua conta:
+              </p>
+              <input
+                type="text"
+                placeholder="EXCLUIR"
+                value={textoConfirmacao}
+                onChange={(e) => setTextoConfirmacao(e.target.value)}
+                className="w-full bg-sea-950 border border-red-500/20 rounded-lg px-4 py-2.5 text-sm text-red-400 placeholder-red-500/20 focus:border-red-500 outline-none transition-all"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setConfirmandoExclusao(false); setTextoConfirmacao(""); }}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-white/10 text-white/50 hover:text-white/70 transition-all text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={textoConfirmacao !== "EXCLUIR"}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-red-500/30 transition-all text-xs font-medium cursor-pointer"
+                  onClick={async () => {
+                    // Exclusão real requer service_role via API route — por ora, faz signOut
+                    await supabase.auth.signOut();
+                    router.push("/login");
+                  }}
+                >
+                  Confirmar Exclusão
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

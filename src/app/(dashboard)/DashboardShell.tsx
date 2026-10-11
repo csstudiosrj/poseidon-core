@@ -58,12 +58,12 @@ const mainNav: NavItem[] = [
   { label: "Hub", href: "/hub", icon: Layers },
   { label: "Novo Projeto", href: "/setup", icon: FileText },
   { label: "Escrita", href: "/escrita", icon: Sparkles },
-  { label: "Portfólio", href: "/configuracoes", icon: FolderKanban },
+  { label: "Portfólio", href: "/portfolio", icon: FolderKanban },  // ← corrigido
   { label: "Auditoria", href: "/auditoria", icon: ShieldCheck },
 ];
 
 const bottomNav: NavItem[] = [
-  { label: "Configurações", href: "/configuracoes", icon: Settings },
+  { label: "Configurações", href: "/configuracoes", icon: Settings },  // ← agora é conta
   { label: "Pagamentos", href: "#", icon: CreditCard },
 ];
 
@@ -100,8 +100,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ? "console://escrita"
       : pathname === "/orcamento"
       ? "console://orcamento"
-      : pathname === "/configuracoes"
+      : pathname === "/portfolio"
       ? "console://portfolio"
+      : pathname === "/configuracoes"
+      ? "console://configuracoes"
       : pathname === "/auditoria"
       ? "console://auditoria"
       : pathname.startsWith("/projeto/")
@@ -141,7 +143,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Navegação Principal */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {mainNav.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const isDisabled = item.href === "#";
             return (
               <Link
@@ -253,14 +255,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-52 bg-sea-900 border border-white/5 rounded-xl shadow-2xl shadow-black/50 backdrop-blur-md z-40 py-1.5">
                   <div className="px-4 py-2 border-b border-white/5 mb-1">
-                    <p className="text-sm text-white font-medium">Admin</p>
-                    <p className="text-xs text-white/40">admin@poseidon.com</p>
+                    <p className="text-sm text-white font-medium">Minha Conta</p>
                   </div>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
-                    <User size={16} />
-                    <span>Perfil</span>
-                  </button>
-                  <Link href="/configuracoes" className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer">
+                  <Link
+                    href="/portfolio"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  >
+                    <FolderKanban size={16} />
+                    <span>Portfólio</span>
+                  </Link>
+                  <Link
+                    href="/configuracoes"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  >
                     <Settings size={16} />
                     <span>Configurações</span>
                   </Link>
