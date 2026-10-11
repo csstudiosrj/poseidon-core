@@ -41,7 +41,7 @@ export default async function HubPage() {
   const data = await getHubData();
 
   const error    = "error"   in data ? data.error    : null;
-  const projetos = "projetos" in data ? (data.projetos as ProjetoHub[]) : [];
+  const projetos = "projetos" in data ? (data.projetos as unknown as ProjetoHub[]) : [];
   const resumo   = "resumo"  in data ? (data.resumo  as ResumoProjetos) : null;
   const isEmpty  = !error && projetos.length === 0;
 
