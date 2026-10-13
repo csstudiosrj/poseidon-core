@@ -110,11 +110,11 @@ export async function criarProjetoAction(
 
     if (fonteError) {
       console.error("Erro ao inserir fonte:", fonteError);
-      // Tenta deletar o projeto órfão
       await supabase.from("projetos").delete().eq("id", projetoCriado.id);
       return { error: "Erro ao salvar as fontes de captação." };
     }
   }
 
-  redirect("/hub");
+  // Redireciona direto para o dashboard do projeto recém-criado
+  redirect(`/projeto/${projetoCriado.id}`);
 }
