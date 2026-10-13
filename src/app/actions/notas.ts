@@ -2,33 +2,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
-interface NotaFiscal {
-  id: string;
-  descricao: string;
-  categoria: string;
-  valor: number;
-  data_emissao: string;
-  status: string;
-  glosa_motivo?: string;
-}
-
-export async function listarNotasFiscais(
-  projetoId: string
-): Promise<{ notas: NotaFiscal[] } | { error: string }> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("notas_fiscais")
-    .select("*")
-    .eq("projeto_id", projetoId)
-    .order("created_at", { ascending: false });
-
-  if (error) return { error: error.message };
-  return { notas: data as NotaFiscal[] };
-}
-
-export async function criarNotaFiscalAction(
+/* ─── Adicionar ─────────────────────────────────────────────────── */
+export async function adicionarNotaAction(
+  projetoId: string,
   _prevState: { error?: string; success?: boolean } | null,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean } | null> {
@@ -37,167 +15,84 @@ export async function criarNotaFiscalAction(
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { error: "Sessão expirada." };
 
-  const projetoId = formData.get("projeto_id") as string;
-  const fonteId = (formData.get("fonte_id") as string) || null;
-  const descricao = formData.get("descricao") as string;
-  const categoria = formData.get("categoria") as string;
-  const valorStr = formData.get("valor") as string;
-  const arquivoUrl = (formData.get("arquivo_url") as string) || null;
+  const descricao   = (formData.get("descricao")   as string)?.trim();
+  const categoria   = (formData.get("categoria")   as string)?.trim();
+  const valorStr    =  formData.get("valor_num")   as string;
+  const data_emissao = (formData.get("data_emissao") as string) || null;
+  const fonte_id    = (formData.get("fonte_id")    as string) || null;
+  const arquivo_url = (formData.get("arquivo_url") as string) || null;
 
-  if (!projetoId || !descricao || !categoria || !valorStr) {
-    return { error: "Todos os campos são obrigatórios." };
-  }
+  if (!descricao || descricao.length < 2)
+    return { error: "Descrição deve ter pelo menos 2 caracteres." };
+  if (!categoria)
+    return { error: "Selecione uma categoria." };
 
   const valor = parseFloat(valorStr);
-  if (isNaN(valor) || valor <= 0) {
-    return { error: "Valor inválido." };
-  }
+  if (!valor || valor <= 0)
+    return { error: "Informe um valor válido." };
 
-  // Verifica permissão
-  const { data: proponente } = await supabase
-    .from("proponentes")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!proponente) return { error: "Proponente não encontrado." };
-
+  // ownership check
   const { data: projeto } = await supabase
     .from("projetos")
-    .select("id, proponente_id")
+    .select("id, proponentes!inner(user_id)")
     .eq("id", projetoId)
-    .eq("proponente_id", proponente.id)
+    .eq("proponentes.user_id", user.id)
     .single();
 
-  if (!projeto) return { error: "Projeto não encontrado ou sem permissão." };
+  if (!projeto) return { error: "Projeto não encontrado." };
 
-  // Validação contra tetos e saldo (se houver fonte)
-  let status: "validada" | "glosada" = "validada";
-  let glosaMotivo: string | null = null;
+  const { error: insertError } = await supabase
+    .from("notas_fiscais")
+    .insert({
+      projeto_id:   projetoId,
+      fonte_id:     fonte_id || null,
+      categoria,
+      descricao,
+      valor,
+      data_emissao: data_emissao || null,
+      arquivo_url:  arquivo_url || null,
+      status:       "pendente",
+      created_at:   new Date().toISOString(),
+    });
 
-  if (fonteId) {
-    const { data: fonte } = await supabase
-      .from("projeto_fontes")
-      .select("valor_captacao, configuracao_regras")
-      .eq("id", fonteId)
-      .single();
-
-    if (fonte) {
-      const regras = fonte.configuracao_regras as any;
-      const tetos = regras?.tetos || [];
-
-      // Soma os valores já lançados na mesma categoria e fonte
-      const { data: notasExistentes } = await supabase
-        .from("notas_fiscais")
-        .select("valor")
-        .eq("projeto_id", projetoId)
-        .eq("fonte_id", fonteId)
-        .eq("categoria", categoria)
-        .eq("status", "validada");
-
-      const totalCategoria = (notasExistentes || []).reduce(
-        (soma, n) => soma + Number(n.valor),
-        0
-      );
-      const novoTotal = totalCategoria + valor;
-
-      // Verifica teto
-      const teto = tetos.find((t: any) => t.categoria === categoria);
-      if (teto) {
-        const maximo = (fonte.valor_captacao * teto.percentual_maximo) / 100;
-        if (novoTotal > maximo) {
-          status = "glosada";
-          glosaMotivo = `Teto excedido: ${teto.descricao} (máximo R$ ${maximo.toFixed(2)}, atual R$ ${novoTotal.toFixed(2)})`;
-        }
-      }
-
-      // Verifica saldo da fonte
-      const { data: todasNotas } = await supabase
-        .from("notas_fiscais")
-        .select("valor")
-        .eq("projeto_id", projetoId)
-        .eq("fonte_id", fonteId)
-        .eq("status", "validada");
-
-      const totalExecutado = (todasNotas || []).reduce(
-        (soma, n) => soma + Number(n.valor),
-        0
-      );
-      if (totalExecutado + valor > fonte.valor_captacao) {
-        status = "glosada";
-        glosaMotivo = `Saldo insuficiente: executado R$ ${totalExecutado.toFixed(2)} + R$ ${valor.toFixed(2)} = R$ ${(totalExecutado + valor).toFixed(2)} > R$ ${fonte.valor_captacao.toFixed(2)}`;
-      }
-    }
+  if (insertError) {
+    console.error("Erro ao inserir nota:", insertError);
+    return { error: "Erro ao salvar a nota fiscal." };
   }
 
-  const { error: insertError } = await supabase.from("notas_fiscais").insert({
-    projeto_id: projetoId,
-    fonte_id: fonteId,
-    descricao,
-    categoria,
-    valor,
-    arquivo_url: arquivoUrl,
-    status,
-    glosa_motivo: glosaMotivo,
-  });
-
-  if (insertError) return { error: "Erro ao salvar nota fiscal." };
-
+  revalidatePath(`/projeto/${projetoId}`);
   return { success: true };
 }
 
-export async function getResumoFinanceiro(projetoId: string) {
+/* ─── Deletar ───────────────────────────────────────────────────── */
+export async function deletarNotaAction(
+  projetoId: string,
+  notaId: string
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient();
 
-  const { data: notas } = await supabase
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Sessão expirada." };
+
+  const { data: nota } = await supabase
     .from("notas_fiscais")
-    .select("categoria, valor, status")
-    .eq("projeto_id", projetoId);
+    .select("id, projeto_id, projetos!inner(proponentes!inner(user_id))")
+    .eq("id", notaId)
+    .eq("projeto_id", projetoId)
+    .single();
 
-  const { data: fontes } = await supabase
-    .from("projeto_fontes")
-    .select("id, tipo, nome_fonte, valor_captacao, configuracao_regras, biblioteca_regras (mecanismo_nome)")
-    .eq("projeto_id", projetoId);
+  if (!nota) return { error: "Nota não encontrada." };
 
-  if (!notas || !fontes) return { error: "Erro ao carregar dados." };
+  const { error: deleteError } = await supabase
+    .from("notas_fiscais")
+    .delete()
+    .eq("id", notaId);
 
-  // Calcula rubricas
-  const rubricas: Record<string, { categoria: string; orcado: number; executado: number; glosa: number; tetoLegal: number }> = {};
-
-  for (const fonte of fontes) {
-    const regras = fonte.configuracao_regras as any;
-    const tetos = regras?.tetos || [];
-
-    for (const teto of tetos) {
-      if (!rubricas[teto.categoria]) {
-        rubricas[teto.categoria] = {
-          categoria: teto.categoria,
-          orcado: 0,
-          executado: 0,
-          glosa: 0,
-          tetoLegal: 0,
-        };
-      }
-      const maximo = (fonte.valor_captacao * teto.percentual_maximo) / 100;
-      rubricas[teto.categoria].orcado += maximo;
-      rubricas[teto.categoria].tetoLegal += maximo;
-    }
+  if (deleteError) {
+    console.error("Erro ao deletar nota:", deleteError);
+    return { error: "Erro ao remover a nota." };
   }
 
-  for (const nota of notas) {
-    if (rubricas[nota.categoria]) {
-      if (nota.status === "validada") {
-        rubricas[nota.categoria].executado += Number(nota.valor);
-      } else if (nota.status === "glosada") {
-        rubricas[nota.categoria].glosa += Number(nota.valor);
-      }
-    }
-  }
-
-  return {
-    rubricas: Object.values(rubricas),
-    totalCaptado: fontes.reduce((s, f) => s + Number(f.valor_captacao), 0),
-    totalExecutado: notas.filter((n) => n.status === "validada").reduce((s, n) => s + Number(n.valor), 0),
-    totalGlosado: notas.filter((n) => n.status === "glosada").reduce((s, n) => s + Number(n.valor), 0),
-  };
+  revalidatePath(`/projeto/${projetoId}`);
+  return { success: true };
 }

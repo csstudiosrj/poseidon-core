@@ -3,6 +3,15 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+export interface ProjetoFonte {
+  id: string;
+  tipo: string;
+  nome_fonte: string | null;
+  mecanismo_id: string | null;
+  valor_captacao: number;
+  status: string | null;
+}
+
 export interface ItemOrcamentario {
   id: string;
   descricao: string;
@@ -10,34 +19,33 @@ export interface ItemOrcamentario {
   quantidade: number;
   categoria: string | null;
   fonte_id: string | null;
-  created_at: string;
 }
 
-export interface ProjetoFonte {
+export interface NotaFiscal {
   id: string;
-  tipo: string;
-  nome_fonte: string | null;
-  valor_captacao: number;
+  descricao: string;
+  categoria: string;
+  valor: number;
+  data_emissao: string | null;
+  arquivo_url: string | null;
   status: string | null;
-  configuracao_regras: Record<string, unknown> | null;
-  mecanismo_id: string | null;
+  fonte_id: string | null;
 }
 
-export interface ProjetoDetalhe {
-  id: string;
-  nome_projeto: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProjetoData {
-  projeto: ProjetoDetalhe;
+interface ProjetoData {
+  projeto: {
+    id: string;
+    nome_projeto: string;
+    status: string;
+    created_at: string;
+  };
   fontes: ProjetoFonte[];
   itens: ItemOrcamentario[];
+  notas: NotaFiscal[];
   resumo: {
     total_captacao: number;
     total_orcado: number;
+    total_notas: number;
     num_fontes: number;
     num_itens: number;
   };
@@ -49,68 +57,68 @@ export async function getProjetoData(
   const supabase = await createClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: "Sessão expirada." };
-  }
+  if (authError || !user) return { error: "Sessão expirada." };
 
-  // Buscar projeto — verifica que pertence ao usuário via proponente
-  const { data: projeto, error: projetoError } = await supabase
+  // Projeto + ownership
+  const { data: projeto, error: projError } = await supabase
     .from("projetos")
-    .select(`
-      id, nome_projeto, status, created_at, updated_at,
-      proponentes!inner(user_id)
-    `)
+    .select("id, nome_projeto, status, created_at, proponentes!inner(user_id)")
     .eq("id", projetoId)
     .eq("proponentes.user_id", user.id)
     .single();
 
-  if (projetoError || !projeto) {
-    return { error: "Projeto não encontrado ou sem permissão de acesso." };
-  }
+  if (projError || !projeto) return { error: "Projeto não encontrado." };
 
-  // Buscar fontes
-  const { data: fontes, error: fontesError } = await supabase
+  // Fontes
+  const { data: fontes = [] } = await supabase
     .from("projeto_fontes")
-    .select("id, tipo, nome_fonte, valor_captacao, status, configuracao_regras, mecanismo_id")
+    .select("id, tipo, nome_fonte, mecanismo_id, valor_captacao, status")
     .eq("projeto_id", projetoId)
-    .order("created_at", { ascending: true });
+    .order("created_at");
 
-  if (fontesError) {
-    return { error: "Erro ao carregar fontes de captação." };
-  }
-
-  // Buscar itens orçamentários
-  const { data: itens, error: itensError } = await supabase
+  // Itens
+  const { data: itens = [] } = await supabase
     .from("itens_orcamentarios")
-    .select("id, descricao, valor, quantidade, categoria, fonte_id, created_at")
+    .select("id, descricao, valor, quantidade, categoria, fonte_id")
     .eq("projeto_id", projetoId)
-    .order("created_at", { ascending: true });
+    .order("created_at");
 
-  if (itensError) {
-    return { error: "Erro ao carregar itens orçamentários." };
-  }
+  // Notas fiscais
+  const { data: notas = [] } = await supabase
+    .from("notas_fiscais")
+    .select("id, descricao, categoria, valor, data_emissao, arquivo_url, status, fonte_id")
+    .eq("projeto_id", projetoId)
+    .order("created_at");
 
-  const fontesList = (fontes ?? []) as ProjetoFonte[];
-  const itensList = (itens ?? []) as ItemOrcamentario[];
-
-  const total_captacao = fontesList.reduce((s, f) => s + Number(f.valor_captacao), 0);
-  const total_orcado = itensList.reduce((s, i) => s + Number(i.valor) * i.quantidade, 0);
+  const total_captacao = (fontes ?? []).reduce(
+    (s, f) => s + Number(f.valor_captacao),
+    0
+  );
+  const total_orcado = (itens ?? []).reduce(
+    (s, i) => s + Number(i.valor) * i.quantidade,
+    0
+  );
+  const total_notas = (notas ?? []).reduce(
+    (s, n) => s + Number(n.valor),
+    0
+  );
 
   return {
     projeto: {
-      id: projeto.id,
+      id:           projeto.id,
       nome_projeto: projeto.nome_projeto,
-      status: projeto.status,
-      created_at: projeto.created_at,
-      updated_at: projeto.updated_at,
+      status:       projeto.status,
+      created_at:   projeto.created_at,
     },
-    fontes: fontesList,
-    itens: itensList,
+    fontes:  fontes  ?? [],
+    itens:   itens   ?? [],
+    notas:   notas   ?? [],
     resumo: {
       total_captacao,
       total_orcado,
-      num_fontes: fontesList.length,
-      num_itens: itensList.length,
+      total_notas,
+      num_fontes: (fontes ?? []).length,
+      num_itens:  (itens  ?? []).length,
     },
   };
 }
