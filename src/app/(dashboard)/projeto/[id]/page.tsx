@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import "../../globals.css";
 import {
   ArrowLeft,
-  Plus,
   Wallet,
   ReceiptText,
   Layers,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { getProjetoData } from "@/app/actions/projeto";
 import type { ItemOrcamentario, ProjetoFonte } from "@/app/actions/projeto";
+import { NovoItemModal } from "./NovoItemModal";
 
 /* ─── Helpers ──────────────────────────────────────────────────────── */
 const brl = (v: number) =>
@@ -131,14 +131,7 @@ export default async function ProjetoPage({
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                 Itens Orçamentários
               </h2>
-              <button
-                type="button"
-                className="ds-btn ds-btn-primary"
-                style={{ padding: "5px 12px", fontSize: "12px" }}
-              >
-                <Plus size={13} />
-                <span>Adicionar item</span>
-              </button>
+              <NovoItemModal projetoId={projeto.id} fontes={fontes} />
             </div>
 
             {itens.length === 0 ? (
@@ -243,35 +236,15 @@ function KpiCard({
   );
 }
 
-function ItemRow({
-  item,
-  isLast,
-}: {
-  item: ItemOrcamentario;
-  isLast: boolean;
-}) {
+function ItemRow({ item, isLast }: { item: ItemOrcamentario; isLast: boolean }) {
   const total = Number(item.valor) * item.quantidade;
   return (
-    <tr
-      style={
-        isLast ? undefined : { borderBottom: "1px solid rgba(142,177,214,0.07)" }
-      }
-    >
-      <td className="px-4 py-3 text-slate-200 max-w-[200px] truncate">
-        {item.descricao}
-      </td>
-      <td className="px-4 py-3 text-slate-400 hidden sm:table-cell">
-        {item.categoria ?? "—"}
-      </td>
-      <td className="px-4 py-3 text-right text-slate-400 num-tabular">
-        {item.quantidade}
-      </td>
-      <td className="px-4 py-3 text-right text-slate-300 num-tabular">
-        {brl(Number(item.valor))}
-      </td>
-      <td className="px-4 py-3 text-right text-white font-medium num-tabular">
-        {brl(total)}
-      </td>
+    <tr style={isLast ? undefined : { borderBottom: "1px solid rgba(142,177,214,0.07)" }}>
+      <td className="px-4 py-3 text-slate-200 max-w-[200px] truncate">{item.descricao}</td>
+      <td className="px-4 py-3 text-slate-400 hidden sm:table-cell">{item.categoria ?? "—"}</td>
+      <td className="px-4 py-3 text-right text-slate-400 num-tabular">{item.quantidade}</td>
+      <td className="px-4 py-3 text-right text-slate-300 num-tabular">{brl(Number(item.valor))}</td>
+      <td className="px-4 py-3 text-right text-white font-medium num-tabular">{brl(total)}</td>
     </tr>
   );
 }
@@ -280,11 +253,9 @@ function FonteCard({ fonte }: { fonte: ProjetoFonte }) {
   const tipoLabel = TIPO_FONTE[fonte.tipo] ?? fonte.tipo;
   const nomeDisplay = fonte.nome_fonte ?? tipoLabel;
   const statusCls =
-    fonte.status === "aprovado"
-      ? "text-emerald-400"
-      : fonte.status === "reprovado"
-      ? "text-red-400"
-      : "text-slate-400";
+    fonte.status === "aprovado" ? "text-emerald-400"
+    : fonte.status === "reprovado" ? "text-red-400"
+    : "text-slate-400";
 
   return (
     <div
@@ -300,9 +271,7 @@ function FonteCard({ fonte }: { fonte: ProjetoFonte }) {
           {brl(Number(fonte.valor_captacao))}
         </p>
         {fonte.status && (
-          <p className={`text-[11px] mt-0.5 capitalize ${statusCls}`}>
-            {fonte.status}
-          </p>
+          <p className={`text-[11px] mt-0.5 capitalize ${statusCls}`}>{fonte.status}</p>
         )}
       </div>
     </div>
