@@ -1,10 +1,11 @@
 // src/app/(dashboard)/hub/page.tsx
 import React from "react";
+import Link from "next/link";
 import "../../globals.css";
 import { Plus, FolderKanban, Calendar, Sparkles } from "lucide-react";
-import { getHubData } from "@/app/actions/hub"; // ← import corrigido
+import { getHubData } from "@/app/actions/hub";
 
-/* ─── Tipos (espelham exatamente o que a action retorna) ─────────── */
+/* ─── Tipos ─────────────────────────────────────────────────────────── */
 type ProjetoStatus =
   | "rascunho"
   | "enviado"
@@ -35,14 +36,13 @@ interface ResumoProjetos {
   prestacao_contas: number;
 }
 
-/* ─── Página (Server Component) ──────────────────────────────────── */
+/* ─── Página (Server Component) ──────────────────────────────────────── */
 export default async function HubPage() {
-  // Busca de dados direta no servidor — sem useEffect, sem useState
   const data = await getHubData();
 
-  const error    = "error"   in data ? data.error    : null;
+  const error    = "error"    in data ? data.error                        : null;
   const projetos = "projetos" in data ? (data.projetos as unknown as ProjetoHub[]) : [];
-  const resumo   = "resumo"  in data ? (data.resumo  as ResumoProjetos) : null;
+  const resumo   = "resumo"   in data ? (data.resumo  as unknown as ResumoProjetos) : null;
   const isEmpty  = !error && projetos.length === 0;
 
   return (
@@ -60,10 +60,10 @@ export default async function HubPage() {
               Seu painel para criar, acompanhar e finalizar projetos culturais.
             </p>
           </div>
-          <button type="button" className="ds-btn ds-btn-primary">
+          <Link href="/setup" className="ds-btn ds-btn-primary">
             <Plus size={16} />
             <span>Novo Projeto</span>
-          </button>
+          </Link>
         </header>
 
         {/* ERRO */}
@@ -74,7 +74,7 @@ export default async function HubPage() {
         {/* GRID RESUMO */}
         {resumo && !error && (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <ResumoCard label="Total de Projetos" valor={resumo.total}    cor="text-cyan-300"    />
+            <ResumoCard label="Total de Projetos" valor={resumo.total}     cor="text-cyan-300"    />
             <ResumoCard label="Ativos"             valor={resumo.ativos}   cor="text-emerald-300" />
             <ResumoCard label="Rascunhos"          valor={resumo.rascunhos} cor="text-slate-200"  />
             <ResumoCard label="Pendentes"          valor={resumo.enviados}  cor="text-sky-300"    />
@@ -99,7 +99,7 @@ export default async function HubPage() {
   );
 }
 
-/* ─── Sub-componentes (sem hooks — compatíveis com Server Component) */
+/* ─── Sub-componentes ────────────────────────────────────────────────── */
 
 function ResumoCard({
   label,
@@ -153,8 +153,9 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
   const dataCriacao = new Date(projeto.created_at).toLocaleDateString("pt-BR");
 
   return (
-    <article
-      className="ds-card flex flex-col justify-between"
+    <Link
+      href={`/projeto/${projeto.id}`}
+      className="ds-card flex flex-col justify-between hover:border-cyan-500/30 transition-colors"
       style={{ background: "#081121", padding: "14px 14px" }}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -183,7 +184,7 @@ function ProjetoCard({ projeto }: { projeto: ProjetoHub }) {
           <span>ID {projeto.id.slice(0, 8)}</span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -210,10 +211,10 @@ function EmptyStateHub() {
         Crie seu primeiro projeto para acompanhar captação, execução e
         prestação de contas em um painel único.
       </p>
-      <button type="button" className="ds-btn ds-btn-primary">
+      <Link href="/setup" className="ds-btn ds-btn-primary">
         <Plus size={16} />
         <span>Criar primeiro projeto</span>
-      </button>
+      </Link>
     </section>
   );
 }
