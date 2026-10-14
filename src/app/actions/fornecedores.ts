@@ -2,141 +2,174 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { validarFornecedor, calcularConcentracao } from "@/lib/compliance/fornecedores";
+import { revalidatePath } from "next/cache";
 
-export async function cadastrarFornecedorAction(
-  _prevState: { error?: string; success?: boolean } | null,
-  formData: FormData
-): Promise<{ error?: string; success?: boolean; data?: any } | null> {
+export interface Fornecedor {
+  id:               string;
+  nome:             string;
+  tipo:             "PF" | "PJ";
+  cpf_cnpj:         string;
+  categoria:        string | null;
+  email:            string | null;
+  telefone:         string | null;
+  created_at:       string;
+}
+
+export const CATEGORIAS_FORNECEDOR = [
+  "Artista / Performer",
+  "Produção",
+  "Comunicação / Marketing",
+  "Cenografia / Figurino",
+  "Audiovisual",
+  "Som e Iluminação",
+  "Transporte / Logística",
+  "Alimentação",
+  "Gráfica / Impressão",
+  "Consultoria",
+  "Outros",
+];
+
+/* ─── Listar ────────────────────────────────────────────────────── */
+export async function listarFornecedores(): Promise<
+  Fornecedor[] | { error: string }
+> {
   const supabase = await createClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { error: "Sessão expirada." };
 
-  const cnpj = formData.get("cnpj") as string;
-  const servicoDescricao = (formData.get("servico_descricao") as string) || "";
-  const valorStr = formData.get("valor") as string;
-  const projetoId = formData.get("projeto_id") as string;
-  const fonteId = (formData.get("fonte_id") as string) || null;
-
-  if (!cnpj || !projetoId || !valorStr) {
-    return { error: "CNPJ, projeto e valor são obrigatórios." };
-  }
-
-  const valor = parseFloat(valorStr);
-  if (isNaN(valor) || valor <= 0) {
-    return { error: "Valor inválido." };
-  }
-
-  // 1. Validar o fornecedor
-  const validacao = await validarFornecedor(cnpj, servicoDescricao);
-
-  // 2. Inserir ou atualizar fornecedor na tabela
-  const { data: fornecedorExistente } = await supabase
-    .from("fornecedores")
+  const { data: proponente } = await supabase
+    .from("proponentes")
     .select("id")
-    .eq("cnpj", validacao.cnpj)
+    .eq("user_id", user.id)
     .single();
 
-  let fornecedorId: string;
-
-  if (fornecedorExistente) {
-    fornecedorId = fornecedorExistente.id;
-    await supabase
-      .from("fornecedores")
-      .update({
-        situacao_cadastral: validacao.situacao_cadastral,
-        cnae_principal: validacao.cnae_principal,
-        nome_razao_social: validacao.nome_razao_social,
-        data_consulta: new Date().toISOString(),
-      })
-      .eq("id", fornecedorId);
-  } else {
-    const { data: novoFornecedor, error: insertError } = await supabase
-      .from("fornecedores")
-      .insert({
-        cnpj: validacao.cnpj,
-        nome_razao_social: validacao.nome_razao_social,
-        cnae_principal: validacao.cnae_principal,
-        situacao_cadastral: validacao.situacao_cadastral,
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !novoFornecedor) {
-      return { error: "Erro ao cadastrar fornecedor." };
-    }
-    fornecedorId = novoFornecedor.id;
-  }
-
-  // 3. Vincular ao projeto
-  const { data: projeto } = await supabase
-    .from("projetos")
-    .select("id, proponente_id")
-    .eq("id", projetoId)
-    .single();
-
-  if (!projeto) return { error: "Projeto não encontrado." };
-
-  const glosaMotivo = validacao.status === "BLOQUEADO" ? validacao.mensagem : null;
-  const statusFinal = validacao.status === "APROVADO" ? "validado" : "bloqueado";
-
-  const { error: vincError } = await supabase
-    .from("projeto_fornecedores")
-    .insert({
-      projeto_id: projetoId,
-      fonte_id: fonteId,
-      fornecedor_id: fornecedorId,
-      valor,
-      servico_descricao: servicoDescricao,
-      status: statusFinal,
-      glosa_motivo: glosaMotivo,
-    });
-
-  if (vincError) {
-    return { error: "Erro ao vincular fornecedor ao projeto." };
-  }
-
-  return {
-    success: true,
-    data: {
-      fornecedor: validacao.nome_razao_social,
-      cnpj: validacao.cnpj,
-      status: validacao.status,
-      mensagem: validacao.mensagem,
-    },
-  };
-}
-
-export async function listarFornecedoresProjeto(projetoId: string) {
-  const supabase = await createClient();
+  if (!proponente) return { error: "Perfil não encontrado." };
 
   const { data, error } = await supabase
-    .from("projeto_fornecedores")
-    .select(`
-      id,
-      valor,
-      servico_descricao,
-      status,
-      glosa_motivo,
-      data_cadastro,
-      fornecedores (cnpj, nome_razao_social, situacao_cadastral)
-    `)
-    .eq("projeto_id", projetoId)
-    .order("data_cadastro", { ascending: false });
+    .from("fornecedores")
+    .select("id, nome, tipo, cpf_cnpj, categoria, email, telefone, created_at")
+    .eq("proponente_id", proponente.id)
+    .order("nome", { ascending: true });
 
-  if (error) return { error: error.message, fornecedores: [] };
+  if (error) return { error: "Erro ao buscar fornecedores." };
 
-  return {
-    fornecedores: data.map((f: any) => ({
-      id: f.id,
-      cnpj: f.fornecedores?.cnpj,
-      nome: f.fornecedores?.nome_razao_social || "Desconhecido",
-      valor: f.valor,
-      servico: f.servico_descricao,
-      status: f.status,
-      glosa_motivo: f.glosa_motivo,
-      data_cadastro: f.data_cadastro,
-    })),
-  };
+  return data ?? [];
+}
+
+/* ─── Adicionar ─────────────────────────────────────────────────── */
+export async function adicionarFornecedorAction(
+  _prevState: { error?: string; success?: boolean } | null,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Sessão expirada." };
+
+  const { data: proponente } = await supabase
+    .from("proponentes")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!proponente) return { error: "Perfil não encontrado." };
+
+  const nome      = ((formData.get("nome")      as string) ?? "").trim();
+  const tipo      = ((formData.get("tipo")      as string) ?? "PF").trim() as "PF" | "PJ";
+  const cpf_cnpj  = ((formData.get("cpf_cnpj")  as string) ?? "").replace(/\D/g, "");
+  const categoria = ((formData.get("categoria") as string) ?? "").trim() || null;
+  const email     = ((formData.get("email")     as string) ?? "").trim() || null;
+  const telefone  = ((formData.get("telefone")  as string) ?? "").replace(/\D/g, "") || null;
+
+  if (!nome || nome.length < 2) return { error: "Nome deve ter pelo menos 2 caracteres." };
+  if (!cpf_cnpj || cpf_cnpj.length < 11) return { error: "CPF ou CNPJ inválido." };
+
+  const { error: insertError } = await supabase
+    .from("fornecedores")
+    .insert({ proponente_id: proponente.id, nome, tipo, cpf_cnpj, categoria, email, telefone });
+
+  if (insertError) {
+    console.error("Erro ao adicionar fornecedor:", insertError);
+    return { error: "Erro ao salvar. Tente novamente." };
+  }
+
+  revalidatePath("/fornecedores");
+  return { success: true };
+}
+
+/* ─── Editar ────────────────────────────────────────────────────── */
+export async function editarFornecedorAction(
+  fornecedorId: string,
+  _prevState: { error?: string; success?: boolean } | null,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Sessão expirada." };
+
+  const { data: proponente } = await supabase
+    .from("proponentes")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!proponente) return { error: "Perfil não encontrado." };
+
+  const nome      = ((formData.get("nome")      as string) ?? "").trim();
+  const tipo      = ((formData.get("tipo")      as string) ?? "PF").trim() as "PF" | "PJ";
+  const cpf_cnpj  = ((formData.get("cpf_cnpj")  as string) ?? "").replace(/\D/g, "");
+  const categoria = ((formData.get("categoria") as string) ?? "").trim() || null;
+  const email     = ((formData.get("email")     as string) ?? "").trim() || null;
+  const telefone  = ((formData.get("telefone")  as string) ?? "").replace(/\D/g, "") || null;
+
+  if (!nome || nome.length < 2) return { error: "Nome deve ter pelo menos 2 caracteres." };
+  if (!cpf_cnpj || cpf_cnpj.length < 11) return { error: "CPF ou CNPJ inválido." };
+
+  const { error: updateError } = await supabase
+    .from("fornecedores")
+    .update({ nome, tipo, cpf_cnpj, categoria, email, telefone, updated_at: new Date().toISOString() })
+    .eq("id", fornecedorId)
+    .eq("proponente_id", proponente.id);
+
+  if (updateError) {
+    console.error("Erro ao editar fornecedor:", updateError);
+    return { error: "Erro ao salvar. Tente novamente." };
+  }
+
+  revalidatePath("/fornecedores");
+  return { success: true };
+}
+
+/* ─── Deletar ───────────────────────────────────────────────────── */
+export async function deletarFornecedorAction(
+  fornecedorId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Sessão expirada." };
+
+  const { data: proponente } = await supabase
+    .from("proponentes")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!proponente) return { error: "Perfil não encontrado." };
+
+  const { error } = await supabase
+    .from("fornecedores")
+    .delete()
+    .eq("id", fornecedorId)
+    .eq("proponente_id", proponente.id);
+
+  if (error) {
+    console.error("Erro ao deletar fornecedor:", error);
+    return { error: "Erro ao deletar. Verifique se o fornecedor não está vinculado a um projeto." };
+  }
+
+  revalidatePath("/fornecedores");
+  return { success: true };
 }
