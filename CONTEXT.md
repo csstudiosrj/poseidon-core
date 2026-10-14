@@ -20,15 +20,19 @@ Sistema web de **controle e auditoria de projetos culturais** para a Lei Rouanet
 | Linguagem | TypeScript |
 | Estilização | Tailwind CSS + `globals.css` com design system próprio |
 | Backend/Auth | Supabase (auth + banco PostgreSQL) |
+| Upload de arquivos | UploadThing (`uploadthing` + `@uploadthing/react`) |
+| E-mail transacional | Resend (`RESEND_API_KEY`) |
 | Ícones | Lucide React |
-| Deploy | Vercel |
+| Deploy | Vercel (auto-deploy do branch `main`) |
+| Base path | `/poseidon` (`basePath` em `next.config.ts`) — produção em `arxum.com.br/poseidon` |
 
 **Regras de stack:**
 - Sem bibliotecas de UI genéricas (shadcn, MUI, etc.)
 - Sem Framer Motion
 - Sem imagens externas
-- Server Actions para mutações e busca de dados
+- Server Actions para todas as mutações
 - Server Components por padrão; `"use client"` só quando necessário (hooks, interatividade)
+- `useActionState` (React 19) para estado de formulários — nunca `handleSubmit` manual
 
 ---
 
@@ -61,23 +65,23 @@ Sistema web de **controle e auditoria de projetos culturais** para a Lei Rouanet
 
 | Uso | Fonte |
 |---|---|
-| Títulos | Syne (700–800) |
-| Interface geral | Inter |
-| Números e códigos | JetBrains Mono (tabular-nums) |
+| Títulos / display | Syne (700–800) — variável `--font-display` |
+| Interface geral | Inter — variável `--font-sans` |
+| Números e códigos | JetBrains Mono — variável `--font-mono` |
 
-- Títulos: `letter-spacing: -0.04em`
+- Títulos: `fontFamily: "Syne, sans-serif"`, `letterSpacing: "-0.04em"`
 - Labels pequenos: uppercase, `tracking-[0.18em]`, opacidade ~60%
-- Números financeiros: sempre `font-mono` + `tabular-nums`
+- Números financeiros: sempre `.num-tabular` (font-mono + tabular-nums)
 
 ### Classes do design system (`globals.css`)
 
 ```
 .ds-card          → card base com borda e fundo deep sea
 .ds-card-glow     → card com halo ciano sutil
-.ds-card-soft     → card mais suave (usado no formulário de login)
+.ds-card-soft     → card mais suave
 .ds-input         → input padrão do sistema
 .ds-label         → label de campo
-.ds-btn           → botão base
+.ds-btn           → botão base (ghost)
 .ds-btn-primary   → botão primário ciano
 .ds-badge         → badge genérico
 .ds-badge-warning → badge âmbar
@@ -85,131 +89,215 @@ Sistema web de **controle e auditoria de projetos culturais** para a Lei Rouanet
 .ds-checkbox-row  → linha de checkbox
 .ds-link-muted    → link discreto
 .form-error       → mensagem de erro inline
-.num-tabular      → fonte mono + tabular-nums
+.num-tabular      → font-mono + tabular-nums
 ```
-
-### Layout padrão
-
-- Wrapper máximo: `max-w-[1360px]` centralizado
-- Padding lateral: `px-6` desktop, `px-4` mobile
-- Gap entre blocos: `gap-6` (24px)
-- Border radius: `rounded-2xl` (cards), `rounded-xl` (inputs/badges), `rounded-3xl` (container principal)
-- Sombras suaves e escuras — sem glow forte
-- Grid principal do dashboard: `grid-cols-[1.35fr_360px]` (conteúdo + sidebar)
 
 ---
 
-## Estrutura de arquivos relevantes
+## Estrutura de arquivos
 
 ```
 src/
 ├── app/
-│   ├── globals.css                        ← Design system completo
+│   ├── globals.css                                    ← Design system completo
+│   ├── layout.tsx                                     ← Root layout com fontes (Inter, JetBrains Mono, Syne)
 │   ├── login/
-│   │   ├── page.tsx                       ← Página de login/cadastro (client)
-│   │   └── actions.ts                     ← Server actions: login(), signup()
+│   │   ├── page.tsx                                   ← Login/cadastro (client component)
+│   │   └── actions.ts                                 ← login(), signup()
+│   ├── recuperar-senha/
+│   │   └── page.tsx                                   ← Recuperação de senha
+│   ├── termos/
+│   │   └── page.tsx                                   ← Termos de Uso (LGPD)
+│   ├── privacidade/
+│   │   └── page.tsx                                   ← Política de Privacidade (LGPD)
 │   ├── setup/
-│   │   ├── page.tsx                       ← Setup do projeto (server, layout 2 colunas)
-│   │   ├── setup-form.tsx                 ← Formulário de setup (client, useActionState)
-│   │   └── actions/setupProjeto.ts        ← Server action: setupProjeto()
-│   ├── (dashboard)/
-│   │   └── hub/
-│   │       ├── page.tsx                   ← Hub de projetos (server component async)
-│   │       └── actions.ts                 ← (import via @/app/actions/hub)
-│   └── actions/
-│       └── hub.ts                         ← getHubData() — busca projetos do Supabase
+│   │   ├── page.tsx                                   ← Novo projeto (server)
+│   │   └── setup-form.tsx                             ← Formulário de setup (client)
+│   ├── api/
+│   │   └── uploadthing/
+│   │       ├── core.ts                                ← File router UploadThing (endpoint: notaFiscal)
+│   │       └── route.ts                               ← Route handler Next.js para UploadThing
+│   ├── actions/
+│   │   ├── setup.ts                                   ← criarProjetoAction() — cria projeto + fontes, redireciona para /projeto/[id]
+│   │   ├── projeto.ts                                 ← getProjetoData(id) — dados completos do projeto
+│   │   ├── itens.ts                                   ← adicionarItemAction(), editarItemAction(), deletarItemAction()
+│   │   ├── notas.ts                                   ← adicionarNotaAction(), deletarNotaAction()
+│   │   └── hub.ts                                     ← getHubData() — lista de projetos do usuário
+│   └── (dashboard)/
+│       ├── DashboardShell.tsx                         ← Navbar + sidebar global (client)
+│       ├── hub/
+│       │   └── page.tsx                               ← Hub de projetos (server)
+│       ├── escrita/                                   ← [pendente]
+│       ├── portfolio/                                 ← [pendente]
+│       ├── auditoria/                                 ← [pendente]
+│       ├── configuracoes/                             ← [pendente]
+│       └── projeto/
+│           └── [id]/
+│               ├── page.tsx                           ← Dashboard do projeto (server)
+│               ├── NovoItemModal.tsx                  ← Modal adicionar item orçamentário (client)
+│               ├── TabelaItens.tsx                    ← Tabela + editar/deletar itens (client)
+│               └── NotasFiscais.tsx                   ← Seção notas fiscais + upload (client)
 └── lib/
-    └── supabase/
-        └── server.ts                      ← createClient() para server components
+    ├── supabase/
+    │   ├── server.ts                                  ← createClient() para Server Components
+    │   └── client.ts                                  ← createClient() para Client Components
+    └── uploadthing.ts                                 ← useUploadThing, UploadButton tipados
 ```
 
 ---
 
-## Páginas já implementadas
+## Páginas implementadas
 
 ### `/login` — Autenticação
-- **Tipo:** Client Component (`"use client"`)
-- **Layout:** duas colunas — hero/branding (esquerda) + formulário (direita)
-- **Modos:** login e signup (toggle sem navegação)
-- **Hook:** `useActionState` (React 19) com adaptadores para as server actions
-- **Campos signup:** `email`, `nome_completo`, `documento` (CPF/CNPJ com máscara), `password`
-- **Campos login:** `email`, `password`
-- **Redirect on success:** `/hub`
+- Client Component, duas colunas: hero + formulário
+- Modos login e signup no mesmo componente (toggle)
+- Redirect on success: `/hub`
 
-### `/setup` — Configuração de novo projeto
-- **Tipo:** Server Component (page) + Client Component (form)
-- **Layout:** duas colunas — sidebar de contexto (380px) + formulário (flex-1)
-- **Campos:**
-  - Nome do projeto (texto livre)
-  - Segmento cultural (dropdown — 10 segmentos oficiais Lei Rouanet)
-  - Mecanismo de fomento (dropdown — `incentivo_fiscal`, `fundo`, `pnab`)
-  - Valor total do projeto (máscara BRL em tempo real, hidden input com valor numérico)
-- **Preview automático:** mostra rubricas calculadas (Adm 15%, Captação 10%, Divulgação 20%) ao digitar o valor
-- **Redirect on success:** para a página do projeto criado
+### `/recuperar-senha` — Recuperação de senha
+- Envia magic link via Supabase
 
-### `/hub` — Hub de projetos
-- **Tipo:** Server Component async
-- **Import da action:** `@/app/actions/hub` (não `./actions`)
-- **Dados:** `getHubData()` retorna `{ projetos, resumo }` ou `{ error }`
-- **Layout:** header + grid de resumo (4 cards) + grid de projetos ou empty state
-- **Status dos projetos:** rascunho, ativo, enviado, finalizado, inativo, prestacao_contas
+### `/setup` — Novo projeto
+- Server page + client form (`useActionState`)
+- Campos: nome do projeto + fontes de captação (tipo, mecanismo, valor)
+- Redirect on success: `/projeto/[id]` do projeto recém-criado
+
+### `/hub` — Lista de projetos
+- Server Component async, busca via `getHubData()`
+- Cards de projetos linkam para `/projeto/[id]`
+- Botão "Novo Projeto" → `/setup`
+
+### `/projeto/[id]` — Dashboard do projeto
+- Server Component async, busca via `getProjetoData(id)`
+- KPI cards: Total Captação, Total Orçado, Saldo, Notas Fiscais
+- Grid: Itens Orçamentários (esquerda) + Fontes de Captação (direita)
+- Seção full-width: Notas Fiscais com upload UploadThing
+- Ownership check em todas as queries (via `proponentes!inner(user_id)`)
+
+### `/termos` e `/privacidade` — LGPD
+- Server Components estáticos com conteúdo completo
+
+### DashboardShell (layout de todas as rotas `(dashboard)`)
+- Sidebar colapsável com nav principal: Hub, Novo Projeto, Escrita, Portfólio, Auditoria
+- Bottom nav: Configurações, Pagamentos
+- Header: consolePath (ex: `console://projeto/abc123`), notificações, menu do usuário
+- Logout via `supabase.auth.signOut()` + redirect para `/login`
 
 ---
 
-## Schema do Supabase (tabelas relevantes)
+## Schema do Supabase
 
 ```sql
 proponentes (
-  id, user_id, tipo (PF|PJ), nome_razao_social,
-  cpf_cnpj, email
+  id uuid PK,
+  user_id uuid → auth.users,
+  tipo text,               -- "PF" | "PJ"
+  nome_razao_social text,
+  cpf_cnpj text,
+  email text
 )
 
 projetos (
-  id, proponente_id, nome_projeto, status,
-  orcamento_total_solicitado, segmento_cultural, mecanismo,
-  created_at, updated_at,
-  biblioteca_regras_id → biblioteca_regras(mecanismo_nome, esfera)
+  id uuid PK,
+  proponente_id uuid → proponentes,
+  nome_projeto text,
+  status text,             -- rascunho | ativo | enviado | finalizado | inativo | prestacao_contas
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+projeto_fontes (
+  id uuid PK,
+  projeto_id uuid → projetos,
+  tipo text,               -- incentivo_fiscal | edital | patrocinio_direto
+  mecanismo_id uuid → biblioteca_regras (nullable),
+  nome_fonte text,         -- preenchido quando tipo != incentivo_fiscal
+  valor_captacao numeric,
+  status text,             -- rascunho | aprovado | reprovado
+  configuracao_regras jsonb
+)
+
+itens_orcamentarios (
+  id uuid PK,
+  projeto_id uuid → projetos,
+  fonte_id uuid → projeto_fontes (nullable),
+  descricao text,
+  categoria text,
+  quantidade int,
+  valor numeric,           -- valor unitário
+  created_at timestamptz,
+  updated_at timestamptz
+)
+
+notas_fiscais (
+  id uuid PK,
+  projeto_id uuid → projetos,
+  fonte_id uuid → projeto_fontes (nullable),
+  categoria text,
+  descricao text,
+  valor numeric,
+  data_emissao date,
+  arquivo_url text,        -- URL do UploadThing
+  status text,             -- pendente | aprovada | glosa
+  glosa_motivo text,
+  created_at timestamptz
 )
 
 biblioteca_regras (
-  id, mecanismo_nome, esfera, ...regras IN MinC 29/2026
+  id uuid PK,
+  mecanismo_nome text,
+  esfera text,
+  configuracao_regras jsonb
 )
 ```
 
 ---
 
-## Referência visual
+## Variáveis de ambiente (`.env.local` e Vercel)
 
-O dashboard operacional (rubricas, feed de auditoria, compliance) foi gerado pelo Perplexity Computer como HTML autocontido. Serve como referência visual para o estilo — não é código React diretamente utilizável.
-
-**Características visuais do dashboard de referência:**
-- Background: `#020b18` com radial-gradient ciano sutil nos cantos
-- Container principal: `border-radius: 28px`, borda translúcida, `box-shadow` escuro pesado
-- KPI cards: label uppercase pequeno + valor mono grande + ícone Lucide no canto
-- Rubricas: layout de tabela técnica com colunas Orçado / Executado / Utilização (barra fina) / Status
-- Feed de auditoria: sidebar direita sticky com scroll próprio, eventos com ícone por tipo
-- Compliance: lista de regras com ✓ OK / ✗ Violado por item
-- Gauge de risco: SVG semicircular com needle, cor muda por faixa (verde/âmbar/vermelho)
-
----
-
-## Regras de desenvolvimento
-
-1. **Server Component por padrão.** Só adicionar `"use client"` quando o componente usa hooks ou eventos de browser.
-2. **`useActionState` para forms.** Não usar `handleSubmit` manual. Actions precisam de assinatura `(prevState, formData)` — criar adaptadores se necessário.
-3. **Imports de actions:** usar alias `@/app/actions/[arquivo]`, não caminhos relativos entre pastas diferentes.
-4. **Sem comentários JSX dentro de atributos.** `{/* comentário */}` dentro de props quebra o build.
-5. **Valores monetários:** sempre `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`.
-6. **IDs do Supabase são UUID** — não usar `.padStart()` em IDs. Usar `.slice(0, 8)` para exibição curta.
-7. **CSS do design system não deve ser sobrescrito com inline styles hexadecimais** — usar as variáveis `var(--color-*)`.
-8. **Pseudoelementos e scrollbar customizada** precisam estar em CSS real (arquivo `.css`), não em `style={{}}` inline.
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+DATABASE_URL=
+UPLOADTHING_APP_ID=
+UPLOADTHING_SECRET=
+RESEND_API_KEY=
+NEXT_PUBLIC_APP_URL=
+```
 
 ---
 
-## Próximos passos conhecidos
+## Padrões de desenvolvimento
 
-- [ ] Dashboard de projeto individual (rubricas, feed de auditoria, compliance)
-- [ ] Botão "Novo Projeto" no Hub conectado ao `/setup`
-- [ ] Navbar global autenticada com logo Poseidon + logout
-- [ ] Página de detalhes de rubrica
-- [ ] Upload e validação de notas fiscais
+1. **Server Component por padrão.** `"use client"` só para hooks/eventos.
+2. **`useActionState` para forms.** Actions: assinatura `(prevState, formData)`. Bind para passar args extras: `action.bind(null, projetoId)`.
+3. **Ownership via join:** todas as mutações verificam autoria via `projetos!inner(proponentes!inner(user_id))`.
+4. **`revalidatePath`** após toda mutação para forçar re-fetch do Server Component.
+5. **Imports de actions:** alias `@/app/actions/[arquivo]`, nunca caminhos relativos entre pastas distintas.
+6. **Valores monetários:** `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`.
+7. **IDs Supabase são UUID** — `.slice(0, 8)` para exibição curta.
+8. **Mask BRL em inputs:** input exibe string formatada; hidden input `valor_num` envia o float para a action.
+9. **Sem comentários JSX dentro de atributos** — quebra build.
+10. **ZIP + bash para entregas:** extrair em `/tmp`, copiar com `cp -rv` para `src/`, limpar depois.
+
+---
+
+## Entrega de código (padrão desta sessão)
+
+```bash
+# Extrair e instalar (rodar da raiz do projeto):
+unzip ~/poseidon-core/poseidon-FEATURE.zip -d /tmp/nf && \
+cp -rv /tmp/nf/FEATURE/src/* ~/poseidon-core/src/ && \
+rm -rf /tmp/nf ~/poseidon-core/poseidon-FEATURE.zip && \
+cd ~/poseidon-core && git add -A && git commit -m "feat: ..." && git push
+```
+
+---
+
+## Páginas pendentes
+
+- [ ] `/escrita` — assistente de escrita de projetos
+- [ ] `/portfolio` — portfólio do proponente
+- [ ] `/auditoria` — feed de auditoria e compliance
+- [ ] `/configuracoes` — conta, perfil, dados do proponente
+- [ ] Status de glosa nas notas fiscais (interface para admin reprovar/aprovar)
+- [ ] Dashboard de compliance (regras Lei Rouanet por rubrica)
