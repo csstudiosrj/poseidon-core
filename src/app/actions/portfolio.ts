@@ -2,113 +2,152 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { analisarPortfolio } from "@/lib/ia/portfolio";
+import { revalidatePath } from "next/cache";
 
-export async function uploadPortfolioAction(
-  _prevState: { error?: string; success?: boolean; pdfUrl?: string } | null,
-  formData: FormData
-): Promise<{ error?: string; success?: boolean; pdfUrl?: string } | null> {
+export interface ProjetoDestaque {
+  nome: string;
+  ano: number;
+  mecanismo: string;
+}
+
+export interface PortfolioData {
+  bio: string;
+  areas: string[];
+  links: {
+    site?: string;
+    instagram?: string;
+    linkedin?: string;
+  };
+  projetos_destaque: ProjetoDestaque[];
+}
+
+export interface PortfolioPageData {
+  proponente_id: string;
+  nome_razao_social: string;
+  portfolio: PortfolioData;
+}
+
+export const AREAS_CULTURAIS = [
+  "Artes Cênicas",
+  "Artes Visuais",
+  "Audiovisual",
+  "Circo",
+  "Dança",
+  "Design",
+  "Literatura",
+  "Moda",
+  "Música",
+  "Ópera",
+  "Patrimônio Cultural",
+  "Teatro",
+];
+
+const EMPTY_PORTFOLIO: PortfolioData = {
+  bio: "",
+  areas: [],
+  links: {},
+  projetos_destaque: [],
+};
+
+/* ─── Buscar dados do portfolio ─────────────────────────────────── */
+export async function getPortfolioData(): Promise<
+  PortfolioPageData | { error: string }
+> {
   const supabase = await createClient();
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) return { error: "Sessão expirada." };
 
-  const curriculo = formData.get("curriculo") as string;
-  const links = formData.get("links") as string;
-  const fotosUrlsRaw = formData.get("fotosUrls") as string;
-
-  if (!curriculo || curriculo.trim().length < 10) {
-    return { error: "O currículo deve ter pelo menos 10 caracteres." };
-  }
-
-  let fotosUrls: string[] = [];
-  try {
-    fotosUrls = JSON.parse(fotosUrlsRaw);
-    if (!Array.isArray(fotosUrls)) fotosUrls = [];
-  } catch { fotosUrls = []; }
-
-  const linksArray = links
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  const { data: proponente, error: propError } = await supabase
+  const { data, error } = await supabase
     .from("proponentes")
-    .select("nome_razao_social")
+    .select("id, nome_razao_social, portfolio_data")
     .eq("user_id", user.id)
     .single();
 
-  if (propError || !proponente) return { error: "Proponente não encontrado." };
+  if (error || !data) return { error: "Perfil não encontrado." };
 
-  const conteudoPDF = analisarPortfolio({
-    fotos: fotosUrls,
-    links: linksArray,
-    curriculo,
-    nome: proponente.nome_razao_social,
-  });
+  const raw = data.portfolio_data as Record<string, unknown> | null;
+
+  const portfolio: PortfolioData = {
+    bio:
+      typeof raw?.bio === "string" ? raw.bio : EMPTY_PORTFOLIO.bio,
+    areas:
+      Array.isArray(raw?.areas) ? (raw.areas as string[]) : EMPTY_PORTFOLIO.areas,
+    links:
+      raw?.links && typeof raw.links === "object"
+        ? (raw.links as PortfolioData["links"])
+        : EMPTY_PORTFOLIO.links,
+    projetos_destaque:
+      Array.isArray(raw?.projetos_destaque)
+        ? (raw.projetos_destaque as ProjetoDestaque[])
+        : EMPTY_PORTFOLIO.projetos_destaque,
+  };
+
+  return {
+    proponente_id: data.id,
+    nome_razao_social: data.nome_razao_social,
+    portfolio,
+  };
+}
+
+/* ─── Salvar portfolio ──────────────────────────────────────────── */
+export async function salvarPortfolioAction(
+  _prevState: { error?: string; success?: boolean } | null,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Sessão expirada." };
+
+  const bio = ((formData.get("bio") as string) ?? "").trim();
+  const areas = formData.getAll("areas") as string[];
+  const site = ((formData.get("link_site") as string) ?? "").trim() || undefined;
+  const instagram = ((formData.get("link_instagram") as string) ?? "").trim() || undefined;
+  const linkedin = ((formData.get("link_linkedin") as string) ?? "").trim() || undefined;
+
+  // Projetos destaque: enviados como JSON string
+  let projetos_destaque: ProjetoDestaque[] = [];
+  try {
+    const raw = formData.get("projetos_destaque") as string;
+    if (raw) projetos_destaque = JSON.parse(raw) as ProjetoDestaque[];
+  } catch {
+    // ignore parse error
+  }
+
+  // Validação básica
+  if (bio.length > 1000)
+    return { error: "Bio deve ter no máximo 1000 caracteres." };
+
+  if (projetos_destaque.length > 5)
+    return { error: "Máximo de 5 projetos em destaque." };
+
+  const portfolio_data: PortfolioData = {
+    bio,
+    areas,
+    links: { site, instagram, linkedin },
+    projetos_destaque,
+  };
 
   const { error: updateError } = await supabase
     .from("proponentes")
     .update({
-      portfolio_data: {
-        curriculo,
-        fotos: fotosUrls,
-        links: linksArray,
-        conteudo_pdf: conteudoPDF,
-        pdf_gerado_em: new Date().toISOString(),
-      },
+      portfolio_data,
+      updated_at: new Date().toISOString(),
     })
     .eq("user_id", user.id);
 
-  if (updateError) return { error: "Erro ao salvar dados do portfólio." };
-
-  return { success: true };
-}
-
-export async function getPortfolioData() {
-  const supabase = await createClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { error: "Sessão expirada." };
-
-  const { data: proponente, error: propError } = await supabase
-    .from("proponentes")
-    .select("portfolio_data, nome_razao_social")
-    .eq("user_id", user.id)
-    .single();
-
-  if (propError || !proponente) return { error: "Proponente não encontrado." };
-
-  return {
-    nome: proponente.nome_razao_social,
-    portfolio: proponente.portfolio_data || {},
-  };
-}
-
-export async function gerarPDFPortfolioAction(): Promise<{ pdfBase64?: string; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { error: "Sessão expirada." };
-
-  const { data: proponente, error: propError } = await supabase
-    .from("proponentes")
-    .select("portfolio_data, nome_razao_social")
-    .eq("user_id", user.id)
-    .single();
-
-  if (propError || !proponente || !proponente.portfolio_data?.curriculo) {
-    return { error: "Portfólio não encontrado. Cadastre seu currículo primeiro." };
+  if (updateError) {
+    console.error("Erro ao salvar portfolio:", updateError);
+    return { error: "Erro ao salvar. Tente novamente." };
   }
 
-  // Gera o PDF usando o módulo de IA (que retorna o conteúdo textual)
-  const conteudo = analisarPortfolio({
-    fotos: proponente.portfolio_data.fotos || [],
-    links: proponente.portfolio_data.links || [],
-    curriculo: proponente.portfolio_data.curriculo,
-    nome: proponente.nome_razao_social,
-  });
-
-  // Retorna o conteúdo para renderização no frontend com @react-pdf/renderer
-  return { pdfBase64: Buffer.from(conteudo).toString("base64") };
+  revalidatePath("/portfolio");
+  return { success: true };
 }
