@@ -2,186 +2,263 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import {
-  processarComando,
-  validarContraTetos,
-  ContextoOrcamento,
-  MensagemChat,
-} from "@/lib/ia/orcamentista";
-import { RegrasMecanismo } from "@/lib/ia/tipos";
+import { revalidatePath } from "next/cache";
 
-export async function enviarMensagemAction(
-  _prevState: { historico: MensagemChat[]; contexto?: ContextoOrcamento; erro?: string } | null,
-  formData: FormData
-): Promise<{ historico: MensagemChat[]; contexto?: ContextoOrcamento; erro?: string } | null> {
-  const supabase = await createClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { historico: [], erro: "Sessão expirada." };
-
-  const projetoId = formData.get("projeto_id") as string;
-  const fonteId = formData.get("fonte_id") as string;
-  const mensagemUsuario = formData.get("mensagem") as string;
-  const contextoRaw = formData.get("contexto") as string;
-
-  if (!projetoId || !fonteId || !mensagemUsuario) {
-    return { historico: [], erro: "Dados incompletos." };
-  }
-
-  let contexto: ContextoOrcamento;
-  if (contextoRaw) {
-    contexto = JSON.parse(contextoRaw);
-  } else {
-    const { data: fonte } = await supabase
-      .from("projeto_fontes")
-      .select("valor_captacao, configuracao_regras, biblioteca_regras (configuracao_regras, mecanismo_nome, esfera)")
-      .eq("id", fonteId)
-      .single();
-
-    if (!fonte) return { historico: [], erro: "Fonte não encontrada." };
-
-    const biblioteca = Array.isArray(fonte.biblioteca_regras)
-      ? fonte.biblioteca_regras[0]
-      : fonte.biblioteca_regras;
-
-    const regras: RegrasMecanismo =
-      (fonte.configuracao_regras as RegrasMecanismo) ||
-      (biblioteca?.configuracao_regras as RegrasMecanismo) || {
-        mecanismo_nome: biblioteca?.mecanismo_nome || "Desconhecido",
-        esfera: (biblioteca?.esfera as "Federal" | "Estadual" | "Municipal") || "Federal",
-        secoes_obrigatorias: [],
-        tetos: [],
-        campos_formulario: [],
-        documentos_obrigatorios: [],
-      };
-
-    const { data: itensExistentes } = await supabase
-      .from("itens_orcamentarios")
-      .select("descricao, categoria, valor, quantidade, justificativa")
-      .eq("projeto_id", projetoId);
-
-    contexto = {
-      projetoId,
-      fonteId,
-      orcamentoTotal: fonte.valor_captacao || 0,
-      itens: (itensExistentes || []).map((item: any) => ({
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor: item.valor,
-        quantidade: item.quantidade || 1,
-        justificativa: item.justificativa,
-      })),
-      regras,
-    };
-  }
-
-  const comando = processarComando(mensagemUsuario, contexto);
-  const historico: MensagemChat[] = [];
-
-  switch (comando.acao) {
-    case "adicionar": {
-      if (comando.item) {
-        contexto.itens.push(comando.item);
-        const alertas = validarContraTetos(contexto.itens, contexto.regras, contexto.orcamentoTotal);
-        historico.push({
-          tipo: "assistente",
-          texto: `✅ Item adicionado: "${comando.item.descricao}" — R$ ${comando.item.valor.toFixed(2)}`,
-          alertas,
-        });
-      }
-      break;
-    }
-    case "alterar": {
-      if (comando.indice !== undefined && comando.item && contexto.itens[comando.indice]) {
-        contexto.itens[comando.indice].valor = comando.item.valor;
-        const alertas = validarContraTetos(contexto.itens, contexto.regras, contexto.orcamentoTotal);
-        historico.push({
-          tipo: "assistente",
-          texto: `✅ Item ${comando.indice + 1} alterado para R$ ${comando.item.valor.toFixed(2)}`,
-          alertas,
-        });
-      }
-      break;
-    }
-    case "remover": {
-      if (comando.indice !== undefined && contexto.itens[comando.indice]) {
-        const removido = contexto.itens.splice(comando.indice, 1)[0];
-        const alertas = validarContraTetos(contexto.itens, contexto.regras, contexto.orcamentoTotal);
-        historico.push({
-          tipo: "assistente",
-          texto: `🗑️ Item ${comando.indice + 1} ("${removido.descricao}") removido.`,
-          alertas,
-        });
-      }
-      break;
-    }
-    case "listar": {
-      if (contexto.itens.length === 0) {
-        historico.push({ tipo: "assistente", texto: "Nenhum item cadastrado." });
-      } else {
-        historico.push({
-          tipo: "assistente",
-          texto: "📋 Itens atuais:",
-          itens: contexto.itens,
-        });
-      }
-      break;
-    }
-    default: {
-      historico.push({
-        tipo: "assistente",
-        texto: "Não entendi. Tente comandos como:\n• 'adicionar [descrição] de R$ [valor]'\n• 'alterar item [número] para R$ [valor]'\n• 'remover item [número]'\n• 'listar itens'",
-      });
-    }
-  }
-
-  const historicoCompleto: MensagemChat[] = [
-    { tipo: "usuario", texto: mensagemUsuario },
-    ...historico,
-  ];
-
-  return { historico: historicoCompleto, contexto };
+/* ─── tipos ────────────────────────────────────────────────────── */
+export interface ProjetoFonte {
+  id:             string;
+  projeto_id:     string;
+  tipo:           string;
+  nome_fonte:     string | null;
+  valor_captacao: number;
+  status:         string | null;
+  created_at:     string | null;
 }
 
-export async function salvarOrcamentoAction(
-  _prevState: { success?: boolean; erro?: string } | null,
-  formData: FormData
-): Promise<{ success?: boolean; erro?: string } | null> {
+export interface ItemOrcamentario {
+  id:         string;
+  projeto_id: string;
+  fonte_id:   string | null;
+  descricao:  string;
+  valor:      number;
+  quantidade: number;
+  categoria:  string | null;
+  created_at: string;
+}
+
+export interface OrcamentoData {
+  projeto: { id: string; nome_projeto: string };
+  fontes:  ProjetoFonte[];
+  itens:   ItemOrcamentario[];
+}
+
+export const TIPOS_FONTE = [
+  "Lei de Incentivo",
+  "Edital Público",
+  "Patrocínio Direto",
+  "Contrapartida",
+  "Recurso Próprio",
+  "Outros",
+] as const;
+
+export const STATUS_FONTE: Record<string, string> = {
+  pendente:  "Pendente",
+  aprovada:  "Aprovada",
+  cancelada: "Cancelada",
+};
+
+export const CATEGORIAS_ITEM: Record<string, string> = {
+  administracao:  "Administração",
+  cache:          "Cachê",
+  infraestrutura: "Infraestrutura",
+  divulgacao:     "Divulgação",
+  captacao:       "Captação",
+  formacao:       "Formação",
+};
+
+/* ─── helper: verifica posse do projeto ──────────────────────────── */
+async function resolverProjeto(projetoId: string) {
   const supabase = await createClient();
-
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { erro: "Sessão expirada." };
+  if (authError || !user) return { error: "Sessão expirada." } as const;
 
-  const projetoId = formData.get("projeto_id") as string;
-  const fonteId = formData.get("fonte_id") as string;
-  const itensRaw = formData.get("itens") as string;
+  const { data: proponente } = await supabase
+    .from("proponentes")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!proponente) return { error: "Perfil não encontrado." } as const;
 
-  if (!projetoId || !fonteId || !itensRaw) return { erro: "Dados incompletos." };
+  const { data: projeto } = await supabase
+    .from("projetos")
+    .select("id, nome_projeto")
+    .eq("id", projetoId)
+    .eq("proponente_id", proponente.id)
+    .single();
+  if (!projeto) return { error: "Projeto não encontrado." } as const;
 
-  const itens = JSON.parse(itensRaw) as { descricao: string; categoria: string; valor: number; quantidade: number; justificativa?: string }[];
+  return { supabase, proponente, projeto } as const;
+}
 
-  const { error: deleteError } = await supabase
-    .from("itens_orcamentarios")
-    .delete()
+/* ─── buscar orçamento de um projeto ─────────────────────────────── */
+export async function getOrcamento(
+  projetoId: string,
+): Promise<OrcamentoData | { error: string }> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return ctx;
+  const { supabase, projeto } = ctx;
+
+  const [{ data: fontes, error: fe }, { data: itens, error: ie }] =
+    await Promise.all([
+      supabase
+        .from("projeto_fontes")
+        .select("id, projeto_id, tipo, nome_fonte, valor_captacao, status, created_at")
+        .eq("projeto_id", projetoId)
+        .order("created_at"),
+      supabase
+        .from("itens_orcamentarios")
+        .select("id, projeto_id, fonte_id, descricao, valor, quantidade, categoria, created_at")
+        .eq("projeto_id", projetoId)
+        .order("created_at"),
+    ]);
+
+  if (fe) return { error: "Erro ao buscar fontes." };
+  if (ie) return { error: "Erro ao buscar itens." };
+
+  return {
+    projeto,
+    fontes:  (fontes ?? []) as ProjetoFonte[],
+    itens:   (itens  ?? []) as ItemOrcamentario[],
+  };
+}
+
+/* ─── FONTES ──────────────────────────────────────────────────────── */
+export async function adicionarFonteAction(
+  projetoId: string,
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const tipo           = (formData.get("tipo")           as string | null)?.trim();
+  const nome_fonte     = (formData.get("nome_fonte")     as string | null)?.trim() || null;
+  const valor_captacao = parseFloat((formData.get("valor_captacao") as string) ?? "0");
+  const status         = (formData.get("status") as string | null) || "pendente";
+
+  if (!tipo)             return { error: "Tipo é obrigatório." };
+  if (isNaN(valor_captacao) || valor_captacao < 0) return { error: "Valor inválido." };
+
+  const { error } = await supabase.from("projeto_fontes").insert({
+    projeto_id: projetoId, tipo, nome_fonte, valor_captacao, status,
+  });
+
+  if (error) return { error: "Erro ao adicionar fonte." };
+  revalidatePath(`/orcamento/${projetoId}`);
+  return { success: true };
+}
+
+export async function editarFonteAction(
+  fonteId: string,
+  projetoId: string,
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const tipo           = (formData.get("tipo")           as string | null)?.trim();
+  const nome_fonte     = (formData.get("nome_fonte")     as string | null)?.trim() || null;
+  const valor_captacao = parseFloat((formData.get("valor_captacao") as string) ?? "0");
+  const status         = (formData.get("status") as string | null) || "pendente";
+
+  if (!tipo) return { error: "Tipo é obrigatório." };
+
+  const { error } = await supabase
+    .from("projeto_fontes")
+    .update({ tipo, nome_fonte, valor_captacao, status })
+    .eq("id", fonteId)
     .eq("projeto_id", projetoId);
 
-  if (deleteError) return { erro: "Erro ao limpar itens antigos." };
-
-  const { error: insertError } = await supabase
-    .from("itens_orcamentarios")
-    .insert(
-      itens.map((item) => ({
-        projeto_id: projetoId,
-        fonte_id: fonteId,
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor: item.valor,
-        quantidade: item.quantidade || 1,
-        justificativa: item.justificativa || "",
-      }))
-    );
-
-  if (insertError) return { erro: "Erro ao salvar itens." };
-
+  if (error) return { error: "Erro ao salvar fonte." };
+  revalidatePath(`/orcamento/${projetoId}`);
   return { success: true };
+}
+
+export async function deletarFonteAction(
+  fonteId: string,
+  projetoId: string,
+): Promise<{ error?: string }> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const { error } = await supabase
+    .from("projeto_fontes")
+    .delete()
+    .eq("id", fonteId)
+    .eq("projeto_id", projetoId);
+
+  if (error) return { error: "Erro ao excluir fonte." };
+  revalidatePath(`/orcamento/${projetoId}`);
+  return {};
+}
+
+/* ─── ITENS ───────────────────────────────────────────────────────── */
+export async function adicionarItemAction(
+  projetoId: string,
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const descricao  = (formData.get("descricao")  as string | null)?.trim();
+  const categoria  = (formData.get("categoria")  as string | null) || null;
+  const fonte_id   = (formData.get("fonte_id")   as string | null) || null;
+  const valor      = parseFloat((formData.get("valor")      as string) ?? "0");
+  const quantidade = parseInt  ((formData.get("quantidade") as string) ?? "1", 10);
+
+  if (!descricao)                    return { error: "Descrição é obrigatória." };
+  if (isNaN(valor) || valor < 0)     return { error: "Valor inválido." };
+  if (isNaN(quantidade) || quantidade < 1) return { error: "Quantidade inválida." };
+
+  const { error } = await supabase.from("itens_orcamentarios").insert({
+    projeto_id: projetoId, fonte_id, descricao, valor, quantidade, categoria,
+  });
+
+  if (error) return { error: "Erro ao adicionar item." };
+  revalidatePath(`/orcamento/${projetoId}`);
+  return { success: true };
+}
+
+export async function editarItemAction(
+  itemId: string,
+  projetoId: string,
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const descricao  = (formData.get("descricao")  as string | null)?.trim();
+  const categoria  = (formData.get("categoria")  as string | null) || null;
+  const fonte_id   = (formData.get("fonte_id")   as string | null) || null;
+  const valor      = parseFloat((formData.get("valor")      as string) ?? "0");
+  const quantidade = parseInt  ((formData.get("quantidade") as string) ?? "1", 10);
+
+  if (!descricao) return { error: "Descrição é obrigatória." };
+
+  const { error } = await supabase
+    .from("itens_orcamentarios")
+    .update({ fonte_id, descricao, valor, quantidade, categoria })
+    .eq("id", itemId)
+    .eq("projeto_id", projetoId);
+
+  if (error) return { error: "Erro ao salvar item." };
+  revalidatePath(`/orcamento/${projetoId}`);
+  return { success: true };
+}
+
+export async function deletarItemAction(
+  itemId: string,
+  projetoId: string,
+): Promise<{ error?: string }> {
+  const ctx = await resolverProjeto(projetoId);
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const { error } = await supabase
+    .from("itens_orcamentarios")
+    .delete()
+    .eq("id", itemId)
+    .eq("projeto_id", projetoId);
+
+  if (error) return { error: "Erro ao excluir item." };
+  revalidatePath(`/orcamento/${projetoId}`);
+  return {};
 }
